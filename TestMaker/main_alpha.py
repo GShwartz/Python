@@ -153,9 +153,7 @@ def finish(lines):
     print("\n\n==============RESULTS==============\n")
     print("#\t Question\t Answer\t\t Score")
     number_of_questions = len(question_list)
-    for i, q, a, s in range(number_of_questions), list(question_list), list(answers), list(scores_local):
-        print(f"{i+1}\t {question_list[q]}\t\t {answers[a]}\t\t {scores_local[s]}")
-
+    
 
 def main():
 
