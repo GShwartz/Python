@@ -1,5 +1,5 @@
 Offensive Cyber Python Project
-By Gil Shwartz
+==============================
 
 This is a mouse movement-based spyware/backdoor program written in Python.
 This demo has preset timers, IRL, timers are set randomly, the last timer is 24hrs fixed. 
