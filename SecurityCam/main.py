@@ -83,9 +83,11 @@ class VideoStreamWidget:
             cv2.destroyAllWindows()
             exit()
 
-        if key == ord("c"):
-            img_name = fr"{recording_dir}/{self.current_time}.jpg"
-            cv2.imwrite(img_name, self.frame)
+        elif key == ord("c"):
+            current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
+            imgname = os.path.join(fr"{recording_dir}", fr"{current_time}.jpg")
+            cv2.imwrite(imgname, self.frame)
+            print(f"Captured {imgname}.")
 
 
 if __name__ == "__main__":
