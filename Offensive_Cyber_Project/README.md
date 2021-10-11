@@ -28,6 +28,7 @@ Background activity (Victim Side):
 • Backdoor connection always alive and trying to connect to the attacker’s C&C by a random choice of port numbers given by the attacker to avoid pattern detection.
 
 Server side activity:
+
 • A command and control server responsible for handling incoming connections from victims and interact with each connection as a reverse shell or run a Botnet command to all       connected machines.
 • In a real environment the server will be hosted behind a DNS to overcome the IP changes.
 • The server is currently set to listen on 100 ports (set by a designated random loop) between 5000 and 65500.
