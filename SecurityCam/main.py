@@ -1,56 +1,119 @@
-import os
-import cv2
-import time
+from tkinter import filedialog
+from threading import Thread
+from datetime import date
+import tkinter as tk
 import datetime
+import time
+import cv2
+import os
 
-dr = f"C:\\Users\\{os.getlogin()}\\Desktop\\"
-cap = cv2.VideoCapture(0)
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-detection = False
-detection_stopped_time = None
-timer_started = False
-sec_to_rec_dectection = 30
-frame_size = (int(cap.get(3)), int(cap.get(4)))
-video_code = cv2.VideoWriter_fourcc(*"mp4v")
 
-while True:
-    _, frame = cap.read()
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 6)
+class VideoStreamWidget:
+    def __init__(self, src):
+        self.src = src
+        self.capture = cv2.VideoCapture(self.src, cv2.CAP_DSHOW)
+        self.detection = False
+        self.timer_started = False
+        self.frame_size = (int(self.capture.get(3)), int(self.capture.get(4)))
+        self.detection_stopped_time = None
 
-    if len(faces) > 0:
-        if detection:
-            timer_started = False
+        self.thread = Thread(target=self.update, name="Update Thread")
+        self.thread.daemon = True
+        self.thread.start()
 
-        else:
-            detection = True
-            current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
-            out = cv2.VideoWriter(
-                f"{dr}{current_time}.mp4", video_code, 20.0, frame_size)
-            print("Recording started!")
+    def update(self):
+        while True:
+            if self.capture.isOpened():
+                self.status, self.frame = self.capture.read()
+                self.gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                self.faces = face_cascade.detectMultiScale(self.gray, 1.3, 5)
 
-    elif detection:
-        if timer_started:
-            if time.time() - detection_stopped_time >= sec_to_rec_dectection:
-                detection = False
-                timer_started = False
-                out.release()
-                print("Recording stopped!")
-        else:
-            timer_started = True
-            detection_stopped_time = time.time()
+                if len(self.faces) > 0:
+                    if self.detection:
+                        self.timer_started = False
 
-    if detection:
-        out.write(frame)
+                    else:
+                        self.detection = True
+                        self.current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
+                        self.out = cv2.VideoWriter(
+                            fr"{recording_dir}/{self.current_time}.mp4", video_code, 20.0, self.frame_size)
+                        print("Recording started!")
 
-    for (x, y, width, height) in faces:
-        cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 255), 2)
+                if self.detection:
+                    if self.timer_started:
+                        if (time.time() - self.detection_stopped_time) >= sec_to_rec_dectection:
+                            self.detection = False
+                            self.timer_started = False
+                            self.out.release()
+                            self.out.write(self.frame)
+                            print("Recording Stopped!")
+                    else:
+                        self.timer_started = True
+                        self.detection_stopped_time = time.time()
 
-    cv2.imshow("Camera", frame)
+                if self.detection:
+                    self.out.write(self.frame)
 
-    if cv2.waitKey(1) == ord('q'):
-        break
+            time.sleep(.01)
 
-out.release()
-cap.release()
-cv2.destroyAllWindows()
+    def show_datetime(self):
+        date_font = cv2.FONT_HERSHEY_SCRIPT_COMPLEX
+        dt = str(datetime.datetime.today().replace(microsecond=0))
+
+        dt_frame = cv2.putText(self.frame, dt, (0, 470), date_font, 1, (255, 255, 255), 2, cv2.LINE_4)
+
+    def show_frame(self):
+        self.date_thread = Thread(target=self.show_datetime, name="Date Thread")
+        self.date_thread.daemon = True
+        self.date_thread.start()
+
+        for (x, y, width, height) in self.faces:
+            cv2.rectangle(self.frame, (x, y), (x + width, y + height), (0, 255, 255), 2)
+            font = cv2.FONT_HERSHEY_PLAIN
+            cv2.putText(self.frame, "Detector", ((x - width) + height, (y + height) - (width + 3)),
+                        font, 0.7, (255, 255, 255), 1)
+
+        cv2.imshow(f'Camera: {self.src}', self.frame)
+        key = cv2.waitKey(1)
+
+        if key == ord('q'):
+            self.out.release()
+            self.capture.release()
+            print("User Exit!")
+            cv2.destroyAllWindows()
+            exit()
+
+        if key == ord("c"):
+            img_name = fr"{recording_dir}/{self.current_time}.jpg"
+            cv2.imwrite(img_name, self.frame)
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()
+
+    print("Choose video files location...")
+    recording_dir = filedialog.askdirectory()
+    if len(recording_dir) == 0:
+        print("User cancelled, quitting...")
+        exit()
+
+    try:
+        os.makedirs(recording_dir)
+
+    except Exception as err:
+        pass
+
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    video_code = cv2.VideoWriter_fourcc(*"mp4v")
+    sec_to_rec_dectection = 30
+
+    video_stream_widget = VideoStreamWidget(src=0)
+    print("Starting camera...")
+    time.sleep(1)
+
+    while True:
+        try:
+            video_stream_widget.show_frame()
+        except AttributeError:
+            pass
