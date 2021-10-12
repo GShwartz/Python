@@ -2,7 +2,9 @@ from tkinter import filedialog
 from threading import Thread
 from datetime import date
 import tkinter as tk
+import numpy as np
 import datetime
+import detector
 import time
 import cv2
 import os
@@ -16,19 +18,73 @@ class VideoStreamWidget:
         self.timer_started = False
         self.frame_size = (int(self.capture.get(3)), int(self.capture.get(4)))
         self.detection_stopped_time = None
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        self.video_code = cv2.VideoWriter_fourcc(*"mp4v")
+        self.sec_to_rec_dectection = 30
 
         self.thread = Thread(target=self.update, name="Update Thread")
         self.thread.daemon = True
         self.thread.start()
+
+    def motion_detect(self, frame):
+        while True:
+            _, motion_frame = self.capture.read()
+            diff = cv2.absdiff(motion_frame, frame)
+            gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+            blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+            _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+            dilated = cv2.dilate(thresh, None, iterations=3)
+            contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            for contour in contours:
+                (x, y, w, h) = cv2.boundingRect(contour)
+
+                if cv2.contourArea(contour) < 1000:
+                    continue
+
+                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                cv2.putText(frame, "Detection", (10, 20),
+                            cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 1)
 
     def update(self):
         while True:
             if self.capture.isOpened():
                 self.status, self.frame = self.capture.read()
                 self.gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-                self.faces = face_cascade.detectMultiScale(self.gray, 1.3, 5)
+                self.faces = self.face_cascade.detectMultiScale(self.gray, 1.3, 5)
+                _, self.motion_frame = self.capture.read()
+                self.diff = cv2.absdiff(self.motion_frame, self.frame)
+                self.gray_motion = cv2.cvtColor(self.diff, cv2.COLOR_BGR2GRAY)
+                self.blur = cv2.GaussianBlur(self.gray_motion, (5, 5), 0)
 
-                if len(self.faces) > 0:
+                _, self.thresh = cv2.threshold(self.blur, 20, 255, cv2.THRESH_BINARY)
+                self.dilated = cv2.dilate(self.thresh, None, iterations=3)
+                self.contours, _ = cv2.findContours(self.dilated, cv2.RETR_TREE,
+                                                    cv2.CHAIN_APPROX_SIMPLE)
+
+                for contour in self.contours:
+                    (x, y, w, h) = cv2.boundingRect(contour)
+
+                    if cv2.contourArea(contour) < 800:
+                        continue
+
+                    cv2.rectangle(self.frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                    cv2.putText(self.frame, "Motion Detected", (10, 20),
+                                cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 1)
+
+                # date_font = cv2.FONT_ITALIC
+                # dt = str(datetime.datetime.today().replace(microsecond=0))
+                #
+                # dt_frame = cv2.putText(self.frame, dt, (0, 470),
+                #                        date_font, 1, (255, 255, 255), 2,
+                #                        cv2.LINE_8)
+
+                self.date_thread = Thread(target=self.show_datetime, name="Date Thread")
+                self.date_thread.daemon = True
+                self.date_thread.start()
+
+                if len(self.faces) > 0 or len(self.contours) > 0:
                     if self.detection:
                         self.timer_started = False
 
@@ -36,12 +92,12 @@ class VideoStreamWidget:
                         self.detection = True
                         self.current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
                         self.out = cv2.VideoWriter(
-                            fr"{recording_dir}/{self.current_time}.mp4", video_code, 20.0, self.frame_size)
+                            fr"{recording_dir}/{self.current_time}.mp4", self.video_code, 20.0, self.frame_size)
                         print("Recording started!")
 
                 if self.detection:
                     if self.timer_started:
-                        if (time.time() - self.detection_stopped_time) >= sec_to_rec_dectection:
+                        if (time.time() - self.detection_stopped_time) >= self.sec_to_rec_dectection:
                             self.detection = False
                             self.timer_started = False
                             self.out.release()
@@ -57,16 +113,14 @@ class VideoStreamWidget:
             time.sleep(.01)
 
     def show_datetime(self):
-        date_font = cv2.FONT_HERSHEY_SCRIPT_COMPLEX
+        date_font = cv2.FONT_ITALIC
         dt = str(datetime.datetime.today().replace(microsecond=0))
 
-        dt_frame = cv2.putText(self.frame, dt, (0, 470), date_font, 1, (255, 255, 255), 2, cv2.LINE_4)
+        dt_frame = cv2.putText(self.frame, dt, (0, 470),
+                               date_font, 1, (255, 255, 255), 2,
+                               cv2.LINE_8)
 
     def show_frame(self):
-        self.date_thread = Thread(target=self.show_datetime, name="Date Thread")
-        self.date_thread.daemon = True
-        self.date_thread.start()
-
         for (x, y, width, height) in self.faces:
             cv2.rectangle(self.frame, (x, y), (x + width, y + height), (0, 255, 255), 2)
             font = cv2.FONT_HERSHEY_PLAIN
@@ -105,10 +159,6 @@ if __name__ == "__main__":
 
     except Exception as err:
         pass
-
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    video_code = cv2.VideoWriter_fourcc(*"mp4v")
-    sec_to_rec_dectection = 30
 
     video_stream_widget = VideoStreamWidget(src=0)
     print("Starting camera...")
