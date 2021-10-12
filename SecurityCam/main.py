@@ -109,8 +109,7 @@ class VideoStreamWidget:
             exit()
 
         elif key == ord("c"):
-            current_time = datetime.datetime.now().strftime("%d-%m-%Y-%H.%M.%S")
-            imgname = os.path.join(fr"{recording_dir}", fr"{current_time}.jpg")
+            imgname = os.path.join(fr"{recording_dir}", fr"{self.current_time}.jpg")
             cv2.imwrite(imgname, self.frame)
             print(f"Captured {imgname}.")
 
@@ -131,12 +130,15 @@ if __name__ == "__main__":
     except Exception as err:
         pass
 
-    video_stream_widget = VideoStreamWidget(src=0)
-    print("Starting camera...")
-    time.sleep(1)
-
+    video_sources = [0]
     while True:
+        for source in video_sources:
+            video_stream_widget = VideoStreamWidget(src=source)
+            print(f"Starting camera {source}...")
+            time.sleep(1)
+            
         try:
             video_stream_widget.show_frame()
+            
         except AttributeError:
             pass
