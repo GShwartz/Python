@@ -10,6 +10,8 @@ Press 'q' to close the app.
 
 press 'c' to capture screenshot to recording dir
 
+*** SUPPORTS MULTI CAMERAS ***
+
 Note: 
 
 The app won't work if the camera is already in use.
@@ -17,4 +19,4 @@ The app won't work if the camera is already in use.
 future features:
 1. Manual set of detection timer (current=30).
 2. Face recognition.
-3. Multi cameras.
+
