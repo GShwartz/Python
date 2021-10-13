@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     letter_chars = list(string.ascii_letters)
     numbers_chars = list(string.digits)
-    special_chars = list("!@#$%^&*_+")
+    special_chars = list("!@#$%^&*_+(){}|][")
     mixed = list(string.ascii_letters + string.digits + "!@#$%^&*_+()[]{}<>")
     dups = []
     password = []
