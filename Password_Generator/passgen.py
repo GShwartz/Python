@@ -17,13 +17,11 @@ def generate_password(length):
     while True:
         for k, v in counter.items():
             if int(v) > 1:
-                print(f"{k} found more than once, replacing...")
                 for char in password:
                     if str(char) == str(k):
                         if str(k) not in dups:
                             dups.append(k)
                             password.remove(k)
-                            print(f"removed {k} from list")
 
                 if len(password) < int(length):
                     for i in range(int(length) - len(password)):
