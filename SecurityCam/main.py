@@ -137,8 +137,8 @@ if __name__ == "__main__":
             print(f"Starting camera {source}...")
             time.sleep(1)
             
-        try:
-            video_stream_widget.show_frame()
+            try:
+                video_stream_widget.show_frame()
             
-        except AttributeError:
-            pass
+            except AttributeError:
+                pass
