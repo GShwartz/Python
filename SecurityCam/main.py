@@ -4,7 +4,6 @@ from datetime import date
 import tkinter as tk
 import numpy as np
 import datetime
-import detector
 import time
 import cv2
 import os
