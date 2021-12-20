@@ -1,13 +1,16 @@
-import pyautogui
-import keyboard
-import win32api
-import win32com.client
-import win32con
-import win32gui
-import threading
-import random
-import time
-import sys
+from time import gmtime, strftime   # Display current time for logging.
+import pyautogui    # Graphic Automation.
+import keyboard     # Keyboard Simulation.
+import win32api             # Windows components.
+import win32com.client      # Windows components.
+import win32con             # Windows components.
+import win32gui             # Windows components.
+import threading    # For mouse position display.
+import random       # Random number for Sleeper's timer.
+import ctypes       # For Keyboard language validation.
+import time         # Pause between actions, Mouse drag Duration time.
+import sys          # Display counter while sleeper in action
+import os           # Get current logged in User and save log file in Documents.
 
 
 class Player1:
@@ -98,11 +101,11 @@ class Player1:
         gamma_task_force(self.gamma_select_x, self.gamma_select_y)
         time.sleep(pause)
 
-        # # Return To Legends
-        # pyautogui.moveTo(discovery_tab_mouse_x, discovery_tab_mouse_y, duration=dur)
-        # time.sleep(pause)
-        # click(discovery_tab_mouse_x, discovery_tab_mouse_y)
-        # time.sleep(pause)
+        # Return To Legends
+        pyautogui.moveTo(discovery_tab_mouse_x, discovery_tab_mouse_y, duration=dur)
+        time.sleep(pause)
+        click(discovery_tab_mouse_x, discovery_tab_mouse_y)
+        time.sleep(pause)
 
         return
 
@@ -188,10 +191,12 @@ class Player1:
         pyautogui.moveTo(self.duff_1_x, self.duff_1_y, duration=dur)
         time.sleep(pause)
         for i in range(1, 22):
-            print(f"[i]Collecting reward #{i}")
+            print(f"[i]Player 1: Collecting reward #{i}...\n")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Collecting reward...\n")
             click(self.duff_1_x, self.duff_1_y)
-            time.sleep(1)
-            print(f"[i]reward #{i} collected")
+            time.sleep(0.8)
+            print(f"[i]Player 1: reward #{i} collected.")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Reward collected.\n")
 
 
 class Player2:
@@ -372,10 +377,12 @@ class Player2:
         pyautogui.moveTo(self.duff_1_x, self.duff_1_y, duration=dur)
         time.sleep(pause)
         for i in range(1, 22):
-            print(f"[i]Collecting reward #{i}")
+            print(f"[i]Player 2: Collecting reward #{i}")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Collecting reward.\n")
             click(self.duff_1_x, self.duff_1_y)
             time.sleep(1)
-            print(f"[i]reward #{i} collected")
+            print(f"[i]Player 2 : reward #{i} collected")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Reward collected.\n")
 
 
 class DilRefine:
@@ -410,8 +417,6 @@ class Character:
         self.play_x, self.play_y = 425, 875
 
     def act(self):
-        keyboard.press_and_release("esc")
-
         # Click the Change Character button
         pyautogui.moveTo(self.changeButton_x, self.changeButton_y, duration=dur)
         time.sleep(pause)
@@ -449,23 +454,33 @@ def discovery_legends(x, y):
     click(discovery_tab_mouse_x, discovery_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -479,23 +494,33 @@ def task_force_omega(x, y):
     click(omega_tab_mouse_x, omega_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -507,23 +532,33 @@ def nukara_strike_force(x, y):
     click(nukara_tab_mouse_x, nukara_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -537,23 +572,33 @@ def new_romulus(x, y):
     click(romulus_tab_mouse_x, romulus_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -567,23 +612,33 @@ def dyson_joint_command(x, y):
     click(dyson_tab_mouse_x, dyson_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -597,23 +652,33 @@ def counter_command(x, y):
     click(counter_command_tab_mouse_x, counter_command_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -627,23 +692,33 @@ def delta_alliance(x, y):
     click(delta_tab_mouse_x, delta_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -657,23 +732,33 @@ def iconian_resistance(x, y):
     click(iconian_tab_mouse_x, iconian_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -687,23 +772,33 @@ def terran_task_force(x, y):
     click(terran_tab_mouse_x, terran_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -717,23 +812,33 @@ def temporal_defence_initiative(x, y):
     click(temporal_tab_mouse_x, temporal_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -747,23 +852,33 @@ def lukari_task_force(x, y):
     click(lukari_tab_mouse_x, lukari_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -777,23 +892,33 @@ def competetive_wargames(x, y):
     click(competetive_tab_mouse_x, competetive_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -807,23 +932,33 @@ def gamma_task_force(x, y):
     click(gamma_tab_mouse_x, gamma_tab_mouse_y)
     time.sleep(pause)
 
+    # Project 1 Reward
+    pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
+    click(project1_x, project1_y)
+    time.sleep(pause)
+
     # Project 1
     pyautogui.moveTo(project1_x, project1_y, duration=dur)
+    time.sleep(pause)
     click(project1_x, project1_y)
     time.sleep(pause)
 
     # Click on Select Button
     pyautogui.moveTo(x, y, duration=dur)
+    time.sleep(pause)
     click(x, y)
     time.sleep(pause)
 
     # Click on Fill All Button
     pyautogui.moveTo(fill_x, fill_y, duration=dur)
+    time.sleep(pause)
     click(fill_x, fill_y)
     time.sleep(pause)
 
     # Click on Confirm Button
     pyautogui.moveTo(confirm_x, confirm_y, duration=dur)
+    time.sleep(pause)
     click(confirm_x, confirm_y)
     time.sleep(pause)
 
@@ -849,6 +984,7 @@ def sleeper(timeslept):
     # sleeptime = random.randint(480, 2400)
     sleeptime = random.randint(5, 10)
     print(f"[i]Sleeper set for {sleeptime} seconds.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Sleeper set for {sleeptime} seconds.\n")
     for x in range(sleeptime, 0, -1):
         sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
         time.sleep(1)
@@ -861,10 +997,15 @@ def sleeper(timeslept):
 def change_player():
     # Change Character
     print("[i]Changing character...")
-    keyboard.press_and_release("esc")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Changing Character\n")
+    pyautogui.moveTo(menu_x, menu_y, duration=dur)
+    time.sleep(pause)
+    click(menu_x, menu_y)
+    time.sleep(pause)
     Character().act()
     time.sleep(pause)
     print("[i]Finished Character change.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Character changed.\n")
 
     return
 
@@ -883,37 +1024,51 @@ def player1_automation():
     global player1_round
 
     # Start Reputation Automation
-    print(f"[i]Starting trainer Player 1")
+    print(f"[i]Starting automation for Player 1")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Starting automation for Player 1\n")
     pyautogui.moveTo(100, 100, duration=dur)
+    time.sleep(pause)
     keyboard.press_and_release("[")
     time.sleep(pause)
+    print("[i]Player 1: Running Reputation automation...")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Reputation automation.\n")
     Player1().act_reputation()
     time.sleep(pause)
     keyboard.press_and_release("[")
     time.sleep(pause)
     keyboard.press_and_release("]")
     time.sleep(pause)
+    print("Player 1: Reputation automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Reputation automation completed.\n")
 
     # Start Admiralty Automation
+    print("[i]Running Admiralty automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Admiralty automation. \n")
     Player1().act_admiralty()
-    print("[i]Admiralty automation completed.")
+    print("[i]Player 1: Admiralty automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Admiralty Automation completed.\n")
     time.sleep(pause)
 
     # Start Duty Officers Automation
-    print("[i]Starting DutyOfficers automation.")
+    print("[i]Player 1: Starting DutyOfficers automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running DutyOfficers automation.\n")
     Player1().act_dutyofficers()
     time.sleep(pause)
     keyboard.press_and_release("]")
     time.sleep(pause)
-    print("[i]DutyOfficers automation completed.")
+    print("[i]Player 1: DutyOfficers automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: DutyOfficers automation completed.\n")
 
     # Start Refining Automation
-    print("[i]Starting Refining trainer...")
+    print("[i]Player 1: Running Refining automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Refining automation.\n")
     keyboard.press_and_release("i")
     time.sleep(pause)
     DilRefine().act()
+    time.sleep(pause)
     keyboard.press_and_release("i")
-    print("[i]Finished Refining trainer.")
+    print("[i]Player 1: Finished Refining automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Refining automation completed.\n")
     time.sleep(pause)
 
     player1_round += 1
@@ -925,42 +1080,166 @@ def player2_automation():
     global player2_round
 
     # Start Reputation Automation Character 2
-    print(f"[i]Starting automation for character 2...")
+    print(f"[i]Running automation for character 2...")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Running automation for Player 2\n")
     pyautogui.moveTo(100, 100, duration=dur)
+    time.sleep(pause)
     keyboard.press_and_release("[")
     time.sleep(pause)
+    print("[i]Player 2: Running Reputation automation...")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Reputation automation.\n")
     Player2().act_reputation()
     time.sleep(pause)
     keyboard.press_and_release("[")
     time.sleep(pause)
+    print("[i]Player 2: Reputation automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Reputation automation completed.\n")
     keyboard.press_and_release("]")
     time.sleep(pause)
 
     # Start Admiralty Automation
+    print("[i]Running Admiralty automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Admiralty automation.\n")
     Player2().act_admiralty()
     print("[i]Player 2: Admiralty automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Admiralty automation completed.\n")
     time.sleep(pause)
 
     # Start Duty Officers Automation
     print("[i]Player 2: Starting DutyOfficers automation.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running DutyOfficers automation.\n")
     Player2().act_dutyofficers()
     time.sleep(pause)
     keyboard.press_and_release("]")
     time.sleep(pause)
     print("[i]Player 2: DutyOfficers automation completed.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: DutyOfficers automation completed.\n")
 
     # Start Refining Automation
     print("[i]Player 2: Starting Refining trainer...")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Refining automation.\n")
     keyboard.press_and_release("i")
     time.sleep(pause)
     DilRefine().act()
+    time.sleep(pause)
     keyboard.press_and_release("i")
     print("[i]Player 2: Finished Refining trainer.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Refining automation completed.\n")
     time.sleep(pause)
 
     player2_round += 1
 
     return
+
+
+def get_keyboard_language():
+    languages = {'0x436': "Afrikaans - South Africa", '0x041c': "Albanian - Albania", '0x045e': "Amharic - Ethiopia",
+                 '0x401': "Arabic - Saudi Arabia",
+                 '0x1401': "Arabic - Algeria", '0x3c01': "Arabic - Bahrain", '0x0c01': "Arabic - Egypt",
+                 '0x801': "Arabic - Iraq", '0x2c01': "Arabic - Jordan",
+                 '0x3401': "Arabic - Kuwait", '0x3001': "Arabic - Lebanon", '0x1001': "Arabic - Libya",
+                 '0x1801': "Arabic - Morocco", '0x2001': "Arabic - Oman",
+                 '0x4001': "Arabic - Qatar", '0x2801': "Arabic - Syria", '0x1c01': "Arabic - Tunisia",
+                 '0x3801': "Arabic - U.A.E.", '0x2401': "Arabic - Yemen",
+                 '0x042b': "Armenian - Armenia", '0x044d': "Assamese", '0x082c': "Azeri (Cyrillic)",
+                 '0x042c': "Azeri (Latin)", '0x042d': "Basque",
+                 '0x423': "Belarusian", '0x445': "Bengali (India)", '0x845': "Bengali (Bangladesh)",
+                 '0x141A': "Bosnian (Bosnia/Herzegovina)", '0x402': "Bulgarian",
+                 '0x455': "Burmese", '0x403': "Catalan", '0x045c': "Cherokee - United States",
+                 '0x804': "Chinese - People's Republic of China",
+                 '0x1004': "Chinese - Singapore", '0x404': "Chinese - Taiwan", '0x0c04': "Chinese - Hong Kong SAR",
+                 '0x1404': "Chinese - Macao SAR", '0x041a': "Croatian",
+                 '0x101a': "Croatian (Bosnia/Herzegovina)", '0x405': "Czech", '0x406': "Danish", '0x465': "Divehi",
+                 '0x413': "Dutch - Netherlands", '0x813': "Dutch - Belgium",
+                 '0x466': "Edo", '0x409': "English - United States", '0x809': "English - United Kingdom",
+                 '0x0c09': "English - Australia", '0x2809': "English - Belize",
+                 '0x1009': "English - Canada", '0x2409': "English - Caribbean", '0x3c09': "English - Hong Kong SAR",
+                 '0x4009': "English - India", '0x3809': "English - Indonesia",
+                 '0x1809': "English - Ireland", '0x2009': "English - Jamaica", '0x4409': "English - Malaysia",
+                 '0x1409': "English - New Zealand", '0x3409': "English - Philippines",
+                 '0x4809': "English - Singapore", '0x1c09': "English - South Africa", '0x2c09': "English - Trinidad",
+                 '0x3009': "English - Zimbabwe", '0x425': "Estonian",
+                 '0x438': "Faroese", '0x429': "Farsi", '0x464': "Filipino", '0x040b': "Finnish",
+                 '0x040c': "French - France", '0x080c': "French - Belgium",
+                 '0x2c0c': "French - Cameroon", '0x0c0c': "French - Canada",
+                 '0x240c': "French - Democratic Rep. of Congo", '0x300c': "French - Cote d'Ivoire",
+                 '0x3c0c': "French - Haiti", '0x140c': "French - Luxembourg", '0x340c': "French - Mali",
+                 '0x180c': "French - Monaco", '0x380c': "French - Morocco",
+                 '0xe40c': "French - North Africa", '0x200c': "French - Reunion", '0x280c': "French - Senegal",
+                 '0x100c': "French - Switzerland",
+                 '0x1c0c': "French - West Indies", '0x462': "Frisian - Netherlands", '0x467': "Fulfulde - Nigeria",
+                 '0x042f': "FYRO Macedonian", '0x083c': "Gaelic (Ireland)",
+                 '0x043c': "Gaelic (Scotland)", '0x456': "Galician", '0x437': "Georgian", '0x407': "German - Germany",
+                 '0x0c07': "German - Austria", '0x1407': "German - Liechtenstein",
+                 '0x1007': "German - Luxembourg", '0x807': "German - Switzerland", '0x408': "Greek",
+                 '0x474': "Guarani - Paraguay", '0x447': "Gujarati", '0x468': "Hausa - Nigeria",
+                 '0x475': "Hawaiian - United States", '0x040d': "Hebrew", '0x439': "Hindi", '0x040e': "Hungarian",
+                 '0x469': "Ibibio - Nigeria", '0x040f': "Icelandic",
+                 '0x470': "Igbo - Nigeria", '0x421': "Indonesian", '0x045d': "Inuktitut", '0x410': "Italian - Italy",
+                 '0x810': "Italian - Switzerland", '0x411': "Japanese",
+                 '0x044b': "Kannada", '0x471': "Kanuri - Nigeria", '0x860': "Kashmiri", '0x460': "Kashmiri (Arabic)",
+                 '0x043f': "Kazakh", '0x453': "Khmer", '0x457': "Konkani",
+                 '0x412': "Korean", '0x440': "Kyrgyz (Cyrillic)", '0x454': "Lao", '0x476': "Latin", '0x426': "Latvian",
+                 '0x427': "Lithuanian", '0x043e': "Malay - Malaysia",
+                 '0x083e': "Malay - Brunei Darussalam", '0x044c': "Malayalam", '0x043a': "Maltese", '0x458': "Manipuri",
+                 '0x481': "Maori - New Zealand", '0x044e': "Marathi",
+                 '0x450': "Mongolian (Cyrillic)", '0x850': "Mongolian (Mongolian)", '0x461': "Nepali",
+                 '0x861': "Nepali - India", '0x414': "Norwegian (Bokmål)",
+                 '0x814': "Norwegian (Nynorsk)", '0x448': "Oriya", '0x472': "Oromo", '0x479': "Papiamentu",
+                 '0x463': "Pashto", '0x415': "Polish", '0x416': "Portuguese - Brazil",
+                 '0x816': "Portuguese - Portugal", '0x446': "Punjabi", '0x846': "Punjabi (Pakistan)",
+                 '0x046B': "Quecha - Bolivia", '0x086B': "Quecha - Ecuador",
+                 '0x0C6B': "Quecha - Peru", '0x417': "Rhaeto-Romanic", '0x418': "Romanian",
+                 '0x818': "Romanian - Moldava", '0x419': "Russian", '0x819': "Russian - Moldava",
+                 '0x043b': "Sami (Lappish)", '0x044f': "Sanskrit", '0x046c': "Sepedi", '0x0c1a': "Serbian (Cyrillic)",
+                 '0x081a': "Serbian (Latin)", '0x459': "Sindhi - India",
+                 '0x859': "Sindhi - Pakistan", '0x045b': "Sinhalese - Sri Lanka", '0x041b': "Slovak",
+                 '0x424': "Slovenian", '0x477': "Somali", '0x042e': "Sorbian",
+                 '0x0c0a': "Spanish - Spain (Modern Sort)", '0x040a': "Spanish - Spain (Traditional Sort)",
+                 '0x2c0a': "Spanish - Argentina", '0x400a': "Spanish - Bolivia",
+                 '0x340a': "Spanish - Chile", '0x240a': "Spanish - Colombia", '0x140a': "Spanish - Costa Rica",
+                 '0x1c0a': "Spanish - Dominican Republic",
+                 '0x300a': "Spanish - Ecuador", '0x440a': "Spanish - El Salvador", '0x100a': "Spanish - Guatemala",
+                 '0x480a': "Spanish - Honduras", '0xe40a': "Spanish - Latin America",
+                 '0x080a': "Spanish - Mexico", '0x4c0a': "Spanish - Nicaragua", '0x180a': "Spanish - Panama",
+                 '0x3c0a': "Spanish - Paraguay", '0x280a': "Spanish - Peru",
+                 '0x500a': "Spanish - Puerto Rico", '0x540a': "Spanish - United States", '0x380a': "Spanish - Uruguay",
+                 '0x200a': "Spanish - Venezuela", '0x430': "Sutu",
+                 '0x441': "Swahili", '0x041d': "Swedish", '0x081d': "Swedish - Finland", '0x045a': "Syriac",
+                 '0x428': "Tajik", '0x045f': "Tamazight (Arabic)",
+                 '0x085f': "Tamazight (Latin)", '0x449': "Tamil", '0x444': "Tatar", '0x044a': "Telugu",
+                 '0x041e': "Thai", '0x851': "Tibetan - Bhutan",
+                 '0x451': "Tibetan - People's Republic of China", '0x873': "Tigrigna - Eritrea",
+                 '0x473': "Tigrigna - Ethiopia", '0x431': "Tsonga", '0x432': "Tswana",
+                 '0x041f': "Turkish", '0x442': "Turkmen", '0x480': "Uighur - China", '0x422': "Ukrainian",
+                 '0x420': "Urdu", '0x820': "Urdu - India", '0x843': "Uzbek (Cyrillic)",
+                 '0x443': "Uzbek (Latin)", '0x433': "Venda", '0x042a': "Vietnamese", '0x452': "Welsh", '0x434': "Xhosa",
+                 '0x478': "Yi", '0x043d': "Yiddish", '0x046a': "Yoruba",
+                 '0x435': "Zulu", '0x04ff': "HID (Human Interface Device)"
+                 }
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
+
+    # Get the current active window handle
+    handle = user32.GetForegroundWindow()
+
+    # Get the thread id from that window handle
+    threadid = user32.GetWindowThreadProcessId(handle, 0)
+
+    # Get the keyboard layout id from the threadid
+    layout_id = user32.GetKeyboardLayout(threadid)
+
+    # Extract the keyboard language id from the keyboard layout id
+    language_id = layout_id & (2 ** 16 - 1)
+
+    # Convert the keyboard language id from decimal to hexadecimal
+    language_id_hex = hex(language_id)
+
+    # Check if the hex value is in the dictionary.
+    if language_id_hex in languages.keys():
+        return languages[language_id_hex]
+    else:
+        # Return language id hexadecimal value if not found.
+        return str(language_id_hex)
 
 
 if __name__ == "__main__":
@@ -981,6 +1260,7 @@ if __name__ == "__main__":
     project1_x, project1_y = 355, 350
     fill_x, fill_y = 820, 1048
     confirm_x, confirm_y = 955, 640
+    menu_x, menu_y = 1905, 150
 
     # General Vars
     time_slept = 0
@@ -990,6 +1270,11 @@ if __name__ == "__main__":
     player_changes = 1
     pause = 0.3
     dur = 0.2
+    log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
+
+    # Change keyboard language to English
+    win32api.LoadKeyboardLayout('00000409', 1)
+    print(f"Keyboard Language changed to: {get_keyboard_language()}")
 
     # Show Mouse Position
     global_thread = threading.Thread(target=show_mouse_pos, name="Global Conf")
@@ -999,40 +1284,56 @@ if __name__ == "__main__":
     # Initialize OS's open windows
     results = []
     top_windows = []
+
+    # Enumerate opened OS windows
     win32gui.EnumWindows(window_enumeration_handler, top_windows)
 
-    # Switch to STO Window
-    for i in top_windows:
-        if "star trek online" in f"{i[1]}".lower():
-            # print("[i]Switching to STO...")
-            win32gui.ShowWindow(i[0], 5)
-            win32gui.SetForegroundWindow(i[0])
-            break
-    time.sleep(0.5)
+    # Start logger
+    with open(log, 'a+') as logger:
+        logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : Switch to STO Window.\n")
 
-    while True:
-        # Start player 1
-        player1_automation()
+        # Switch to STO Window
+        for i in top_windows:
+            if "star trek online" in f"{i[1]}".lower():
+                print("[i]Switching to STO...")
+                win32gui.ShowWindow(i[0], 5)
+                win32gui.SetForegroundWindow(i[0])
+                break
+        time.sleep(0.5)
 
-        # Switch Character
-        change_player()
+        while True:
+            # Initialize timer
+            start = time.time()
 
-        # Start player 2
-        player2_automation()
+            # Start automation
+            player1_automation()
+            change_player()
+            time.sleep(pause)
+            player2_automation()
+            change_player()
+            time.sleep(pause)
 
-        # Switch Character
-        change_player()
-        
-        # Start sleeper if each player had an automation round.
-        player_changes += 1
-        if player_changes >= 2:
-            rounds += 1
-            player1_round = 1
-            player2_round = 1
+            # Start sleeper if each player had an automation round.
+            player_changes += 1
+            if player_changes >= 2:
+                rounds += 1
+                player1_round = 1
+                player2_round = 1
 
-            # Start Sleeper
-            time_slept = sleeper(time_slept)
-            print("\n[i]Sleeper finished.")
-            print(f"[i]Total time slept: {time_slept} seconds.")
-            print(f"[i]Total rounds: {rounds}")
-            player_changes = 1
+                # Start Sleeper
+                time_slept = sleeper(time_slept)
+                print("\n[i]Sleeper finished.")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
+                             f" : Sleeper finished.\n")
+                print(f"[i]Total time slept: {time_slept} seconds.")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
+                             f" : Total time slept: {time_slept} seconds.\n")
+                print(f"[i]Total rounds: {rounds}")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
+                             f" : Total rounds: {rounds}\n")
+
+                player_changes = 1
+
+                end = time.time()
+                print(f"Time elapsed: {end - start}")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Time elapsed: {end - start}.\n")
