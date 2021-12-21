@@ -4,6 +4,7 @@ import win32com.client      # Windows components.
 import win32con             # Windows components.
 import win32gui             # Windows components.
 import pyautogui
+import keyboard
 import time
 import os
 import reputation
@@ -12,7 +13,7 @@ import reputation
 class Player1:
     def __init__(self):
         # Reputation vars
-        self.discovery_select_x, self.discovery_select_y = 815, 600
+        self.discovery_select_x, self.discovery_select_y = 815, 590
         self.omega_select_x, self.omega_select_y = 815, 645
         self.nukara_select_x, self.nukara_select_y = 815, 635
         self.romulus_select_x, self.romulus_select_y = 815, 600
@@ -41,6 +42,8 @@ class Player1:
         # Duty Officers vars
         self.duff_folder_x, self.duff_folder_y = 410, 20
         self.completed_x, self.completed_y = 85, 235
+        self.filters_x, self.filters_y = 880, 50
+        self.metReqs_x, self.metReqs_y = 862, 99
         self.personal_x, self.personal_y = 70, 130
         self.department_x, self.department_y = 90, 165
         self.engineering_x, self.engineering_y = 485, 360
@@ -237,39 +240,171 @@ class Player1:
 
     # Set new DutyOfficers missions
     def duff_missions(self):
-        keyboard.press_and_release("]")
-        time.sleep(pause)
+        with open(log, 'a+') as logger:
+            # Open Duty Officers Folder
+            pyautogui.moveTo(self.duff_folder_x, self.duff_folder_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Clicking on DutyOfficers Folder")
+            click(self.duff_folder_x, self.duff_folder_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on DutyOfficers Folder.\n")
+            time.sleep(pause)
 
-        # Open Duty Officers Folder
-        pyautogui.moveTo(self.duff_folder_x, self.duff_folder_y, duration=dur)
-        time.sleep(pause)
-        click(self.duff_folder_x, self.duff_folder_y)
-        time.sleep(pause)
+            # Click on Personal
+            pyautogui.moveTo(self.personal_x, self.personal_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Clicking on Personal")
+            click(self.personal_x, self.personal_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Personal.\n")
+            time.sleep(duff_pause)
 
-        # Click on Personal
-        pyautogui.moveTo(self.personal_x, self.personal_y, duration=dur)
-        time.sleep(pause)
-        click(self.personal_x, self.personal_y)
-        time.sleep(2)
+            # Click on Filters
+            pyautogui.moveTo(self.filters_x, self.filters_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Personal: Clicking Filters")
+            click(self.filters_x, self.filters_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Filters.\n")
+            time.sleep(duff_pause)
 
-        for i in range(5):
-            # Plan
+            # Click on Met Reqs
+            pyautogui.moveTo(self.metReqs_x, self.metReqs_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Personal: Clicking on Met Reqs")
+            click(self.metReqs_x, self.metReqs_y)
+            time.sleep(duff_pause)
+            click(self.metReqs_x, self.metReqs_y)
+            pyautogui.doubleClick(self.metReqs_x, self.metReqs_y, button='left')
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Met Reqs.\n")
+            time.sleep(duff_pause)
+
+            # Click on Filters Again
+            pyautogui.moveTo(self.filters_x, self.filters_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Personal: Clicking Filters")
+            click(self.filters_x, self.filters_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Filters.\n")
+            time.sleep(duff_pause)
+
+            # Start Planning & Executing for Personal Assignments
+            self.planExecute()
+
+            # Click on Engineering Assignments
+            pyautogui.moveTo(self.engineering_x, self.engineering_y, duration=dur)
+            time.sleep(pause)
+            print(f"[i]Player 1: Clicking on Engineering")
+            click(self.engineering_x, self.engineering_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Engineering.\n")
+            time.sleep(duff_pause)
+
+            # Plan & Execute & Return to Department Heads
+            self.planExecute()
+
+            # Click on Science Assignments
+            pyautogui.moveTo(self.science_x, self.science_y, duration=dur)
+            time.sleep(pause)
+            print("[i]Clicking on Science Assignment")
+            click(self.science_x, self.science_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Science Assignments.\n")
+            time.sleep(duff_pause)
+
+            # Plan & Execute & Return to Department Heads
+            self.planExecute()
+
+            # Click on Tactical Assignments
+            pyautogui.moveTo(self.tactical_x, self.tactical_y, duration=dur)
+            time.sleep(pause)
+            print("[i]Clicking on Tactical Assignment")
+            click(self.tactical_x, self.tactical_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Tactical Assignments.\n")
+            time.sleep(duff_pause)
+
+            # Plan & Execute & Return to Department Heads
+            self.planExecute()
+
+            # Click on Security Assignments
+            pyautogui.moveTo(self.security_x, self.security_y, duration=dur)
+            time.sleep(pause)
+            print("[i]Clicking on Security Assignment")
+            click(self.security_x, self.security_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Security Assignments.\n")
+            time.sleep(duff_pause)
+
+            # Plan & Execute & Return to Department Heads
+            self.planExecute()
+
+            # Click on Medical Assignments
+            pyautogui.moveTo(self.medial_x, self.medical_y, duration=dur)
+            time.sleep(pause)
+            print("[i]Clicking on Medical Assignment")
+            click(self.medial_x, self.medical_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Medical Assignments.\n")
+            time.sleep(duff_pause)
+
+            # Plan & Execute & Return to Department Heads
+            self.planExecute()
+
+            print("[i]Simulating keyboard for ']' key")
+            keyboard.press_and_release("]")
+            time.sleep(pause)
+
+            return
+
+    # General Plan & Begin
+    def planExecute(self):
+        with open(log, 'a+') as logger:
+            # Plan & Begin
+            for i in range(5):
+                # Plan
+                print(f"[i]Player 1: Clicking on Plan #{i}")
+                self.plan()
+
+                # Begin
+                print(f"[i]Player 1: Personal: Clicking on Begin Assignment #{i}")
+                self.begin()
+
+            # Return to Department Heads
+            pyautogui.moveTo(self.department_x, self.department_y, duration=dur)
+            time.sleep(pause)
+            print("[i]Clicking on Department Heads")
+            click(self.department_x, self.department_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Department Heads.\n")
+            time.sleep(duff_pause)
+
+        return
+
+    # General Plan
+    def plan(self):
+        with open(log, 'a+') as logger:
             pyautogui.moveTo(self.plan_x, self.plan_y, duration=dur)
             time.sleep(pause)
             click(self.plan_x, self.plan_y)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Plan.\n")
             time.sleep(pause)
 
-            # Begin
+        return
+
+    # General Begin Assignment
+    def begin(self):
+        with open(log, 'a+') as logger:
             pyautogui.moveTo(self.begin_x, self.begin_y, duration=dur)
             time.sleep(pause)
             click(self.begin_x, self.begin_y)
-            time.sleep(pause)
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1: Clicked on Begin Assignment.\n")
+            time.sleep(duff_pause)
 
-        # Move to Department Heads
-        pyautogui.moveTo(self.department_x, self.department_y, duration=dur)
-        time.sleep(pause)
-        click(self.department_x, self.department_y)
-        time.sleep(pause)
+        return
 
 
 class Player2:
@@ -520,6 +655,7 @@ def click(x, y):
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
 
 
+duff_pause = 1.5
 pause = 0.2
 dur = 0.2
 log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
