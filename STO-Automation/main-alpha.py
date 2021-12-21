@@ -211,10 +211,16 @@ def player1_automation():
     # Start Refining Automation
     print("[i]Player 1: Running Refining automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Refining automation.\n")
+
+    # Open Refining Window
     keyboard.press_and_release("i")
     time.sleep(pause)
+
+    # Run Automation
     DilRefine().act()
     time.sleep(pause)
+
+    # Close Refining window
     keyboard.press_and_release("i")
     print("[i]Player 1: Finished Refining automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Refining automation completed.\n")
@@ -358,6 +364,7 @@ if __name__ == "__main__":
 
                 player_changes = 1
 
+                end = datetime.datetime.now()
                 end = dt.replace(microsecond=0)
                 print(f"Time elapsed: {end - start}")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Time elapsed: {end - start}.\n")
