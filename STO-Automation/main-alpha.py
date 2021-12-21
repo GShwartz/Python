@@ -169,7 +169,7 @@ def player1_automation():
     # Running Reputation automation
     print("[i]Player 1: Running Reputation automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Reputation automation.\n")
-    # Player1().act_reputation()
+    Player1().act_reputation()
     time.sleep(pause)
 
     # Close Reputation Window
@@ -239,16 +239,24 @@ def player2_automation():
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Running automation for Player 2\n")
     pyautogui.moveTo(100, 100, duration=dur)
     time.sleep(pause)
+
+    # Open Reputation Window
     keyboard.press_and_release("[")
-    time.sleep(pause)
     print("[i]Player 2: Running Reputation automation...")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Reputation automation.\n")
+    time.sleep(pause)
+
+    # Run Reputation Automation
     Player2().act_reputation()
     time.sleep(pause)
+
+    # Close Reputation Window
     keyboard.press_and_release("[")
     time.sleep(pause)
     print("[i]Player 2: Reputation automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Reputation automation completed.\n")
+
+    # Open Admiralty Window
     keyboard.press_and_release("]")
     time.sleep(pause)
 
@@ -265,18 +273,28 @@ def player2_automation():
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running DutyOfficers automation.\n")
     Player2().act_dutyofficers()
     time.sleep(pause)
-    keyboard.press_and_release("]")
+
+    # Start DutyOfficers Mission Assignments
+    print("[i]Running DuFF missions.")
+    Player2().duff_missions()
     time.sleep(pause)
+
     print("[i]Player 2: DutyOfficers automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: DutyOfficers automation completed.\n")
 
     # Start Refining Automation
-    print("[i]Player 2: Starting Refining trainer...")
+    print("[i]Player 2: Starting Refining Automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Refining automation.\n")
+
+    # Open Refining Window
     keyboard.press_and_release("i")
     time.sleep(pause)
+
+    # Run Refining Automation
     DilRefine().act()
     time.sleep(pause)
+
+    # Close Refining Window
     keyboard.press_and_release("i")
     print("[i]Player 2: Finished Refining trainer.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Refining automation completed.\n")
@@ -320,6 +338,7 @@ if __name__ == "__main__":
 
     # Start logger
     with open(log, 'a+') as logger:
+        logger.write(f"===============    {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}    ===============\n")
         logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : Switch to STO Window.\n")
 
         # Switch to STO Window
@@ -336,9 +355,9 @@ if __name__ == "__main__":
             start = dt.replace(microsecond=0)
 
             # Start automation
-            player1_automation()
-            change_player()
-            time.sleep(pause)
+            # player1_automation()
+            # change_player()
+            # time.sleep(pause)
             player2_automation()
             change_player()
             time.sleep(pause)
