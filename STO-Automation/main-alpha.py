@@ -310,13 +310,13 @@ if __name__ == "__main__":
     menu_x, menu_y = 1905, 150
 
     # General Vars
-    dt = datetime.datetime.now()
+    total_time = 0
     time_slept = 0
-    player1_round = 1
-    player2_round = 1
-    rounds = 1
-    player_changes = 1
-    pause = 0.3
+    player1_round = 0
+    player2_round = 0
+    rounds = 0
+    player_changes = 0
+    pause = 0.2
     dur = 0.2
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
 
@@ -348,23 +348,23 @@ if __name__ == "__main__":
                 win32gui.ShowWindow(i[0], 5)
                 win32gui.SetForegroundWindow(i[0])
                 break
-        time.sleep(0.5)
+        time.sleep(0.8)
 
         while True:
             # Initialize timer
-            start = dt.replace(microsecond=0)
+            start = time.time()
 
             # Start automation
-            # player1_automation()
-            # change_player()
-            # time.sleep(pause)
+            player1_automation()
+            change_player()
+            time.sleep(pause)
             player2_automation()
             change_player()
             time.sleep(pause)
 
             # Start sleeper if each player had an automation round.
             player_changes += 1
-            if player_changes >= 2:
+            if player_changes >= 1:
                 rounds += 1
                 player1_round = 1
                 player2_round = 1
@@ -383,7 +383,12 @@ if __name__ == "__main__":
 
                 player_changes = 1
 
-                end = datetime.datetime.now()
-                end = dt.replace(microsecond=0)
-                print(f"Time elapsed: {end - start}")
-                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Time elapsed: {end - start}.\n")
+                end = time.time()
+                total_t = end - start
+                print(f"Time elapsed: {end - start} seconds.")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
+                             f"Time elapsed: {end - start} seconds.\n")
+                total_time += total_t
+                print(f"[i]Total Time: {total_time / 60}")
+                logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
+                             f"Total Time: {total_time / 60} Minutes.\n")
