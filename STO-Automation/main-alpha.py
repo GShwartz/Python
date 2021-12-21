@@ -159,23 +159,29 @@ def player1_automation():
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Starting automation for Player 1\n")
     pyautogui.moveTo(100, 100, duration=dur)
     time.sleep(pause)
+
+    # Open Reputation Window
     print("[i]Opening Reputation Window")
     keyboard.press_and_release("[")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Opening Reputation Window\n")
     time.sleep(pause)
+
+    # Running Reputation automation
     print("[i]Player 1: Running Reputation automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Reputation automation.\n")
-    Player1().act_reputation()
+    # Player1().act_reputation()
     time.sleep(pause)
-    print("[i]Running DuFF missions.")
-    # Player1().duff_missions()
-    time.sleep(pause)
+
+    # Close Reputation Window
     keyboard.press_and_release("[")
-    time.sleep(pause)
-    keyboard.press_and_release("]")
     time.sleep(pause)
     print("Player 1: Reputation automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Reputation automation completed.\n")
+
+    # Open Admiralty Window
+    print("[i]Opening Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
 
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
@@ -190,10 +196,17 @@ def player1_automation():
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running DutyOfficers automation.\n")
     Player1().act_dutyofficers()
     time.sleep(pause)
-    keyboard.press_and_release("]")
-    time.sleep(pause)
+
     print("[i]Player 1: DutyOfficers automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: DutyOfficers automation completed.\n")
+
+    # Start DutyOfficers Mission Assignments
+    print("[i]Running DuFF missions.")
+    Player1().duff_missions()
+    time.sleep(pause)
+
+    # keyboard.press_and_release("]")
+    # time.sleep(pause)
 
     # Start Refining Automation
     print("[i]Player 1: Running Refining automation.")
@@ -314,7 +327,7 @@ if __name__ == "__main__":
 
         while True:
             # Initialize timer
-            start - dt.replace(microsecond=0)
+            start = dt.replace(microsecond=0)
 
             # Start automation
             player1_automation()
