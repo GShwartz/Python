@@ -49,11 +49,12 @@ class Player1:
         self.engineering_x, self.engineering_y = 485, 360
         self.operations_x, self.operations_y = 835, 360
         self.science_x, self.science_y = 485, 465
+        self.science_plan_x, self.science_plan_y = 965, 265
         self.medial_x, self.medical_y = 835, 465
         self.tactical_x, self.tactical_y = 485, 570
         self.security_x, self.security_y = 835, 570
         self.duff_1_x, self.duff_1_y = 935, 175
-        self.plan_x, self.plan_y = 965, 250
+        self.plan_x, self.plan_y = 965, 255
         self.begin_x, self.begin_y = 955, 1025
 
     # Run Reputation Automation
@@ -280,15 +281,6 @@ class Player1:
                          f"Player 1: Clicked on Met Reqs.\n")
             time.sleep(duff_pause)
 
-            # Click on Filters Again
-            pyautogui.moveTo(self.filters_x, self.filters_y, duration=dur)
-            time.sleep(pause)
-            print(f"[i]Player 1: Personal: Clicking Filters")
-            click(self.filters_x, self.filters_y)
-            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
-                         f"Player 1: Clicked on Filters.\n")
-            time.sleep(duff_pause)
-
             # Start Planning & Executing for Personal Assignments
             self.planExecute()
 
@@ -362,7 +354,7 @@ class Player1:
     def planExecute(self):
         with open(log, 'a+') as logger:
             # Plan & Begin
-            for i in range(5):
+            for i in range(1, 6):
                 # Plan
                 print(f"[i]Player 1: Clicking on Plan #{i}")
                 self.plan()
