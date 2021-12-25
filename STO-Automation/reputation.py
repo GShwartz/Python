@@ -1,10 +1,10 @@
 import pyautogui
 import time
 from time import gmtime, strftime
-import win32api             # Windows components.
-import win32com.client      # Windows components.
-import win32con             # Windows components.
-import win32gui             # Windows components.
+import win32api  # Windows components.
+import win32com.client  # Windows components.
+import win32con  # Windows components.
+import win32gui  # Windows components.
 import os
 
 
