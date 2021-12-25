@@ -1,13 +1,36 @@
-from time import gmtime, strftime   # Display current time for logging.
-import win32api             # Windows components.
-import win32com.client      # Windows components.
-import win32con             # Windows components.
-import win32gui             # Windows components.
-import pyautogui            # Graphic Automation.
-import keyboard             # Keyboard Simulation.
-import time                 # Pause between actions, Mouse drag Duration time.
-import os                   # Get current logged in User and save log file in Documents.
-import reputation           # Reputation module
+from time import gmtime, strftime  # Display current time for logging.
+import win32api  # Windows components.
+import win32com.client  # Windows components.
+import win32con  # Windows components.
+import win32gui  # Windows components.
+import pyautogui  # Graphic Automation.
+import keyboard  # Keyboard Simulation.
+import time  # Pause between actions, Mouse drag Duration time.
+import os  # Get current logged in User and save log file in Documents.
+import reputation  # Reputation module
+
+# Setup Assignments Coordinates
+personal_x, personal_y = 70, 130
+filters_x, filters_y = 718, 50
+metReqs_x, metReqs_y = 700, 98
+department_x, department_y = 90, 165
+engineering_x, engineering_y = 485, 375
+operations_x, operations_y = 835, 375
+science_x, science_y = 485, 480
+medial_x, medical_y = 835, 480
+tactical_x, tactical_y = 475, 585
+security_x, security_y = 830, 585
+plan_x, plan_y = 800, 260
+begin_x, begin_y = 800, 1025
+upgrades_x, upgrades_y = 360, 530
+upgrade_select_x, upgrade_select_y = 830, 530
+fill_x, fill_y = 820, 1048
+confirm_x, confirm_y = 955, 640
+
+duff_pause = 1.5
+pause = 0.2
+dur = 0.2
+log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
 
 
 class Player1:
@@ -27,36 +50,37 @@ class Player1:
         self.competetive_select_x, self.competetive_select_y = 815, 610
         self.gamma_select_x, self.gamma_select_y = 815, 600
 
-        # Admiralty Vars
+        # ------ Admiralty Vars ------ #
         self.adm_folder_x, self.adm_folder_y = 510, 20
         self.progress_x, self.progress_y = 85, 95
         self.adm_slot_1_x, self.adm_slot_1_y = 940, 155
         self.adm_slot_2_x, self.adm_slot_2_y = 940, 275
         self.adm_slot_3_x, self.adm_slot_3_y = 940, 395
-        self.adm_slot_4_x, self.adm_slot_4_y = 940, 505
+        self.adm_slot_4_x, self.adm_slot_4_y = 940, 540
         self.adm_slot_5_x, self.adm_slot_5_y = 940, 620
-        self.adm_slot_6_x, self.adm_slot_6_y = 940, 735
-        self.adm_slot_7_x, self.adm_slot_7_y = 940, 865
-        self.adm_slot_8_x, self.adm_slot_8_y = 940, 1000
+        self.adm_slot_6_x, self.adm_slot_6_y = 940, 745
+        self.adm_slot_7_x, self.adm_slot_7_y = 940, 885
+        self.adm_slot_8_x, self.adm_slot_8_y = 940, 980
+
+        # Before Collection
+        self.adm_slot_1_x_static, self.adm_slot_1_y_static = 785, 155
+        self.adm_slot_2_x_static, self.adm_slot_2_y_static = 785, 295
+        self.adm_slot_3_x_static, self.adm_slot_3_y_static = 785, 430
+        self.adm_slot_4_x_static, self.adm_slot_4_y_static = 785, 570
+        self.adm_slot_5_x_static, self.adm_slot_5_y_static = 785, 705
+        self.adm_slot_6_x_static, self.adm_slot_6_y_static = 785, 840
+        self.adm_slot_7_x_static, self.adm_slot_7_y_static = 785, 985
+
+        # After Scrolling Down
+        self.adm_slot_8_x_static, self.adm_slot_8_y_static = 785, 885
+
+        self.topScroller_x, self.topScroller_y = 878, 360
+        self.bottomScroller_x, self.bottomScroller_y = 878, 565
 
         # Duty Officers vars
         self.duff_folder_x, self.duff_folder_y = 410, 20
         self.completed_x, self.completed_y = 85, 235
-        self.duff_1_x, self.duff_1_y = 935, 175
-
-        # self.filters_x, self.filters_y = 880, 50
-        # self.metReqs_x, self.metReqs_y = 862, 99
-        # self.personal_x, self.personal_y = 70, 130
-        # self.department_x, self.department_y = 90, 165
-        # self.engineering_x, self.engineering_y = 485, 360
-        # self.operations_x, self.operations_y = 835, 360
-        # self.science_x, self.science_y = 485, 465
-        # self.science_plan_x, self.science_plan_y = 965, 265
-        # self.medial_x, self.medical_y = 835, 465
-        # self.tactical_x, self.tactical_y = 485, 570
-        # self.security_x, self.security_y = 835, 570
-        # self.plan_x, self.plan_y = 965, 255
-        # self.begin_x, self.begin_y = 955, 1025
+        self.duff_1_x, self.duff_1_y = 795, 175
 
     # Run Reputation Automation
     def act_reputation(self):
@@ -277,7 +301,7 @@ class Player1:
             click(metReqs_x, metReqs_y)
             time.sleep(duff_pause)
             click(metReqs_x, metReqs_y)
-            pyautogui.doubleClick(metReqs_x, metReqs_y, button='left')
+            pyautogui.doubleClick(metReqs_x, metReqs_y)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1: Clicked on Met Reqs.\n")
             time.sleep(duff_pause)
@@ -359,10 +383,12 @@ class Player1:
                 # Plan
                 print(f"[i]Player 1: Clicking on Plan #{i}")
                 self.plan()
+                time.sleep(pause)
 
                 # Begin
-                print(f"[i]Player 1: Personal: Clicking on Begin Assignment #{i}")
+                print(f"[i]Player 1: Clicking on Begin Assignment #{i}")
                 self.begin()
+                time.sleep(pause)
 
             # Return to Department Heads
             pyautogui.moveTo(department_x, department_y, duration=dur)
@@ -381,9 +407,9 @@ class Player1:
             pyautogui.moveTo(plan_x, plan_y, duration=dur)
             time.sleep(pause)
             click(plan_x, plan_y)
+            time.sleep(pause)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1: Clicked on Plan.\n")
-            time.sleep(pause)
 
         return
 
@@ -393,9 +419,9 @@ class Player1:
             pyautogui.moveTo(begin_x, begin_y, duration=dur)
             time.sleep(pause)
             click(begin_x, begin_y)
+            time.sleep(duff_pause)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1: Clicked on Begin Assignment.\n")
-            time.sleep(duff_pause)
 
         return
 
@@ -434,7 +460,7 @@ class Player2:
         # Duty Officers vars
         self.duff_folder_x, self.duff_folder_y = 410, 20
         self.completed_x, self.completed_y = 85, 235
-        self.duff_1_x, self.duff_1_y = 935, 175
+        self.duff_1_x, self.duff_1_y = 785, 175
 
     # Run Reputation Automation
     def act_reputation(self):
@@ -638,19 +664,19 @@ class Player2:
             # Open Duty Officers Folder
             pyautogui.moveTo(self.duff_folder_x, self.duff_folder_y, duration=dur)
             time.sleep(pause)
-            print(f"[i]Player 1: Clicking on DutyOfficers Folder")
+            print(f"[i]Player 2: Clicking on DutyOfficers Folder")
             click(self.duff_folder_x, self.duff_folder_y)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
-                         f"Player 1: Clicked on DutyOfficers Folder.\n")
+                         f"Player 2: Clicked on DutyOfficers Folder.\n")
             time.sleep(pause)
 
             # Click on Personal
             pyautogui.moveTo(personal_x, personal_y, duration=dur)
             time.sleep(pause)
-            print(f"[i]Player 1: Clicking on Personal")
+            print(f"[i]Player 2: Clicking on Personal")
             click(personal_x, personal_y)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
-                         f"Player 1: Clicked on Personal.\n")
+                         f"Player 2: Clicked on Personal.\n")
             time.sleep(duff_pause)
 
             # Click on Filters
@@ -752,11 +778,11 @@ class Player2:
             # Plan & Begin
             for i in range(1, 6):
                 # Plan
-                print(f"[i]Player 1: Clicking on Plan #{i}")
+                print(f"[i]Player 2: Clicking on Plan #{i}")
                 self.plan()
 
                 # Begin
-                print(f"[i]Player 1: Personal: Clicking on Begin Assignment #{i}")
+                print(f"[i]Player 2: Clicking on Begin Assignment #{i}")
                 self.begin()
 
             # Return to Department Heads
@@ -777,7 +803,7 @@ class Player2:
             time.sleep(pause)
             click(plan_x, plan_y)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
-                         f"Player 1: Clicked on Plan.\n")
+                         f"Player 2: Clicked on Plan.\n")
             # time.sleep(pause)
 
         return
@@ -789,7 +815,7 @@ class Player2:
             time.sleep(pause)
             click(begin_x, begin_y)
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
-                         f"Player 1: Clicked on Begin Assignment.\n")
+                         f"Player 2: Clicked on Begin Assignment.\n")
             time.sleep(duff_pause)
 
         return
@@ -808,24 +834,3 @@ def click(x, y):
 
     # Clear Mouse Status
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
-
-
-# Setup Assignments Coordinates
-department_x, department_y = 90, 165
-filters_x, filters_y = 880, 50
-metReqs_x, metReqs_y = 862, 99
-personal_x, personal_y = 70, 130
-engineering_x, engineering_y = 485, 360
-operations_x, operations_y = 835, 360
-science_x, science_y = 485, 465
-science_plan_x, science_plan_y = 965, 265
-medial_x, medical_y = 835, 465
-tactical_x, tactical_y = 485, 570
-security_x, security_y = 835, 570
-plan_x, plan_y = 965, 255
-begin_x, begin_y = 955, 1025
-
-duff_pause = 1.5
-pause = 0.2
-dur = 0.2
-log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
