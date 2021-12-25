@@ -95,64 +95,10 @@ class Character:
             return
 
 
-def click(x, y):
-    # Clear Mouse Status
-    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
-
-    # Set Mouse Position
-    win32api.SetCursorPos((x, y))
-
-    # Commence Mouse Click
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)
-
-    # Clear Mouse Status
-    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
-
-
-def sleeper(timeslept):
-    # sleeptime = random.randint(480, 2400)
-    sleeptime = random.randint(5, 10)
-    print(f"[i]Sleeper set for {sleeptime} seconds.")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Sleeper set for {sleeptime} seconds.\n")
-    for x in range(sleeptime, 0, -1):
-        sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
-        time.sleep(1)
-
-    timeslept = timeslept + sleeptime
-
-    return timeslept
-
-
-def change_player():
-    # Change Character
-    print("[i]Changing character...")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : ==== Changing Character ==== \n")
-    pyautogui.moveTo(menu_x, menu_y, duration=dur)
-    time.sleep(pause)
-    print("[i]Clicking on Menu")
-    click(menu_x, menu_y)
-    time.sleep(pause)
-    Character().act()
-    time.sleep(pause)
-    print("[i]Finished Character change.")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : ==== Character changed. ====\n")
-
-    return
-
-
-def window_enumeration_handler(hwnd, top_windows):
-    # Add windows to list
-    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
-
-
-def show_mouse_pos():
-    while True:
-        print(pyautogui.position())
-
-
 def player1_automation():
     global player1_round
+    global player1_time
+    player1_round_start_time = time.time()
 
     # Start Reputation Automation
     print(f"[i]Starting automation for Player 1")
@@ -186,7 +132,7 @@ def player1_automation():
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Admiralty automation. \n")
-    Player1().act_admiralty()
+    # Player1().act_admiralty()
     print("[i]Player 1: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Admiralty Automation completed.\n")
     time.sleep(pause)
@@ -227,12 +173,16 @@ def player1_automation():
     time.sleep(pause)
 
     player1_round += 1
+    player1_round_end_time = time.time()
+    player1_time = player1_round_end_time - player1_round_start_time
 
     return
 
 
 def player2_automation():
     global player2_round
+    global player2_time
+    player2_round_start_time = time.time()
 
     # Start Reputation Automation Character 2
     print(f"[i]Running automation for character 2...")
@@ -263,7 +213,7 @@ def player2_automation():
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Admiralty automation.\n")
-    Player2().act_admiralty()
+    # Player2().act_admiralty()
     print("[i]Player 2: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Admiralty automation completed.\n")
     time.sleep(pause)
@@ -301,11 +251,80 @@ def player2_automation():
     time.sleep(pause)
 
     player2_round += 1
+    player2_round_end_time = time.time()
+    player2_time = player2_round_end_time - player2_round_start_time
 
     return
 
 
+def change_player():
+    global change_time
+    change_start = time.time()
+
+    # Change Character
+    print("[i]Changing character...")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : ==== Changing Character ==== \n")
+
+    # Open Main Menu
+    print("[i]Opening Main Menu")
+    pyautogui.moveTo(menu_x, menu_y, duration=dur)
+    time.sleep(pause)
+    print("[i]Clicking on Menu")
+    click(menu_x, menu_y)
+    time.sleep(pause)
+    Character().act()
+    time.sleep(pause)
+    print("[i]Finished Character change.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : ==== Character changed. ====\n")
+
+    change_end = time.time()
+    change_time = change_end - change_start
+
+    return
+
+
+def sleeper(timeslept):
+    # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
+    sleeptime = random.randint(5, 10)
+    print(f"[i]Sleeper set for {sleeptime} seconds.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Sleeper set for {sleeptime} seconds.\n")
+    for x in range(sleeptime, 0, -1):
+        sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
+        time.sleep(1)
+
+    timeslept = timeslept + sleeptime
+
+    return timeslept
+
+
+def click(x, y):
+    # Clear Mouse Status
+    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+    # Set Mouse Position
+    win32api.SetCursorPos((x, y))
+
+    # Commence Mouse Click
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)
+
+    # Clear Mouse Status
+    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+
+def window_enumeration_handler(hwnd, top_windows):
+    # Add windows to list
+    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+
+
+def show_mouse_pos():
+    while True:
+        print(pyautogui.position())
+
+
 if __name__ == "__main__":
+    top_windows = []
+    results = []
     confirm_x, confirm_y = 955, 640
     menu_x, menu_y = 1905, 150
 
@@ -313,10 +332,13 @@ if __name__ == "__main__":
     total_time = 0
     time_slept = 0
     player1_round = 0
+    player1_time = 0
     player2_round = 0
+    player2_time = 0
     rounds = 0
     player_changes = 0
-    pause = 0.2
+    change_time = 0
+    pause = 0.5
     dur = 0.2
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
 
@@ -337,10 +359,10 @@ if __name__ == "__main__":
     win32gui.EnumWindows(window_enumeration_handler, top_windows)
 
     # Start logger
+    # add logging option
     with open(log, 'a+') as logger:
         logger.write(f"===============    {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}    ===============\n")
         logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : Switch to STO Window.\n")
-
         # Switch to STO Window
         for i in top_windows:
             if "star trek online" in f"{i[1]}".lower():
@@ -348,17 +370,29 @@ if __name__ == "__main__":
                 win32gui.ShowWindow(i[0], 5)
                 win32gui.SetForegroundWindow(i[0])
                 break
-        time.sleep(0.8)
 
+        time.sleep(0.8)
         while True:
             # Initialize timer
             start = time.time()
 
             # Start automation
             player1_automation()
+            print(f"[i]Player 1 Round Time: {player1_time} seconds.")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1 Round Time: {player1_time} seconds.\n")
+            
             change_player()
+            print(f"[i]Change Players Time: {change_time} seconds.")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Change Players Time: {change_time} seconds.\n")
             time.sleep(pause)
+            
             player2_automation()
+            print(f"[i]Player 2 Round Time: {player2_time} seconds.")
+            logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
+                         f"Player 1 Round Time: {player2_time} seconds.\n")
+            
             change_player()
             time.sleep(pause)
 
@@ -389,6 +423,6 @@ if __name__ == "__main__":
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
                              f"Time elapsed: {end - start} seconds.\n")
                 total_time += total_t
-                print(f"[i]Total Time: {total_time / 60}")
+                print(f"[i]Total Time: {total_time / 60} minutes.")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
-                             f"Total Time: {total_time / 60} Minutes.\n")
+                             f"Total Time: {total_time / 60} minutes.\n")
