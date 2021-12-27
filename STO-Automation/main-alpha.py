@@ -1,8 +1,7 @@
-from ComputerVision import ComputerVision   # Image Compare
-from players import Player1, Player2  # Current Characters
 from time import gmtime, strftime  # Display current time for logging.
+from players import Player1, Player2  # Current Characters
 import reputation  # Reputation module
-import cv2 as cv    # Computer Vision
+import cv2 as cv
 import pyautogui  # Graphic Automation.
 import keyboard  # Keyboard Simulation.
 import win32api  # Windows components.
@@ -16,6 +15,7 @@ import ctypes  # For Keyboard language validation.
 import time  # Pause between actions, Mouse drag Duration time.
 import sys  # Display counter while sleeper in action
 import os  # Get current logged in User and save log file in Documents.
+from ComputerVision import ComputerVision
 
 
 class DilRefine:
@@ -102,16 +102,17 @@ def player1_automation():
     global player1_time
     player1_round_start_time = time.time()
 
+    # Open Reputation Window
+    print("[i]Opening Reputation Window")
+    keyboard.press_and_release('[')
+    time.sleep(pause)
+
     # Start Reputation Automation
     print(f"[i]Starting automation for Player 1")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Starting automation for Player 1\n")
-    pyautogui.moveTo(100, 100, duration=dur)
-    time.sleep(pause)
 
-    # Open Reputation Window
-    print("[i]Opening Reputation Window")
-    keyboard.press_and_release("[")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Opening Reputation Window\n")
+    # Init Mouse Position
+    pyautogui.moveTo(100, 100, duration=dur)
     time.sleep(pause)
 
     # Running Reputation automation
@@ -121,12 +122,11 @@ def player1_automation():
     time.sleep(pause)
 
     # Close Reputation Window
-    keyboard.press_and_release("[")
+    print("[i]Closing Reputation Window")
+    keyboard.press_and_release('[')
     time.sleep(pause)
-    print("Player 1: Reputation automation completed.")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Reputation automation completed.\n")
 
-    # Open Admiralty Window
+    # Open DutyOfficers/Admiralty Window
     print("[i]Opening Admiralty Window")
     keyboard.press_and_release("]")
     time.sleep(pause)
@@ -134,7 +134,7 @@ def player1_automation():
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Admiralty automation. \n")
-    Player1().act_admiralty()
+    # Player1().act_admiralty()
     print("[i]Player 1: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Admiralty Automation completed.\n")
     time.sleep(pause)
@@ -153,22 +153,27 @@ def player1_automation():
     Player1().duff_missions()
     time.sleep(pause)
 
-    # keyboard.press_and_release("]")
-    # time.sleep(pause)
+    # Close Admiralty/DutyOfficers Window
+    print("[i]Closing DutyOfficers/Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
 
     # Start Refining Automation
     print("[i]Player 1: Running Refining automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Refining automation.\n")
 
     # Open Refining Window
+    print("[i]Opening Refining Window")
     keyboard.press_and_release("i")
     time.sleep(pause)
 
     # Run Automation
+    print("[i]Running Refining Automation")
     DilRefine().act()
     time.sleep(pause)
 
     # Close Refining window
+    print("[i]Closing Refining Window")
     keyboard.press_and_release("i")
     print("[i]Player 1: Finished Refining automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Refining automation completed.\n")
@@ -203,19 +208,21 @@ def player2_automation():
     time.sleep(pause)
 
     # Close Reputation Window
+    print("[i]Player 2: Closing Reputation Window")
     keyboard.press_and_release("[")
     time.sleep(pause)
     print("[i]Player 2: Reputation automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Reputation automation completed.\n")
 
-    # Open Admiralty Window
+    # Open DutyOfficers/Admiralty Window
+    print("[i]Opening DutyOfficers/Admiralty Window")
     keyboard.press_and_release("]")
     time.sleep(pause)
 
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Admiralty automation.\n")
-    Player2().act_admiralty()
+    # Player2().act_admiralty()
     print("[i]Player 2: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Admiralty automation completed.\n")
     time.sleep(pause)
@@ -238,15 +245,23 @@ def player2_automation():
     print("[i]Player 2: Starting Refining Automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Refining automation.\n")
 
+    # Close DutyOfficers/Admiralty Window
+    print("[i]Closing DutyOfficers/Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
+
     # Open Refining Window
+    print("[i]Opening Refining Window")
     keyboard.press_and_release("i")
     time.sleep(pause)
 
     # Run Refining Automation
+    print("[i]Running Refining Automation")
     DilRefine().act()
     time.sleep(pause)
 
     # Close Refining Window
+    print("[i]Closing Refining Window")
     keyboard.press_and_release("i")
     print("[i]Player 2: Finished Refining trainer.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Refining automation completed.\n")
@@ -289,19 +304,22 @@ def sleeper(timeslept):
     # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
     sleeptime = random.randint(5, 10)
     print(f"[i]Sleeper set for {sleeptime} seconds.")
+    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Sleeper set for {sleeptime} seconds.\n")
     for x in range(sleeptime, 0, -1):
         sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
         time.sleep(1)
 
-    timeslept = (timeslept + sleeptime)
+    # timeslept = (timeslept + sleeptime)
 
     # Capture Screenshot
     main_window()
 
     # Compare screenshots and verify the connection to the server.
-    # If Server is connected then simulate character movement.
-    # If connection is lost then end the script.
-    if not compare():
+    if not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
+                          cv.imread(logged_out, cv.IMREAD_UNCHANGED),
+                          threshold=0.5).compare():
+
+        # Simulate character movement
         print("Simulating Character Look Left")
         keyboard.press('a')
         time.sleep(0.2)
@@ -316,16 +334,6 @@ def sleeper(timeslept):
         exit()
 
     return timeslept
-
-
-def compare():
-    if not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
-                          cv.imread(logged_out, cv.IMREAD_UNCHANGED),
-                          threshold=0.5).compare():
-        return False
-
-    else:
-        return True
 
 
 def click(x, y):
@@ -407,10 +415,10 @@ if __name__ == "__main__":
     win32gui.EnumWindows(window_enumeration_handler, top_windows)
 
     # Start logger
+    # add logging option
     with open(log, 'a+') as logger:
         logger.write(f"===============    {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}    ===============\n")
         logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : Switch to STO Window.\n")
-
         # Switch to STO Window
         for i in top_windows:
             if "star trek online" in f"{i[1]}".lower():
@@ -421,7 +429,8 @@ if __name__ == "__main__":
 
         time.sleep(0.8)
         while True:
-            # Initialize timer
+            sleeper(liveImage)
+            # # Initialize timer
             start = time.time()
 
             # Start automation
@@ -430,7 +439,6 @@ if __name__ == "__main__":
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1 Round Time: {player1_time} seconds.\n")
 
-            # Switch Characters
             change_player()
             print(f"[i]Change Players Time: {change_time} seconds.")
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
@@ -445,7 +453,7 @@ if __name__ == "__main__":
             change_player()
             time.sleep(pause)
 
-            # Start sleeper if each character had an automation round.
+            # Start sleeper if each player had an automation round.
             player_changes += 1
             if player_changes >= 1:
                 rounds += 1
