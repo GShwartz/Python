@@ -1,19 +1,21 @@
-from time import gmtime, strftime   # Display current time for logging.
-from players import Player1, Player2    # Current Characters
-import reputation   # Reputation module
-import pyautogui    # Graphic Automation.
-import keyboard     # Keyboard Simulation.
-import win32api             # Windows components.
-import win32com.client      # Windows components.
-import win32con             # Windows components.
-import win32gui             # Windows components.
-import threading    # For mouse position display.
-import datetime     # For Elapsed Time calculation.
-import random       # Random number for Sleeper's timer.
-import ctypes       # For Keyboard language validation.
-import time         # Pause between actions, Mouse drag Duration time.
-import sys          # Display counter while sleeper in action
-import os           # Get current logged in User and save log file in Documents.
+from ComputerVision import ComputerVision   # Image Compare
+from players import Player1, Player2  # Current Characters
+from time import gmtime, strftime  # Display current time for logging.
+import reputation  # Reputation module
+import cv2 as cv    # Computer Vision
+import pyautogui  # Graphic Automation.
+import keyboard  # Keyboard Simulation.
+import win32api  # Windows components.
+import win32com.client  # Windows components.
+import win32con  # Windows components.
+import win32gui  # Windows components.
+import threading  # For mouse position display.
+import datetime  # For Elapsed Time calculation.
+import random  # Random number for Sleeper's timer.
+import ctypes  # For Keyboard language validation.
+import time  # Pause between actions, Mouse drag Duration time.
+import sys  # Display counter while sleeper in action
+import os  # Get current logged in User and save log file in Documents.
 
 
 class DilRefine:
@@ -132,7 +134,7 @@ def player1_automation():
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Running Admiralty automation. \n")
-    # Player1().act_admiralty()
+    Player1().act_admiralty()
     print("[i]Player 1: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 1: Admiralty Automation completed.\n")
     time.sleep(pause)
@@ -213,7 +215,7 @@ def player2_automation():
     # Start Admiralty Automation
     print("[i]Running Admiralty automation.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Running Admiralty automation.\n")
-    # Player2().act_admiralty()
+    Player2().act_admiralty()
     print("[i]Player 2: Admiralty automation completed.")
     logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Player 2: Admiralty automation completed.\n")
     time.sleep(pause)
@@ -287,14 +289,43 @@ def sleeper(timeslept):
     # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
     sleeptime = random.randint(5, 10)
     print(f"[i]Sleeper set for {sleeptime} seconds.")
-    logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : Sleeper set for {sleeptime} seconds.\n")
     for x in range(sleeptime, 0, -1):
         sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
         time.sleep(1)
 
-    timeslept = timeslept + sleeptime
+    timeslept = (timeslept + sleeptime)
+
+    # Capture Screenshot
+    main_window()
+
+    # Compare screenshots and verify the connection to the server.
+    # If Server is connected then simulate character movement.
+    # If connection is lost then end the script.
+    if not compare():
+        print("Simulating Character Look Left")
+        keyboard.press('a')
+        time.sleep(0.2)
+        keyboard.release('a')
+        print("Simulating Character Look Right")
+        keyboard.press('d')
+        time.sleep(0.2)
+        keyboard.release('d')
+
+    else:
+        print("[!] Disconnected from Server. Stopping Script. [!]")
+        exit()
 
     return timeslept
+
+
+def compare():
+    if not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
+                          cv.imread(logged_out, cv.IMREAD_UNCHANGED),
+                          threshold=0.5).compare():
+        return False
+
+    else:
+        return True
 
 
 def click(x, y):
@@ -310,6 +341,21 @@ def click(x, y):
 
     # Clear Mouse Status
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+
+def main_window():
+    global top_windows, results, liveImage
+
+    # Switch to STO Window
+    for i in top_windows:
+        if "star trek online" in f"{i[1]}".lower():
+            print("[i]Switching to STO...")
+            win32gui.ShowWindow(i[0], 5)
+            win32gui.SetForegroundWindow(i[0])
+            print("[i] Taking Screenshot.")
+            liveSC = pyautogui.screenshot()
+            liveSC.save(liveImage)
+            print("[i] Screenshot Saved.")
 
 
 def window_enumeration_handler(hwnd, top_windows):
@@ -341,6 +387,8 @@ if __name__ == "__main__":
     pause = 0.5
     dur = 0.2
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.txt"
+    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
+    logged_out = r'G:\School\Python - Homework\Projects\STO-Automation\logged_out.JPG'
 
     # Change keyboard language to English
     keyboard_language = win32api.LoadKeyboardLayout('00000409', 1)
@@ -359,10 +407,10 @@ if __name__ == "__main__":
     win32gui.EnumWindows(window_enumeration_handler, top_windows)
 
     # Start logger
-    # add logging option
     with open(log, 'a+') as logger:
         logger.write(f"===============    {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}    ===============\n")
         logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : Switch to STO Window.\n")
+
         # Switch to STO Window
         for i in top_windows:
             if "star trek online" in f"{i[1]}".lower():
@@ -381,22 +429,23 @@ if __name__ == "__main__":
             print(f"[i]Player 1 Round Time: {player1_time} seconds.")
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1 Round Time: {player1_time} seconds.\n")
-            
+
+            # Switch Characters
             change_player()
             print(f"[i]Change Players Time: {change_time} seconds.")
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Change Players Time: {change_time} seconds.\n")
             time.sleep(pause)
-            
+
             player2_automation()
             print(f"[i]Player 2 Round Time: {player2_time} seconds.")
             logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} : "
                          f"Player 1 Round Time: {player2_time} seconds.\n")
-            
+
             change_player()
             time.sleep(pause)
 
-            # Start sleeper if each player had an automation round.
+            # Start sleeper if each character had an automation round.
             player_changes += 1
             if player_changes >= 1:
                 rounds += 1
@@ -408,9 +457,9 @@ if __name__ == "__main__":
                 print("\n[i]Sleeper finished.")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
                              f" : Sleeper finished.\n")
-                print(f"[i]Total time slept: {time_slept} seconds.")
+                print(f"[i]Total time slept: {round(time_slept)} seconds.")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
-                             f" : Total time slept: {time_slept} seconds.\n")
+                             f" : Total time slept: {round(time_slept)} seconds.\n")
                 print(f"[i]Total rounds: {rounds}")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
                              f" : Total rounds: {rounds}\n")
@@ -419,10 +468,10 @@ if __name__ == "__main__":
 
                 end = time.time()
                 total_t = end - start
-                print(f"Time elapsed: {end - start} seconds.")
+                print(f"Time elapsed: {total_t} seconds.")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
-                             f"Time elapsed: {end - start} seconds.\n")
+                             f"Time elapsed: {total_t} seconds.\n")
                 total_time += total_t
-                print(f"[i]Total Time: {total_time / 60} minutes.")
+                print(f"[i]Total Time: {round(total_time / 60)} minutes.")
                 logger.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', gmtime())} : "
-                             f"Total Time: {total_time / 60} minutes.\n")
+                             f"Total Time: {round(total_time / 60)} minutes.\n")
