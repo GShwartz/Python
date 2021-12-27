@@ -129,3 +129,27 @@ class ComputerVision:
 
         # Clear Mouse Status
         win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+
+class WindowCapture:
+    # Parameters
+    bounding_box = {'top': 0, 'left': 0, 'width': 0, 'height': 0}
+
+    def __init__(self):
+        self.bounding_box = {'top': 0, 'left': 0, 'width': 1920, 'height': 1080}
+        self.codec = cv.VideoWriter_fourcc(*"mp4v")
+        self.out = cv.VideoWriter("Automator.avi", self.codec, 60, (1920, 1080))
+        cv.namedWindow("STO-Automator", cv.WINDOW_NORMAL)
+        cv.resizeWindow("STO-Automator", 1024, 768)
+
+    def capture(self):
+        while True:
+            img = pyautogui.screenshot()
+            frame = np.array(img)
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            self.out.write(frame)
+            cv.imshow('STO-Automator', frame)
+
+            if (cv.waitKey(1) & 0xFF) == ord('/'):
+                cv.destroyAllWindows()
+                break
