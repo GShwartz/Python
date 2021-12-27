@@ -1,7 +1,5 @@
 # Star Trek Online - Automator
 
-*** Stages for each Character ***
-
 ## First stage:
     * Catch game window and bring it to the front.
       
