@@ -20,7 +20,6 @@ change_time = 0
 confirm_x, confirm_y = 955, 640
 menu_x, menu_y = 1905, 150
 player1_round = 0
-player1_time = 0
 player2_round = 0
 player2_time = 0
 dur = 0.2
@@ -29,182 +28,93 @@ liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
 logged_out = r'G:\School\Python - Homework\Projects\STO-Automation\logged_out.JPG'
 
 
-def player1_automation(player):
-    global player1_round
-    global player1_time
-    player1_round_start_time = time.time()
-
+def player_automation(player):
     # Open Reputation Window
-    print("[i]Opening Reputation Window")
-    keyboard.press_and_release('[')
+    print(f"[i] Player #{player}: Opening Reputation Window")
+    keyboard.press_and_release("[")
     time.sleep(pause)
 
     # Start Reputation Automation
-    print(f"[i]Starting automation for Player 1")
+    print(f"[i] Player #{player}: Starting automation for Player 1")
 
     # Init Mouse Position
     pyautogui.moveTo(100, 100, duration=dur)
     time.sleep(pause)
 
     # Running Reputation automation
-    print("[i]Player 1: Running Reputation automation.")
+    print(f"[i] Player #{player}: Running Reputation automation.")
     Player1(player).act_reputation()
     time.sleep(pause)
 
     # Close Reputation Window
-    print("[i]Closing Reputation Window")
+    print(f"[i] Player #{player}: Reputation Window")
     keyboard.press_and_release('[')
     time.sleep(pause)
 
     # Open DutyOfficers/Admiralty Window
-    print("[i]Opening Admiralty Window")
+    print(f"[i] Player #{player}: Opening Admiralty Window")
     keyboard.press_and_release("]")
     time.sleep(pause)
 
     # Start Admiralty Automation
-    print("[i]Running Admiralty automation.")
+    print(f"[i] Player #{player}: Running Admiralty automation.")
     # Player1().act_admiralty()
-    print("[i]Player 1: Admiralty automation completed.")
+    print(f"[i] Player #{player}: Admiralty automation completed.")
     time.sleep(pause)
 
     # Start Duty Officers Automation
-    print("[i]Player 1: Starting DutyOfficers automation.")
+    print(f"[i] Player #{player}: Starting DutyOfficers automation.")
     Player1(player).act_dutyofficers()
     time.sleep(pause)
-    print("[i]Player 1: DutyOfficers automation completed.")
+    print(f"[i] Player #{player}: DutyOfficers automation completed.")
 
     # Start DutyOfficers Mission Assignments
-    print("[i]Running DuFF missions.")
+    print(f"[i] Player #{player}: Running DuFF missions.")
     Player1(player).duff_missions()
     time.sleep(pause)
 
     # Close Admiralty/DutyOfficers Window
-    print("[i]Closing DutyOfficers/Admiralty Window")
+    print(f"[i] Player #{player}: Closing DutyOfficers/Admiralty Window")
     keyboard.press_and_release("]")
     time.sleep(pause)
 
     # Start Refining Automation
-    print("[i]Player 1: Running Refining automation.")
+    print(f"[i] Player #{player}: Running Refining automation.")
 
     # Open Refining Window
-    print("[i]Opening Refining Window")
+    print(f"[i] Player #{player}: Opening Refining Window")
     keyboard.press_and_release("i")
     time.sleep(pause)
 
     # Run Automation
-    print("[i]Running Refining Automation")
+    print(f"[i] Player #{player}: Running Refining Automation")
     DilRefine(player).act()
     time.sleep(pause)
 
     # Close Refining window
-    print("[i]Closing Refining Window")
+    print(f"[i] Player #{player}: Closing Refining Window")
     keyboard.press_and_release("i")
-    print("[i]Player 1: Finished Refining automation.")
+    print(f"[i] Player #{player}: Finished Refining automation.")
     time.sleep(pause)
 
-    player1_round += 1
-    player1_round_end_time = time.time()
-    player1_time = player1_round_end_time - player1_round_start_time
 
-    return
-
-
-def player2_automation():
-    global player2_round
-    global player2_time
-    player2_round_start_time = time.time()
-
-    # Start Reputation Automation Character 2
-    print(f"[i]Running automation for character 2...")
-    pyautogui.moveTo(100, 100, duration=dur)
-    time.sleep(pause)
-
-    # Open Reputation Window
-    keyboard.press_and_release("[")
-    print("[i]Player 2: Running Reputation automation...")
-    time.sleep(pause)
-
-    # Run Reputation Automation
-    Player2().act_reputation()
-    time.sleep(pause)
-
-    # Close Reputation Window
-    print("[i]Player 2: Closing Reputation Window")
-    keyboard.press_and_release("[")
-    time.sleep(pause)
-    print("[i]Player 2: Reputation automation completed.")
-
-    # Open DutyOfficers/Admiralty Window
-    print("[i]Opening DutyOfficers/Admiralty Window")
-    keyboard.press_and_release("]")
-    time.sleep(pause)
-
-    # Start Admiralty Automation
-    print("[i]Running Admiralty automation.")
-    # Player2().act_admiralty()
-    print("[i]Player 2: Admiralty automation completed.")
-    time.sleep(pause)
-
-    # Start Duty Officers Automation
-    print("[i]Player 2: Starting DutyOfficers automation.")
-    Player2().act_dutyofficers()
-    time.sleep(pause)
-
-    # Start DutyOfficers Mission Assignments
-    print("[i]Running DuFF missions.")
-    Player2().duff_missions()
-    time.sleep(pause)
-
-    print("[i]Player 2: DutyOfficers automation completed.")
-
-    # Start Refining Automation
-    print("[i]Player 2: Starting Refining Automation.")
-
-    # Close DutyOfficers/Admiralty Window
-    print("[i]Closing DutyOfficers/Admiralty Window")
-    keyboard.press_and_release("]")
-    time.sleep(pause)
-
-    # Open Refining Window
-    print("[i]Opening Refining Window")
-    keyboard.press_and_release("i")
-    time.sleep(pause)
-
-    # Run Refining Automation
-    print("[i]Running Refining Automation")
-    DilRefine().act()
-    time.sleep(pause)
-
-    # Close Refining Window
-    print("[i]Closing Refining Window")
-    keyboard.press_and_release("i")
-    print("[i]Player 2: Finished Refining trainer.")
-    time.sleep(pause)
-
-    player2_round += 1
-    player2_round_end_time = time.time()
-    player2_time = player2_round_end_time - player2_round_start_time
-
-    return
-
-
-def change_player():
+def change_player(player):
     global change_time
     change_start = time.time()
 
     # Change Character
-    print("[i]Changing character...")
+    print(f"[i] Player #{player}: Changing character...")
 
     # Open Main Menu
-    print("[i]Opening Main Menu")
+    print(f"[i] Player #{player}: Opening Main Menu")
     pyautogui.moveTo(menu_x, menu_y, duration=dur)
     time.sleep(pause)
-    print("[i]Clicking on Menu")
+    print(f"[i] Player #{player}: Clicking on Menu")
     click(menu_x, menu_y)
     time.sleep(pause)
-    Character().act()
+    Character(player).act()
     time.sleep(pause)
-    print("[i]Finished Character change.")
+    print(f"[i] Player #{player}: Finished Character change.")
 
     change_end = time.time()
     change_time = change_end - change_start
@@ -215,7 +125,7 @@ def change_player():
 def sleeper():
     # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
     sleeptime = random.randint(5, 10)
-    print(f"[i]Sleeper set for {sleeptime} seconds.")
+    print(f"[i] Sleeper set for {sleeptime} seconds.")
     for x in range(sleeptime, 0, -1):
         sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
         time.sleep(1)
