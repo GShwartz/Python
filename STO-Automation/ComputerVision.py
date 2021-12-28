@@ -23,12 +23,10 @@ class ComputerVision:
     pytesser_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\CV\Live\live_sc.jpg'
 
-    # # Enumerate opened OS windows
-    # win32gui.EnumWindows(window_enumeration_handler, top_windows)
-
-    def __init__(self, screenshot, button, threshold, debug_mode=None):
+    def __init__(self, screenshot, button, threshold):
         self.screen_img = screenshot
         self.button_img = button
+        self.threshold = threshold
         self.button_w = self.button_img.shape[1]
         self.button_h = self.button_img.shape[0]
         self.method = cv.TM_CCOEFF_NORMED
@@ -39,18 +37,18 @@ class ComputerVision:
         locations = np.where(self.result >= threshold)
         locations = list(zip(*locations[::-1]))
         if len(locations) == 0:
-            print("[i] UNMATCHED!")
-
+            print("\n**** UNMATCHED! ****")
             return False
 
         else:
-            print("[i] MATCH FOUND!")
-
+            print("\n **** MATCH-FOUND! ****")
             return True
 
-    def process(self):
-        for loc in self.locations:
-            rect = [int(loc[0]), int(loc[1]), button_w, button_h]
+    def process(self, debug_mode='rectangles'):
+        locations = np.where(self.result >= self.threshold)
+        locations = list(zip(*locations[::-1]))
+        for loc in locations:
+            rect = [int(loc[0]), int(loc[1]), self.button_w, self.button_h]
             self.rectangles.append(rect)
 
         self.rectangles, weight = cv.groupRectangles(self.rectangles, groupThreshold=1, eps=0.5)
@@ -132,11 +130,7 @@ class ComputerVision:
 
 
 class WindowCapture:
-    # Parameters
-    bounding_box = {'top': 0, 'left': 0, 'width': 0, 'height': 0}
-
     def __init__(self):
-        self.bounding_box = {'top': 0, 'left': 0, 'width': 1920, 'height': 1080}
         self.codec = cv.VideoWriter_fourcc(*"mp4v")
         self.out = cv.VideoWriter("Automator.avi", self.codec, 60, (1920, 1080))
         cv.namedWindow("STO-Automator", cv.WINDOW_NORMAL)
@@ -147,7 +141,7 @@ class WindowCapture:
             img = pyautogui.screenshot()
             frame = np.array(img)
             frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-            self.out.write(frame)
+            # self.out.write(frame)
             cv.imshow('STO-Automator', frame)
 
             if (cv.waitKey(1) & 0xFF) == ord('/'):
