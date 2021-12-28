@@ -1,7 +1,7 @@
 import keyboard
 from ComputerVision import ComputerVision
-import controller
-from engine import Player1, Player2, Character, DilRefine
+from controller import Controller
+from engine import CharAutomation, Character, DilRefine
 import win32com.client
 import reputation
 import threading
@@ -51,16 +51,16 @@ def main(time_slept, characters):
     while True:
         for character in range(1, characters + 1):
             # Start automation
-            controller.player_automation(character)
+            Controller().player_automation(character)
 
             # Change Characters
-            controller.change_player(character)
+            Controller().change_player(character)
             player_changes += 1
 
             # Start sleeper if each player had an automation round.
             if player_changes >= characters:
                 # Start Sleeper
-                time_slept = controller.sleeper()
+                time_slept = Controller().sleeper()
                 print("\n[i]Sleeper finished.")
                 print(f"[i]Time Slept: {time_slept}")
                 player_changes = 0
