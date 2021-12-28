@@ -66,7 +66,7 @@ dur = 0.2
 liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
 
 
-class Player1:
+class CharAutomation:
     def __init__(self, player):
         self.player = player
 
