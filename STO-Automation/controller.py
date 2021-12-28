@@ -14,162 +14,262 @@ import time
 import sys
 import os
 
+top_windows = []
+results = []
+change_time = 0
+confirm_x, confirm_y = 955, 640
+menu_x, menu_y = 1905, 150
+player1_round = 0
+player1_time = 0
+player2_round = 0
+player2_time = 0
+dur = 0.2
+pause = 0.5
+liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
+logged_out = r'G:\School\Python - Homework\Projects\STO-Automation\logged_out.JPG'
 
-class Controller:
-    def __init__(self, player):
-        self.player = player
-        self.top_windows = []
-        self.results = []
-        self.confirm_x, self.confirm_y = 955, 640
-        self.menu_x, self.menu_y = 1905, 150
-        self.dur = 0.2
-        self.pause = 0.5
-        self.liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
-        self.logged_out = r'G:\School\Python - Homework\Projects\STO-Automation\logged_out.JPG'
 
-    def characterAutomation(self):
-        time.sleep(self.pause)
-        # Open Reputation Window
-        print("[i]Opening Reputation Window")
-        keyboard.press_and_release('[')
-        time.sleep(self.pause)
+def player1_automation(player):
+    global player1_round
+    global player1_time
+    player1_round_start_time = time.time()
 
-        # Start Reputation Automation
-        print(f"[i]Starting automation for Player {self.player}")
+    # Open Reputation Window
+    print("[i]Opening Reputation Window")
+    keyboard.press_and_release('[')
+    time.sleep(pause)
 
-        # Init Mouse Position
-        pyautogui.moveTo(100, 100, duration=self.dur)
-        time.sleep(self.pause)
+    # Start Reputation Automation
+    print(f"[i]Starting automation for Player 1")
 
-        # Running Reputation automation
-        print(f"[i]Player {self.player}: Running Reputation automation.")
-        Player1(self.player).act_reputation()
-        time.sleep(self.pause)
+    # Init Mouse Position
+    pyautogui.moveTo(100, 100, duration=dur)
+    time.sleep(pause)
 
-        # Close Reputation Window
-        print(f"[i]Player {self.player}: Closing Reputation Window")
-        keyboard.press_and_release('[')
-        time.sleep(self.pause)
+    # Running Reputation automation
+    print("[i]Player 1: Running Reputation automation.")
+    Player1(player).act_reputation()
+    time.sleep(pause)
 
-        # Open DutyOfficers/Admiralty Window
-        print(f"[i]Player {self.player}: Opening Admiralty Window")
-        keyboard.press_and_release("]")
-        time.sleep(self.pause)
+    # Close Reputation Window
+    print("[i]Closing Reputation Window")
+    keyboard.press_and_release('[')
+    time.sleep(pause)
 
-        # Start Admiralty Automation
-        print(f"[i]Player {self.player}: Running Admiralty automation.")
-        # Player1().act_admiralty()
-        print(f"[i]Player {self.player}: Admiralty automation completed.")
-        time.sleep(self.pause)
+    # Open DutyOfficers/Admiralty Window
+    print("[i]Opening Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
 
-        # Start Duty Officers Automation
-        print(f"[i]Player {self.player}: Starting DutyOfficers automation.")
-        Player1(self.player).act_dutyofficers()
-        time.sleep(self.pause)
-        print(f"[i]Player {self.player}: DutyOfficers automation completed.")
+    # Start Admiralty Automation
+    print("[i]Running Admiralty automation.")
+    # Player1().act_admiralty()
+    print("[i]Player 1: Admiralty automation completed.")
+    time.sleep(pause)
 
-        # Start DutyOfficers Mission Assignments
-        print(f"[i]Player {self.player}: Running DuFF missions.")
-        Player1(self.player).duff_missions()
-        time.sleep(self.pause)
+    # Start Duty Officers Automation
+    print("[i]Player 1: Starting DutyOfficers automation.")
+    Player1(player).act_dutyofficers()
+    time.sleep(pause)
+    print("[i]Player 1: DutyOfficers automation completed.")
 
-        # Close Admiralty/DutyOfficers Window
-        print(f"[i]Player {self.player}: Closing DutyOfficers/Admiralty Window")
-        keyboard.press_and_release("]")
-        time.sleep(self.pause)
+    # Start DutyOfficers Mission Assignments
+    print("[i]Running DuFF missions.")
+    Player1(player).duff_missions()
+    time.sleep(pause)
 
-        # Start Refining Automation
-        print(f"[i]Player {self.player}: Running Refining automation.")
+    # Close Admiralty/DutyOfficers Window
+    print("[i]Closing DutyOfficers/Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
 
-        # Open Refining Window
-        print(f"[i]Player {self.player}: Opening Refining Window")
-        keyboard.press_and_release("i")
-        time.sleep(self.pause)
+    # Start Refining Automation
+    print("[i]Player 1: Running Refining automation.")
 
-        # Run Automation
-        print(f"[i]Player {self.player}: Running Refining Automation")
-        DilRefine(self.player).act()
-        time.sleep(self.pause)
+    # Open Refining Window
+    print("[i]Opening Refining Window")
+    keyboard.press_and_release("i")
+    time.sleep(pause)
 
-        # Close Refining window
-        print(f"[i]Player {self.player}: Closing Refining Window")
-        keyboard.press_and_release("i")
-        print(f"[i]Player {self.player}: Finished Refining automation.")
-        time.sleep(self.pause)
+    # Run Automation
+    print("[i]Running Refining Automation")
+    DilRefine(player).act()
+    time.sleep(pause)
 
-        return
+    # Close Refining window
+    print("[i]Closing Refining Window")
+    keyboard.press_and_release("i")
+    print("[i]Player 1: Finished Refining automation.")
+    time.sleep(pause)
 
-    def change_player(self):
-        # Change Character
-        print(f"[i]Player {self.player}: Changing character...")
+    player1_round += 1
+    player1_round_end_time = time.time()
+    player1_time = player1_round_end_time - player1_round_start_time
 
-        # Open Main Menu
-        print(f"[i]Player {self.player}: Opening Main Menu")
-        pyautogui.moveTo(self.menu_x, self.menu_y, duration=self.dur)
-        time.sleep(self.pause)
-        print(f"[i]Player {self.player}: Clicking on Menu")
-        self.click(self.menu_x, self.menu_y)
-        time.sleep(self.pause)
+    return
 
-        # Change Character
-        Character(self.player).act()
-        time.sleep(self.pause)
-        print(f"[i]Player {self.player}: Finished Character change.")
 
-    def sleeper(self):
-        # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
-        sleeptime = random.randint(5, 10)
-        print(f"[i]Sleeper set for {sleeptime} seconds.")
-        for x in range(sleeptime, 0, -1):
-            sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
-            time.sleep(1)
+def player2_automation():
+    global player2_round
+    global player2_time
+    player2_round_start_time = time.time()
 
-        # Capture Screenshot
-        self.main_window()
+    # Start Reputation Automation Character 2
+    print(f"[i]Running automation for character 2...")
+    pyautogui.moveTo(100, 100, duration=dur)
+    time.sleep(pause)
 
-        # Compare screenshots and verify the connection to the server.
-        if not ComputerVision(cv.imread(self.liveImage, cv.IMREAD_UNCHANGED),
-                              cv.imread(self.logged_out, cv.IMREAD_UNCHANGED),
-                              threshold=0.5).compare():
+    # Open Reputation Window
+    keyboard.press_and_release("[")
+    print("[i]Player 2: Running Reputation automation...")
+    time.sleep(pause)
 
-            # Simulate character movement
-            print(f"[i]Player {self.player}: Simulating Character Look Left")
-            keyboard.press('a')
-            time.sleep(self.pause)
-            keyboard.release('a')
-            print(f"[i]Player {self.player}: Simulating Character Look Right")
-            keyboard.press('d')
-            time.sleep(self.pause)
-            keyboard.release('d')
+    # Run Reputation Automation
+    Player2().act_reputation()
+    time.sleep(pause)
 
-        else:
-            print("[!] Disconnected from Server.\n [!]Stopping Script.")
-            exit()
+    # Close Reputation Window
+    print("[i]Player 2: Closing Reputation Window")
+    keyboard.press_and_release("[")
+    time.sleep(pause)
+    print("[i]Player 2: Reputation automation completed.")
 
-        return
+    # Open DutyOfficers/Admiralty Window
+    print("[i]Opening DutyOfficers/Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
 
-    def main_window(self):
-        # Switch to STO Window
-        for i in self.top_windows:
-            if "star trek online" in f"{i[1]}".lower():
-                print("[i]Switching to STO...")
-                win32gui.ShowWindow(i[0], 5)
-                win32gui.SetForegroundWindow(i[0])
-                print("[i] Taking Screenshot.")
-                liveSC = pyautogui.screenshot()
-                liveSC.save(self.liveImage)
-                print("[i] Screenshot Saved.")
+    # Start Admiralty Automation
+    print("[i]Running Admiralty automation.")
+    # Player2().act_admiralty()
+    print("[i]Player 2: Admiralty automation completed.")
+    time.sleep(pause)
 
-    def click(self, x, y):
-        # Clear Mouse Status
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+    # Start Duty Officers Automation
+    print("[i]Player 2: Starting DutyOfficers automation.")
+    Player2().act_dutyofficers()
+    time.sleep(pause)
 
-        # Set Mouse Position
-        win32api.SetCursorPos((x, y))
+    # Start DutyOfficers Mission Assignments
+    print("[i]Running DuFF missions.")
+    Player2().duff_missions()
+    time.sleep(pause)
 
-        # Commence Mouse Click
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)
+    print("[i]Player 2: DutyOfficers automation completed.")
 
-        # Clear Mouse Status
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+    # Start Refining Automation
+    print("[i]Player 2: Starting Refining Automation.")
+
+    # Close DutyOfficers/Admiralty Window
+    print("[i]Closing DutyOfficers/Admiralty Window")
+    keyboard.press_and_release("]")
+    time.sleep(pause)
+
+    # Open Refining Window
+    print("[i]Opening Refining Window")
+    keyboard.press_and_release("i")
+    time.sleep(pause)
+
+    # Run Refining Automation
+    print("[i]Running Refining Automation")
+    DilRefine().act()
+    time.sleep(pause)
+
+    # Close Refining Window
+    print("[i]Closing Refining Window")
+    keyboard.press_and_release("i")
+    print("[i]Player 2: Finished Refining trainer.")
+    time.sleep(pause)
+
+    player2_round += 1
+    player2_round_end_time = time.time()
+    player2_time = player2_round_end_time - player2_round_start_time
+
+    return
+
+
+def change_player():
+    global change_time
+    change_start = time.time()
+
+    # Change Character
+    print("[i]Changing character...")
+
+    # Open Main Menu
+    print("[i]Opening Main Menu")
+    pyautogui.moveTo(menu_x, menu_y, duration=dur)
+    time.sleep(pause)
+    print("[i]Clicking on Menu")
+    click(menu_x, menu_y)
+    time.sleep(pause)
+    Character().act()
+    time.sleep(pause)
+    print("[i]Finished Character change.")
+
+    change_end = time.time()
+    change_time = change_end - change_start
+
+    return
+
+
+def sleeper():
+    # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
+    sleeptime = random.randint(5, 10)
+    print(f"[i]Sleeper set for {sleeptime} seconds.")
+    for x in range(sleeptime, 0, -1):
+        sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
+        time.sleep(1)
+
+    # Capture Screenshot
+    main_window()
+
+    # Compare screenshots and verify the connection to the server.
+    if not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
+                          cv.imread(logged_out, cv.IMREAD_UNCHANGED),
+                          threshold=0.5).compare():
+
+        # Simulate character movement
+        print("Simulating Character Look Left")
+        keyboard.press('a')
+        time.sleep(0.2)
+        keyboard.release('a')
+        print("Simulating Character Look Right")
+        keyboard.press('d')
+        time.sleep(0.2)
+        keyboard.release('d')
+
+    else:
+        print("[!] Disconnected from Server. Stopping Script. [!]")
+        exit()
+
+    return
+
+
+def main_window():
+    global top_windows, results, liveImage
+
+    # Switch to STO Window
+    for i in top_windows:
+        if "star trek online" in f"{i[1]}".lower():
+            print("[i]Switching to STO...")
+            win32gui.ShowWindow(i[0], 5)
+            win32gui.SetForegroundWindow(i[0])
+            print("[i] Taking Screenshot.")
+            liveSC = pyautogui.screenshot()
+            liveSC.save(liveImage)
+            print("[i] Screenshot Saved.")
+
+
+def click(x, y):
+    # Clear Mouse Status
+    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+    # Set Mouse Position
+    win32api.SetCursorPos((x, y))
+
+    # Commence Mouse Click
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y, 0, 0)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y, 0, 0)
+
+    # Clear Mouse Status
+    win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
