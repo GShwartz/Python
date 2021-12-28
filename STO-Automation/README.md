@@ -51,6 +51,7 @@
 
 Calculate and presents:
 * number of rounds per 2 characters, when each character finishes a round a sleeper runs for random time between 10 - 20 minutes. (currently set on 5-10 seconds)
-* sleep time set for each round.
+* sleep time set for each round of 2 characters.
+* Using Computer Vision to compare screenshots of the game - if there's a match then the game server is offline or the Internet connection is broken and the script will exit.
 * total sleep time. 
 * total time the script is running.
