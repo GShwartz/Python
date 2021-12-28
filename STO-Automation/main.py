@@ -1,5 +1,6 @@
+import keyboard
 from ComputerVision import ComputerVision
-from controller import Controller
+import controller
 from engine import Player1, Player2, Character, DilRefine
 import win32com.client
 import reputation
@@ -23,12 +24,6 @@ def screenshot():
 
 
 def fore_window():
-    top_windows = []
-    results = []
-
-    # Enumerate opened OS windows
-    win32gui.EnumWindows(window_enumeration_handler, top_windows)
-
     # Switch to STO Window
     for i in top_windows:
         if "star trek online" in f"{i[1]}".lower():
@@ -54,28 +49,26 @@ def show_mouse_pos():
 def main(time_slept, characters):
     player_changes = 0
     while True:
-        # Capture Initial Screenshot
-        fore_window()
-        screenshot()
-
         for character in range(1, characters + 1):
             # Start automation
-            Controller(character).characterAutomation()
+            controller.player_automation(character)
 
             # Change Characters
-            Controller(character).change_player()
+            controller.change_player(character)
             player_changes += 1
 
             # Start sleeper if each player had an automation round.
             if player_changes >= characters:
                 # Start Sleeper
-                time_slept = Controller(character).sleeper()
+                time_slept = controller.sleeper()
                 print("\n[i]Sleeper finished.")
                 print(f"[i]Time Slept: {time_slept}")
                 player_changes = 0
 
 
 if __name__ == "__main__":
+    top_windows = []
+    results = []
     time_slept = 0
     pause = 0.5
     dur = 0.2
@@ -87,6 +80,13 @@ if __name__ == "__main__":
     global_thread = threading.Thread(target=show_mouse_pos, name="Global Conf")
     # global_thread.daemon = True
     # global_thread.start()
+
+    # Enumerate opened OS windows
+    win32gui.EnumWindows(window_enumeration_handler, top_windows)
+
+    # Capture Screenshot
+    fore_window()
+    screenshot()
 
     # Start main loop
     main(time_slept, characters=2)
