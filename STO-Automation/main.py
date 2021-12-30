@@ -73,8 +73,8 @@ if __name__ == "__main__":
     pause = 0.5
     dur = 0.2
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.log"
-    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
-    logged_out = r'G:\School\Python - Homework\Projects\STO-Automation\logged_out.JPG'
+    liveImage = r'live_sc.jpg'
+    logged_out = r'logged_out.JPG'
 
     # Show Mouse Position for Debugging
     global_thread = threading.Thread(target=show_mouse_pos, name="Global Conf")
