@@ -63,7 +63,7 @@ menu_x, menu_y = 1905, 150
 duff_pause = 1.5
 pause = 0.2
 dur = 0.2
-liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
+liveImage = r'live_sc.jpg'
 
 
 class CharAutomation:
