@@ -89,7 +89,7 @@ class Game:
                 self.logger.write(f"{datetime.today().replace(microsecond=0)}: "
                                   f"\n============= Totals for Player {character}: "
                                   f"{self.topTotals}\n=============\n")
-                
+
                 self.topTotals = {}
                 self.topAssignments = {}
                 print(f"Top Totals Dict: {self.topTotals}")
@@ -114,7 +114,7 @@ class Game:
 
                 # Start sleeper if each player had an automation round.
                 if self.playerChanges >= characters:
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
+                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{character}: "
                                       f"**** {self.totalsList} ****\n")
                     self.logger.write(f"{datetime.today().replace(microsecond=0)}:\n"
                                       f"#### Total Missions planned ####\n"
@@ -126,11 +126,15 @@ class Game:
                                       f"Security: {sum(self.securityAss)}.\n"
                                       f"Medical: {sum(self.medicalAss)}.\n"
                                       f"####\n")
+
+                    self.totalRounds[f"Round {self.rounds}"] = self.totalsList
+                    print(f"Total Rounds: {self.totalRounds}")
                     self.totalsList = []
+                    self.logger.write(f"{datetime.today().replace(microsecond=0)}:\nRounds: {self.totalRounds}\n")
                     # Start Sleeper
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Starting Sleeper\n")
+                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Starting Sleeper\n\n")
                     self.time_slept = pA.sleeper()
-                    print("\n[i]Sleeper finished.")
+                    print("[i]Sleeper finished.")
                     print(f"[i]Time Slept: {self.time_slept}")
                     self.playerChanges = 0
                     self.rounds += 1
@@ -169,9 +173,11 @@ def show_mouse_pos():
 
 
 if __name__ == "__main__":
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     top_windows = []
     results = []
-    liveImage = r'live_sc.jpg'
+    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.log"
 
     # Show Mouse Position for Debugging
