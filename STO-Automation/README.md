@@ -21,11 +21,15 @@
 1. Open Main Menu.
 2. Click on Change Character Button.
 3. Confirm Character Change.
-4. Choose the 2nd Character.
+4. Choose the next Character.
 5. Click the Play Button.
 6. Close the Welcome Window.
 
 ## Final Stages:
+
+1. Start sleeper module.
+2. Take a screenshot and compare to logged out image
+3. If there's no match then simulate character movement.
 
 Calculate and presents:
 * number of rounds for all characters, 
