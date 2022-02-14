@@ -171,7 +171,7 @@ def show_mouse_pos():
 if __name__ == "__main__":
     top_windows = []
     results = []
-    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\live_sc.jpg'
+    liveImage = r'live_sc.jpg'
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.log"
 
     # Show Mouse Position for Debugging
