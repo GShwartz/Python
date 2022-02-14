@@ -5,21 +5,6 @@
       
 ## Reputation stages:
 
-1. Open Reputation window.
-2. Go over each tab and do the following:
-    * Click on Collect Reward.
-    * Click on Project 1.
-    * Select the daily project.
-    * Fill it's requirements.
-    * Confirm selection.
- 
-## Admiralty stages:
-
-1. Open DutyOfficers/Admiralty window.
-2. Select Admiralty Folder.
-3. Open Progress Window
-4. Collect slots 1 - 8.
-
 ## DutyOfficers Stages:
 
 1. Open DutyOfficers Folder.
@@ -30,13 +15,6 @@
 6. Plan and Begin assignments.
 7. Open each department heads window, Plan and Begin assignments.
 8. Close DutyOfficers/Admiralty Window
-
-## Refining Stages:
-
-1. Open Refining Window.
-2. Scroll Down.
-3. Click on the Refine Dilithum Button.
-4. Close Refining Window.
 
 ## Change Character Stages:
 
@@ -50,8 +28,10 @@
 ## Final Stages:
 
 Calculate and presents:
-* number of rounds per 2 characters, when each character finishes a round a sleeper runs for random time between 10 - 20 minutes. (currently set on 5-10 seconds)
-* sleep time set for each round of 2 characters.
+* number of rounds for all characters, 
+* when each character finishes a round a sleeper runs for random time between 10 - 20 minutes. (currently set on 5-10 seconds)
+* sleep time set for each round of X characters.
 * Using Computer Vision to compare screenshots of the game - if there's a match then the game server is offline or the Internet connection is broken and the script will exit.
-* total sleep time. 
-* total time the script is running.
+* Using Computer Vision to locate buttons on screen
+* General statistics: Rounds played | Rewards Collected | Personal | Engineering | Science | Tactical | Security | Medical
+* Logging for all stages.
