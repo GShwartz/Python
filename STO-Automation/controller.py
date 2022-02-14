@@ -17,17 +17,20 @@ import sys
 import os
 from collections import defaultdict
 
+
 menu_x, menu_y = 1905, 150
 confirm_x, confirm_y = 955, 640
 dur = 0.2
 pause = 0.5
-liveImage = r'live_sc.jpg'
-logged_out = r'logged_out.JPG'
-defaultEmpty = r'defaultEmpty.JPG'
-defaultAlmostEmpty = r'defaultAlmostEmpty.JPG'
-planButton = r'planButton.JPG'
-completed = r'completed.JPG'
-
+liveImage = 'Images/Anchors/live_sc.jpg'
+logged_out = 'Images/Anchors/logged_out.JPG'
+defaultEmpty = 'Images/Anchors/defaultEmpty.JPG'
+defaultAlmostEmpty = 'Images/Anchors/defaultAlmostEmpty.JPG'
+planButton = 'Images/Anchors/planButton.JPG'
+completed = 'Images/Anchors/completed.JPG'
+welcome = 'Images/Anchors/welcome.JPG'
+collect = 'Images/Anchors/collect.JPG'
+desktop = 'Images/Anchors/desktop.JPG'
 
 # Duty Officers vars
 personal_x, personal_y = 70, 130
@@ -389,8 +392,8 @@ class Controller:
         print(f"Planned Assignments for {department}: {planned}")
         self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
                           f"Planned Assignments for {department}: {planned}\n")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
-                          f"==== {self.topTotals} ====\n")
+        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: \n"
+                          f"{self.topTotals}\n")
 
         return
 
