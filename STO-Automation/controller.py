@@ -1,12 +1,11 @@
-import cv2
-import numpy as np
+from ComputerVision import ComputerVision
 from datetime import datetime
 from PIL import ImageGrab
-from ComputerVision import ComputerVision
 import win32com.client
+import numpy as np
 import reputation
-import pyautogui
 import cv2 as cv
+import pyautogui
 import keyboard
 import win32api
 import win32con
@@ -14,8 +13,8 @@ import win32gui
 import random
 import time
 import sys
+import cv2
 import os
-from collections import defaultdict
 
 
 menu_x, menu_y = 1905, 150
@@ -53,18 +52,20 @@ duffBottomScroller_x, duffBottomScroller_y = 878, 570
 duff_pause = 1.5
 
 # Change Character vars
-changeScrollerTop_x, changeScrollerTop_y = 478, 285
-changeScrollerBottom_x, changeScrollerBottom_y = 478, 370
 changeButton_x, changeButton_y = 540, 385
 changeConfirm_x, changeConfirm_y = 955, 570
-lastChar_x, lastChar_y = 230, 810
+charTopScroller_x, charTopScroller_y = 478, 375
+charBottomScroller_x, charBottomScroller_y = 478, 535
+lastChar_x, lastChar_y = 230, 670
 play_x, play_y = 425, 875
 
 
 class Controller:
     def __init__(self, logger, player, topTotals, totalsList, topAssignments,
                  rewards, personal, engineering,
-                 science, tactical, security, medical):
+                 science, tactical, security, medical, sleep):
+
+        self.sleep = sleep
 
         self.top_windows = []
         self.results = []
@@ -300,6 +301,16 @@ class Controller:
 
         return
 
+    def moveCharScroller(self):
+        time.sleep(pause)
+        pyautogui.moveTo(charTopScroller_x, charTopScroller_y, duration=dur)
+        time.sleep(pause)
+        pyautogui.dragTo(charBottomScroller_x, charBottomScroller_y, duration=dur)
+        time.sleep(pause)
+        click(charBottomScroller_x, charBottomScroller_y)
+
+        return
+
     def choose(self):
         # Choose the middle character
         time.sleep(pause)
@@ -406,16 +417,18 @@ class Controller:
         print(f"[i]Player {self.player}: Clicking on Department Heads")
         click(department_x, department_y)
         time.sleep(duff_pause)
+        click(department_x, department_y)
+        time.sleep(pause)
 
         return
 
     def sleeper(self):
         # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
-        sleeptime = random.randint(5, 10)
-        print(f"[i] Sleeper set for {sleeptime} seconds.")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Sleeper set for {sleeptime} seconds.\n")
+        # sleeptime = random.randint(5, 10)
+        print(f"[i] Sleeper set for {self.sleep} seconds.")
+        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Sleeper set for {self.sleep} seconds.\n")
 
-        for x in range(sleeptime, 0, -1):
+        for x in range(self.sleep, 0, -1):
             sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
             time.sleep(1)
 
@@ -445,7 +458,7 @@ class Controller:
             print("[!] Disconnected from Server. Stopping Script. [!]")
             quit()
 
-        return sleeptime
+        return self.sleep
 
     def main_window(self):
         # Switch to STO Window
