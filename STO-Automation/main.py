@@ -69,6 +69,7 @@ class Game:
         self.pA.play()
         timer(60)
         self.pA.closeChar()
+        time.sleep(3)
 
         return
 
@@ -210,7 +211,7 @@ class Game:
                     self.pA.sleeper()
                     self.logger.write(f"{datetime.today().replace(microsecond=0)}: Starting Sleeper\n\n")
                     print("[i]Sleeper finished.")
-                    print(f"[i]Time Slept: {self.time_slept}")
+                    print(f"[i]Time Slept: {self.sleep}")
 
                     # Update Counters
                     self.playerChanges = 0
