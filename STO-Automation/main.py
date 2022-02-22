@@ -18,204 +18,276 @@ import os
 
 
 class Game:
-    def __init__(self, log, sleep):
-        self.sleep = sleep
-        self.logger = log
-        self.pause = 0.5
-        self.dur = 0.2
-        self.playerChanges = 0
-        self.rounds = 0
-
-        self.topTotals = {}
-        self.topAssignments = {}
-        self.totalsList = []
-        self.totalRounds = {}
-
-        self.rewards = []
-        self.personalAss = []
+    def __init__(self, log, resultsLog, sleep):
         self.assignments = ["Engineering", "Science", "Tactical", "Security", "Medical"]
-        self.tempAssignments = []
-        self.engineeringAss = []
-        self.scienceAss = []
-        self.tacticalAss = []
-        self.securityAss = []
-        self.medicalAss = []
+        self.resultsLog = resultsLog    # A File that will store only the final summarization for each round.
+        self.logger = log               # Log file.
+        self.pause = 0.5                # Pause between actions.
+        self.dur = 0.2                  # Mouse movement duration.
+        self.playerChanges = 0          # Number of player changes made.
+        self.rounds = 1                 # Number of Total Rounds.
+        self.sleep = sleep              # Sleep time after each round.
+
+        self.topTotals = {}             # Will store Rewards and Assignments for each character.
+        self.topAssignments = {}        # Will store each character's collected/planned missions.
+        self.totalsList = []            # Will store a list of all missions assigned to all characters.
+        self.totalRounds = {}           # Will store the round number and all missions assigned/collected.
+        self.totalSleep = 0             # Total sleep time for all rounds.
+
+        self.rewards = []               # Total rewards for each character.
+        self.personalAss = []           # Will store all Personal Assignments.
+        self.tempAssignments = []       # Will store temporary departments for each character.
+        self.engineeringAss = []        # Will store all Engineering Assignments.
+        self.scienceAss = []            # Will store all Science Assignments.
+        self.tacticalAss = []           # Will store all Tactical Assignments.
+        self.securityAss = []           # Will store all Security Assignments.
+        self.medicalAss = []            # Will store all Medical Assignments.
 
     def check_process(self, task):
-        quickLaunch_x, quickLaunch_y = 155, 445
-        engage_x, engage_y = 1255, 700
+        crashes = 0     # Number of times the game process was not found.
+        quickLaunch_x, quickLaunch_y = 155, 445     # Epic Games STO Quick Launch Button
+        engage_x, engage_y = 1255, 700              # Launcher Engage Button
 
         # Check if game is running and restart if not.
         proc = subprocess.check_output('tasklist', shell=True)
         if str(task) in str(proc):
-            print("Game is running.")
+            logIt(self.logger, debug=True, msg=f'Game is running')
 
             return
 
-        print("Game is not running. restarting...")
+        if crashes == 3:
+            logIt(self.logger, debug=True, msg=f'Game crashed 3 times. stopping script.')
+            exit()
+
+        logIt(self.logger, debug=True, msg=f'Game is not running. restarting.')
+        logIt(self.logger, debug=True, msg=f'Starting Epic Games Launcher...')
         subprocess.run(
             r'c:/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe')
-        time.sleep(30)
+        timer(30)
+
+        logIt(self.logger, debug=True, msg=f'Clicking on Quick Launch')
         pyautogui.moveTo(quickLaunch_x, quickLaunch_y, duration=0.3)
         time.sleep(1)
         click(quickLaunch_x, quickLaunch_y)
         time.sleep(30)
+        logIt(self.logger, debug=True, msg=f'Clicking on Engage')
         pyautogui.moveTo(engage_x, engage_y, duration=0.3)
         click(engage_x, engage_y)
         timer(120)
+        logIt(self.logger, debug=True, msg=f'Moving character scroller...')
         self.pA.moveCharScroller()
+        logIt(self.logger, debug=True, msg=f'Choose last character')
         self.pA.choose()
-        time.sleep(6)
+        timer(10)
+        logIt(self.logger, debug=True, msg=f'Clicking on Play')
         self.pA.play()
         timer(60)
+        logIt(self.logger, debug=True, msg=f'Closing Welcome Window')
         self.pA.closeChar()
         time.sleep(3)
+
+        crashes += 1
+
+        return
+
+    def duff(self, player):
+        # Start Duty Officers Automation
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Initializing mouse position')
+        self.pA.init_automation()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Opening Duty Officers Window')
+        self.pA.duffWindow()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Clicking on Duty Officers Folder')
+        self.pA.duffFolder()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Clicking on Completed')
+        self.pA.completed()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Taking Screenshot')
+        self.pA.main_window()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Collecting Rewards...')
+        self.pA.collect()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Clicking on Personal')
+        self.pA.personal()
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Clicking on Filters')
+        self.pA.filters()
+
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Detecting Scroller...')
+        personalBox = pyautogui.locateOnScreen(planButton, grayscale=True, confidence=.8)
+        try:
+            if len(personalBox):
+                logIt(self.logger, debug=True, msg=f'Player #{player}: Moving Mission scroller')
+                self.pA.scroller()
+
+        except TypeError:
+            logIt(self.logger, debug=True, msg=f'Player #{player}: No Personal Missions Found')
+
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Personal missions...')
+        self.pA.plan(department='Personal')
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Clicking on Department Heads')
+        self.pA.back()
+
+        for i in range(len(self.assignments)):
+            logIt(self.logger, debug=True, msg=f'Player #{player}: Selecting department...')
+            department = random.choice(self.assignments)
+            logIt(self.logger, debug=True, msg=f'Player #{player}: Department selected: {department}')
+            if department not in self.tempAssignments:
+                self.tempAssignments.append(department)
+                logIt(self.logger, write=False, debug=True, msg=f'DEBUG Temp Assignments: {self.tempAssignments}')
+
+                if department == "Engineering":
+                    logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Engineering Missions...')
+                    self.pA.engineering()
+                    self.pA.plan(department='Engineering')
+                    self.pA.back()
+
+                elif department == "Science":
+                    logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Science Missions...')
+                    self.pA.science()
+                    self.pA.plan(department='Science')
+                    self.pA.back()
+
+                elif department == "Tactical":
+                    logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Tactical Missions...')
+                    self.pA.tactical()
+                    self.pA.plan(department='Tactical')
+                    self.pA.back()
+
+                elif department == "Security":
+                    logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Security Missions...')
+                    self.pA.security()
+                    self.pA.plan(department='Security')
+                    self.pA.back()
+
+                elif department == "Medical":
+                    logIt(self.logger, debug=True, msg=f'Player #{player}: Planning Medical Missions...')
+                    self.pA.medical()
+                    self.pA.plan(department='Medical')
+                    self.pA.back()
+
+        logIt(self.logger, debug=True, msg=f'Player #{player}: Closing Duty Officers window')
+        self.pA.closeDuff()
+
+        return
+
+    def change_character(self, player):
+        # Change Characters
+        logIt(self.logger, debug=True, msg=f'Changing Character')
+        logIt(self.logger, debug=True, msg=f'Clicking on Menu')
+        self.pA.menu()
+        logIt(self.logger, debug=True, msg=f'Clicking on Change Character')
+        self.pA.change()
+        logIt(self.logger, debug=True, msg=f'Clicking on Confirm')
+        self.pA.confirm()
+        timer(10)       # Wait for the game to load the characters screen
+        logIt(self.logger, debug=True, msg=f'Moving Characters scroller')
+        self.pA.moveCharScroller()
+        logIt(self.logger, debug=True, msg=f'Clicking on Last Character')
+        self.pA.choose()
+        timer(30)       # Wait for the game to load the character's team screen
+        logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
+        self.check_process('GameClient.exe')
+        logIt(self.logger, debug=True, msg=f'Clicking on Play')
+        self.pA.play()
+        # timer(10)
+        timer(120)      # Wait for the game to load the character
+        logIt(self.logger, debug=True, msg=f'Closing Welcome Window')
+        self.pA.closeChar()
 
         return
 
     def main(self, characters):
         while True:
-            # Capture Initial Screenshot
-            self.logger.write(f"{datetime.today().replace(microsecond=0)}: Taking Screenshot\n")
             for character in range(1, characters + 1):
-                # Start automation
+                # Initialize Controller
                 self.pA = Controller(self.logger, character, self.topTotals, self.totalsList, self.topAssignments,
                                      self.rewards, self.personalAss, self.engineeringAss,
                                      self.scienceAss, self.tacticalAss, self.securityAss, self.medicalAss, self.sleep)
 
-                # Set Round Number
-                if self.rounds == 0:
-                    self.totalRounds[f'Round {self.rounds + 1}'] = self.topTotals
-                    print(f"Starting automation round: {self.rounds + 1} for player {character}...")
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: "
-                                      f"Starting automation round: {self.rounds + 1} for player {character}...\n")
-
-                # Check if Game is running
-                self.check_process('GameClient.exe')
-
-                # Start Duty Officers Automation
-                print(f"[i] Player #{character}: Starting DutyOfficers automation.")
-                self.pA.player_automation()
-                self.pA.duffWindow()
-                self.pA.duffFolder()
-                self.pA.completed()
-                self.pA.main_window()
-                self.pA.collect()
-                self.pA.personal()
-                self.pA.filters()
-
-                personalBox = pyautogui.locateOnScreen(planButton, grayscale=True, confidence=.8)
-                try:
-                    if len(personalBox):
-                        self.pA.scroller()
-
-                except TypeError:
-                    print("No Personal Missions Found.")
-
-                # pA.scroller()
-                self.pA.plan(department='Personal')
-                self.pA.back()
-
-                for i in range(len(self.assignments)):
-                    self.check_process('GameClient.exe')
-                    department = random.choice(self.assignments)
-                    print(f"Debug ASSIGNMENTS: Department: {department} | Assignment #{i + 1}")
-                    if department not in self.tempAssignments:
-                        self.tempAssignments.append(department)
-                        print(f"DEBUG Temp Assignments: {self.tempAssignments}")
-
-                        if department == "Engineering":
-                            self.pA.engineering()
-                            self.pA.plan(department='Engineering')
-                            self.pA.back()
-
-                        elif department == "Science":
-                            self.pA.science()
-                            self.pA.plan(department='Science')
-                            self.pA.back()
-
-                        elif department == "Tactical":
-                            self.pA.tactical()
-                            self.pA.plan(department='Tactical')
-                            self.pA.back()
-
-                        elif department == "Security":
-                            self.pA.security()
-                            self.pA.plan(department='Security')
-                            self.pA.back()
-
-                        elif department == "Medical":
-                            self.pA.medical()
-                            self.pA.plan(department='Medical')
-                            self.pA.back()
-
-                self.pA.closeDuff()
-
-                self.topTotals = {f'Player {character}': self.topAssignments}
+                # Start Duff Section
+                logIt(self.logger, debug=True, msg=f'Starting automation round: '
+                                                   f'{self.rounds} for player {character}...')
+                self.duff(character)
+                logIt(self.logger, debug=True, msg=f'Player #{character}: DutyOfficers automation completed.')
+                self.topTotals = {f'Player #{character}': self.topAssignments}
+                self.totalRounds[f'Round #{self.rounds}'] = self.topTotals
                 self.totalsList.append(self.topTotals)
-                self.logger.write(f"{datetime.today().replace(microsecond=0)}: "
-                                  f"\n============= Totals for Player {character}: "
-                                  f"{self.topTotals}\n=============\n")
+                logIt(self.logger, msg=f'\n========= Totals for Player #{character}: '
+                                       f'{self.topTotals}=========\n')
 
+                logIt(self.logger, debug=True, msg=f'Resetting lists')
                 self.topTotals = {}
                 self.topAssignments = {}
                 self.tempAssignments = []
 
-                # print(f"Top Totals Dict: {self.topTotals}")
-                # print(f"Top Totals List: {self.totalsList}")
-                # print(f"Temp Assignment List: {self.tempAssignments}")
-                # time.sleep(10)  # For DEBUG
-
-                print(f"[i] Player #{character}: DutyOfficers automation completed.")
-
-                # Change Characters
-                self.logger.write(f"{datetime.today().replace(microsecond=0)}: Changing Character\n")
-                self.pA.change_player()
-                self.pA.change()
-                self.pA.confirm()
-                time.sleep(5)
-                self.pA.moveCharScroller()
-                self.pA.choose()
-                time.sleep(6)
-                self.check_process('GameClient.exe')
-                self.pA.play()
-                timer(60)
-                self.pA.closeChar()
-
-                print(f"[i] Player #{character}: Finished Character change.")
+                # Change Character
+                logIt(self.logger, debug=True, msg=f'Starting Character change automation')
+                self.change_character(character)
+                logIt(self.logger, debug=True, msg=f'Character change automation completed')
                 self.playerChanges += 1
+
+                # Check if game is running
+                logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
+                self.check_process('GameClient.exe')
 
                 # Start sleeper if each player had an automation round.
                 if self.playerChanges >= characters:
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{character}: "
-                                      f"**** {self.totalsList} ****\n")
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}:\n"
-                                      f"#### Total Missions planned ####\n"
-                                      f"Rewards: {sum(self.rewards)} collected.\n"
-                                      f"Personal: {sum(self.personalAss)}.\n"
-                                      f"Engineering: {sum(self.engineeringAss)}.\n"
-                                      f"Science: {sum(self.scienceAss)}.\n"
-                                      f"Tactical: {sum(self.tacticalAss)}.\n"
-                                      f"Security: {sum(self.securityAss)}.\n"
-                                      f"Medical: {sum(self.medicalAss)}.\n"
-                                      f"####\n")
+                    logIt(self.logger, msg=f'**** {self.topTotals} ****')
+                    with open(self.resultsLog, 'a') as sumlog:
+                        self.totalRounds[f"Round {self.rounds}"] = self.totalsList
+                        print(f"Total Rounds: {self.totalRounds}")
+                        logIt(self.logger, debug=True, msg=f'Updating results log...')
+                        sumlog.write(f"===============================================\n" 
+                                     f"{datetime.today().replace(microsecond=0)}\n"
+                                     f"#### Summarization ####\n"
+                                     f"* Rounds: {self.rounds}\n"
+                                     f"* Rewards: {sum(self.rewards)} collected.\n"
+                                     f"* Personal: {sum(self.personalAss)}.\n"
+                                     f"* Engineering: {sum(self.engineeringAss)}.\n"
+                                     f"* Science: {sum(self.scienceAss)}.\n"
+                                     f"* Tactical: {sum(self.tacticalAss)}.\n"
+                                     f"* Security: {sum(self.securityAss)}.\n"
+                                     f"* Medical: {sum(self.medicalAss)}.\n\n"
 
-                    self.totalRounds[f"Round {self.rounds}"] = self.totalsList
-                    print(f"Total Rounds: {self.totalRounds}")
+                                     f"#### Detailed ####\n"
+                                     f"* Total time slept: {self.totalSleep} seconds.\n")
+
+                        n = 0
+                        for k, v in self.totalRounds.items():
+                            sumlog.write(f"{k[n]}: {v}\n")
+                            n += 1
+
+                        sumlog.write("===============================================\n\n\n")
+                        logIt(self.logger, debug=True, msg=f'Results log updated.')
+
                     self.totalsList = []
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}:\nRounds: {self.totalRounds}\n")
+                    logIt(self.logger, msg=f'Rounds: {self.rounds}')
 
+                    # Check if game is running
+                    logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
                     self.check_process('GameClient.exe')
 
                     # Start Sleeper
+                    logIt(self.logger, debug=True, msg=f'Starting Sleeper')
                     self.pA.sleeper()
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Starting Sleeper\n\n")
-                    print("[i]Sleeper finished.")
-                    print(f"[i]Time Slept: {self.sleep}")
+                    logIt(self.logger, debug=True, msg=f'Sleeper finished')
+                    logIt(self.logger, debug=True, msg=f'Time Slept: {sleeptime}')
+
+                    # Updating Total Sleeptime
+                    self.totalSleep += sleeptime
 
                     # Update Counters
+                    logIt(self.logger, debug=True, msg=f'Updating Counters')
                     self.playerChanges = 0
                     self.rounds += 1
+
+
+def logIt(logfile, write=True, debug=False, msg=''):
+    if debug:
+        print(f"{datetime.today().replace(microsecond=0)}: {msg}")
+
+    if not write:
+        return
+
+    with open(logfile, 'a') as lf:
+        lf.write(f"{datetime.today().replace(microsecond=0)}: {msg}\n")
 
 
 def timer(t):
@@ -223,7 +295,7 @@ def timer(t):
         sys.stdout.write(f"\rWaiting for {str(x)} seconds...")
         time.sleep(1)
 
-    return
+    return print("\n")
 
 
 def fore_window():
@@ -236,12 +308,13 @@ def fore_window():
     # Switch to STO Window
     for i in top_windows:
         if "star trek online" in f"{i[1]}".lower():
-            print("[i]Switching to STO...")
+            logIt(log, write=False, debug=True, msg=f'Switching to STO...')
             win32gui.ShowWindow(i[0], 5)
             win32gui.SetForegroundWindow(i[0])
+            logIt(log, write=False, debug=True, msg=f'Taking Screenshot')
             liveSC = pyautogui.screenshot()
             liveSC.save(liveImage)
-            print(f"Screenshot Saved to: \n{liveImage}")
+            logIt(log, write=False, debug=True, msg=f'Screenshot Saved')
             break
 
     time.sleep(0.8)
@@ -258,10 +331,9 @@ def show_mouse_pos():
         print(pyautogui.position())
 
 
-def check_connection():
-    host = '208.95.184.200'
-    print(f"checking connection to {host}...")
-    response = os.system(f"ping -c 1 {host}")
+def check_connection(address):
+    print(f"checking connection to {address}...")
+    response = os.system(f"ping -c 1 {address}")
 
     return response
 
@@ -278,23 +350,22 @@ if __name__ == "__main__":
     liveImage = 'Images/Anchors/live_sc.jpg'
     planButton = 'Images/Anchors/planButton.JPG'
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.log"
-    # sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
-    sleeptime = random.randint(5, 10)
+    resultLog = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Results.log"
 
     display = False
-    charas = 8
+    charas = 9
 
     parse = argparse.ArgumentParser()
     parse.add_argument("-d", "--display", help="Display and Record", required=False, action='store_true')
-    parse.add_argument("-c", "--chars", type=int, help="Number of characters", required=False, default=8)
+    parse.add_argument("-c", "--chars", type=int, help="Sleep every (num) of characters", required=False, default=8)
     args = parse.parse_args()
     if args.display:
         display = True
 
-    if 1 <= args.chars < 8:
+    if 1 <= args.chars <= charas:
         charas = args.chars
 
-    elif int(args.chars) > 8:
+    elif int(args.chars) > charas:
         print("Error, max is 8.\n")
         quit()
 
@@ -303,7 +374,7 @@ if __name__ == "__main__":
         quit()
 
     else:
-        charas = 8
+        print(f"Running default {charas} characters...")
 
     top_windows = []
     results = []
@@ -313,29 +384,34 @@ if __name__ == "__main__":
     # global_thread.daemon = True
     # global_thread.start()
 
+    # Bring Game screen to front and take a screenshot.
     fore_window()
-    # Start main loop
-    with open(log, 'a') as logger:
-        logger.write(f"{datetime.today().replace(microsecond=0)}: Starting Main\n")
-        game = Game(logger, sleeptime)
 
-        if display:
-            startThread = threading.Thread(target=game.main, args=(charas,), name="Main Thread")
-            startThread.daemon = True
-            startThread.start()
+    # Set sleep time
+    sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
+    # sleeptime = random.randint(5, 10)
 
-            while True:
-                pyautogui.FAILSAFE = False
-                imgScreen = np.array(ImageGrab.grab(bbox=(0, 0, 1920, 1080)))
-                # frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2GRAY)
-                frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2RGB)
-                width = 1280
-                height = 1024
-                dim = (width, height)
-                resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+    # Initialize Game Class
+    game = Game(log, resultLog, sleeptime)
 
-                cv2.imshow('LIVE', frame)
-                if cv2.waitKey(1) == ord('q'):
-                    cv2.destroyAllWindows()
+    if display:
+        startThread = threading.Thread(target=game.main, args=(charas,), name="Main Thread")
+        startThread.daemon = True
+        startThread.start()
 
-        start = game.main(characters=int(charas))
+        # Display and Record screen capture
+        while True:
+            pyautogui.FAILSAFE = False
+            imgScreen = np.array(ImageGrab.grab(bbox=(0, 0, 1920, 1080)))
+            # frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2GRAY)
+            frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2RGB)
+            width = 1280
+            height = 1024
+            dim = (width, height)
+            resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
+            cv2.imshow('LIVE', frame)
+            if cv2.waitKey(1) == ord('q'):
+                cv2.destroyAllWindows()
+
+    start = game.main(characters=int(charas))
