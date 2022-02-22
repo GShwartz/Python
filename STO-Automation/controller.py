@@ -16,7 +16,6 @@ import sys
 import cv2
 import os
 
-
 menu_x, menu_y = 1905, 150
 confirm_x, confirm_y = 955, 640
 dur = 0.2
@@ -32,23 +31,22 @@ collect = 'Images/Anchors/collect.JPG'
 desktop = 'Images/Anchors/desktop.JPG'
 
 # Duty Officers vars
-personal_x, personal_y = 70, 130
-filters_x, filters_y = 718, 50
-metReqs_x, metReqs_y = 700, 98
-department_x, department_y = 90, 165
-engineering_x, engineering_y = 485, 375
-operations_x, operations_y = 835, 375
-science_x, science_y = 485, 480
-medial_x, medical_y = 835, 480
-tactical_x, tactical_y = 475, 585
-security_x, security_y = 830, 585
-plan_x, plan_y = 800, 260
+personal_x, personal_y = 95, 185
+filters_x, filters_y = 725, 110
+metReqs_x, metReqs_y = 700, 156
+department_x, department_y = 95, 215
+engineering_x, engineering_y = 485, 435
+science_x, science_y = 485, 540
+medial_x, medical_y = 835, 540
+tactical_x, tactical_y = 475, 645
+security_x, security_y = 830, 645
+plan_x, plan_y = 800, 310
 begin_x, begin_y = 800, 1025
-duff_folder_x, duff_folder_y = 410, 20
-completed_x, completed_y = 85, 235
-duff_1_x, duff_1_y = random.randint(790, 799), random.randint(182, 187)
+duff_folder_x, duff_folder_y = 410, 75
+completed_x, completed_y = 85, 290
+duff_1_x, duff_1_y = random.randint(790, 799), random.randint(238, 248)
 duffTopScroller_x, duffTopScroller_y = 878, 405
-duffBottomScroller_x, duffBottomScroller_y = 878, 570
+duffBottomScroller_x, duffBottomScroller_y = 878, 590
 duff_pause = 1.5
 
 # Change Character vars
@@ -56,7 +54,7 @@ changeButton_x, changeButton_y = 540, 385
 changeConfirm_x, changeConfirm_y = 955, 570
 charTopScroller_x, charTopScroller_y = 478, 375
 charBottomScroller_x, charBottomScroller_y = 478, 535
-lastChar_x, lastChar_y = 230, 670
+lastChar_x, lastChar_y = 230, 740
 play_x, play_y = 425, 875
 
 
@@ -86,27 +84,21 @@ class Controller:
         self.securityAss = security
         self.medicalAss = medical
 
-    def player_automation(self):
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Automating Character #{self.player}\n")
-
+    def init_automation(self):
         # Init Mouse Position
         pyautogui.moveTo(120, 100, duration=dur)
         time.sleep(pause)
 
     def duffWindow(self):
         # Open DutyOfficers/Admiralty Window
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Opening Duff Window\n")
-        print(f"[i] Player #{self.player}: Opening Admiralty Window")
         keyboard.press_and_release("]")
         time.sleep(pause)
 
         return
 
     def duffFolder(self):
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Duff Ticket\n")
-        print(f"Player {self.player}: Clicking on Duff Ticket")
-        pyautogui.moveTo(duff_folder_x, duff_folder_y)
+        time.sleep(pause)
+        pyautogui.moveTo(duff_folder_x, duff_folder_y, duration=dur)
         time.sleep(pause)
         click(duff_folder_x, duff_folder_y)
         time.sleep(pause)
@@ -117,8 +109,6 @@ class Controller:
         # Open Completed Window
         pyautogui.moveTo(completed_x, completed_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Complete\n")
-        print(f"[i]Player {self.player}: Clicking on Completed")
         click(completed_x, completed_y)
         time.sleep(pause)
 
@@ -126,30 +116,30 @@ class Controller:
 
     def collect(self):
         # Collect Rewards
-        pyautogui.moveTo(duff_1_x, duff_1_y, duration=dur)
-        time.sleep(pause)
         for i in range(1, 23):
             boxCollect = pyautogui.locateOnScreen(collect, grayscale=True, confidence=.7)
             try:
                 if len(boxCollect):
-                    print("Found Missions.")
-                    print(f"[i]Player {self.player}: Collecting reward #{i}...")
+                    logIt(self.logger, debug=True, msg=f'Player #{self.player}: Found Rewards')
+                    pyautogui.moveTo(duff_1_x, duff_1_y, duration=dur)
+                    time.sleep(pause)
+                    logIt(self.logger, write=False, debug=True,
+                          msg=f'Player #{self.player}: Collecting Reward #{i}...')
                     click(random.randint(790, 799), random.randint(182, 187))
                     time.sleep(0.4)
-                    print(f"[i]Player {self.player}: reward #{i} collected.")
-                    self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
-                                      f"Collected reward #{i}\n")
+                    logIt(self.logger, write=False, debug=True,
+                          msg=f'Player #{self.player}: Collected Reward #{i}.')
+
                     self.rewardCollect += 1
 
             except TypeError:
-                print("No Missions Found.")
+                logIt(self.logger, debug=True, msg=f'Player #{self.player}: No Rewards Found')
                 self.topAssignments['Rewards'] = self.rewardCollect
                 break
 
+        logIt(self.logger, debug=True, msg=f'Player #{self.player}: Updating rewards list')
         self.rewards.append(self.rewardCollect)
-        print(f"Rewards Collected: {self.rewardCollect}")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
-                          f"Rewards collected:{self.rewardCollect}\n")
+        logIt(self.logger, debug=True, msg=f'Player #{self.player}: Rewards collected: {self.rewardCollect}')
 
         return
 
@@ -157,8 +147,6 @@ class Controller:
         # Click on Personal
         pyautogui.moveTo(personal_x, personal_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Personal\n")
-        print(f"[i]Player {self.player}: Clicking on Personal")
         click(personal_x, personal_y)
         time.sleep(duff_pause)
 
@@ -168,16 +156,13 @@ class Controller:
         # Click on Filters
         pyautogui.moveTo(filters_x, filters_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Filters\n")
-        print(f"[i]Player {self.player}: Clicking on Filters")
         click(filters_x, filters_y)
         time.sleep(duff_pause)
 
         # Click on Met Reqs
         pyautogui.moveTo(metReqs_x, metReqs_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Met Reqs\n")
-        print(f"[i]Player {self.player}: Clicking on Met Reqs")
+        logIt(self.logger, debug=True, msg=f'Player #{self.player}: Clicking on Met Reqs')
         click(metReqs_x, metReqs_y)
         time.sleep(duff_pause)
         click(metReqs_x, metReqs_y)
@@ -187,7 +172,6 @@ class Controller:
         return
 
     def scroller(self):
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Moving Scroller\n")
         # Move Scroller up
         pyautogui.moveTo(duffBottomScroller_x, duffBottomScroller_y, duration=dur)
         time.sleep(pause)
@@ -200,9 +184,6 @@ class Controller:
         # Click on Engineering Assignments
         pyautogui.moveTo(engineering_x, engineering_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Engineering\n")
-        print(f"[i]Player {self.player}: Clicking on Engineering")
         click(engineering_x, engineering_y)
         time.sleep(duff_pause)
 
@@ -212,8 +193,6 @@ class Controller:
         # Click on Science Assignments
         pyautogui.moveTo(science_x, science_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Science\n")
-        print(f"[i]Player {self.player}: Clicking on Science Assignment")
         click(science_x, science_y)
         time.sleep(duff_pause)
 
@@ -223,8 +202,6 @@ class Controller:
         # Click on Tactical Assignments
         pyautogui.moveTo(tactical_x, tactical_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Tactical\n")
-        print(f"[i]Player {self.player}: Clicking on Tactical Assignment")
         click(tactical_x, tactical_y)
         time.sleep(duff_pause)
 
@@ -234,8 +211,6 @@ class Controller:
         # Click on Security Assignments
         pyautogui.moveTo(security_x, security_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Security\n")
-        print(f"[i]Player {self.player}: Clicking on Security Assignment")
         click(security_x, security_y)
         time.sleep(duff_pause)
 
@@ -245,8 +220,6 @@ class Controller:
         # Click on Medical Assignments
         pyautogui.moveTo(medial_x, medical_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Medical\n")
-        print(f"[i]Player {self.player}: Clicking on Medical Assignment")
         click(medial_x, medical_y)
         time.sleep(duff_pause)
 
@@ -254,21 +227,13 @@ class Controller:
 
     def closeDuff(self):
         # Close Admiralty/DutyOfficers Window
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Closing Duff Window\n")
-        print(f"[i] Player #{self.player}: Closing DutyOfficers/Admiralty Window")
         keyboard.press_and_release("]")
         time.sleep(pause)
 
         return
 
-    def change_player(self):
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: ==== Player #{self.player}: Changing Character... ====\n")
-        print(f"[i] Player #{self.player}: Changing character...")
-
+    def menu(self):
         # Open Main Menu
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Menu\n")
-        print(f"[i] Player #{self.player}: Opening Main Menu")
         pyautogui.moveTo(menu_x, menu_y, duration=dur)
         time.sleep(pause)
         click(menu_x, menu_y)
@@ -281,9 +246,6 @@ class Controller:
         # Click on Change Character
         pyautogui.moveTo(changeButton_x, changeButton_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Change Character\n")
-        print(f"[i]Player #{self.player}: Clicking on Change Character")
         click(changeButton_x, changeButton_y)
         time.sleep(1)
 
@@ -294,8 +256,6 @@ class Controller:
         # Confirm character Change
         pyautogui.moveTo(changeConfirm_x, changeConfirm_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Confirm\n")
-        print(f"[i]Player #{self.player}: Clicking on Confirm")
         click(changeConfirm_x, changeConfirm_y)
         time.sleep(duff_pause)
 
@@ -316,9 +276,6 @@ class Controller:
         time.sleep(pause)
         pyautogui.moveTo(lastChar_x, lastChar_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Last Character\n")
-        print(f"[i]Player #{self.player}: Clicking on the Last Character")
         click(lastChar_x, lastChar_y)
         time.sleep(duff_pause)
 
@@ -328,18 +285,12 @@ class Controller:
         # Click the Play button
         pyautogui.moveTo(play_x, play_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Play\n")
-        print(f"[i]Player #{self.player}: Clicking on Play")
         click(play_x, play_y)
-        time.sleep(15)
 
         return
 
     def closeChar(self):
-        print(f"[i]Player #{self.player}: Closing Welcome Window")
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Closing Welcome Window.\n")
-        time.sleep(5)
+        time.sleep(pause)
         keyboard.press_and_release("esc")
 
     def plan(self, department=None):
@@ -349,20 +300,16 @@ class Controller:
             boxPlan = pyautogui.locateOnScreen(planButton, grayscale=True, confidence=.8)
             try:
                 if len(boxPlan):
-                    print("Found Missions.")
+                    logIt(self.logger, debug=True, msg=f'Player #{self.player}: Found Missions')
                     # Plan
-                    self.logger.write(
-                        f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Plan\n")
-                    print(f"[i]Player {self.player}: Clicking on Plan #{i}")
+                    logIt(self.logger, debug=True, msg=f'Player #{self.player}: Clicking on Plan #{i}')
                     pyautogui.moveTo(plan_x, plan_y, duration=dur)
                     time.sleep(pause)
                     click(plan_x, plan_y)
                     time.sleep(pause)
 
                     # Begin
-                    self.logger.write(
-                        f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Begin\n")
-                    print(f"[i]Player {self.player}: Clicking on Begin Assignment #{i}")
+                    logIt(self.logger, debug=True, msg=f'Player #{self.player}: Clicking on Begin #{i}')
                     pyautogui.moveTo(begin_x, begin_y, duration=dur)
                     time.sleep(pause)
                     click(begin_x, begin_y)
@@ -371,7 +318,7 @@ class Controller:
                     planned += 1
 
             except TypeError:
-                print("No Missions Found.")
+                logIt(self.logger, debug=True, msg=f'Player #{self.player}: No Missions Found.')
                 break
 
             if department == 'Personal':
@@ -399,12 +346,8 @@ class Controller:
                 self.topAssignments['Medical'] = self.medicalAss[-1]
 
         self.topTotals[f'player {self.player}'] = self.topAssignments
-        print(f"DEBUG: UPDATED TOTALS: {self.topTotals}")
-        print(f"Planned Assignments for {department}: {planned}")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: "
-                          f"Planned Assignments for {department}: {planned}\n")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: \n"
-                          f"{self.topTotals}\n")
+        logIt(self.logger, debug=True, msg=f'Player {self.player}: Planned Assignments for {department}: {planned}')
+        logIt(self.logger, debug=True, msg=f'{self.topTotals}')
 
         return
 
@@ -412,9 +355,6 @@ class Controller:
         # Return to Department Heads
         pyautogui.moveTo(department_x, department_y, duration=dur)
         time.sleep(pause)
-        self.logger.write(
-            f"{datetime.today().replace(microsecond=0)}: Player #{self.player}: Clicking on Department Heads\n")
-        print(f"[i]Player {self.player}: Clicking on Department Heads")
         click(department_x, department_y)
         time.sleep(duff_pause)
         click(department_x, department_y)
@@ -425,37 +365,41 @@ class Controller:
     def sleeper(self):
         # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
         # sleeptime = random.randint(5, 10)
-        print(f"[i] Sleeper set for {self.sleep} seconds.")
-        self.logger.write(f"{datetime.today().replace(microsecond=0)}: Sleeper set for {self.sleep} seconds.\n")
+        logIt(self.logger, debug=True, msg=f'Sleeper set for {self.sleep} seconds')
 
         for x in range(self.sleep, 0, -1):
             sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
             time.sleep(1)
 
         # Capture Screenshot
+        logIt(self.logger, debug=True, msg=f'Updating Screenshot')
         self.main_window()
 
         # Compare screenshots and verify the connection to the server.
-        if not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
-                              cv.imread(logged_out, cv.IMREAD_UNCHANGED),
-                              threshold=0.5).compare() and \
-                not ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
-                                   cv.imread(desktop, cv.IMREAD_UNCHANGED),
-                                   threshold=0.5).compare():
-            print("Connection is Stable.")
+        logIt(self.logger, debug=True, msg=f'Initializing Computer Vision Class...')
+        logIt(self.logger, debug=True, msg=f'Comparing Screenshot to Logged Out & Desktop')
+        visionConn = ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
+                                    cv.imread(logged_out, cv.IMREAD_UNCHANGED),
+                                    threshold=0.5)
+        visionDesktop = ComputerVision(cv.imread(liveImage, cv.IMREAD_UNCHANGED),
+                                       cv.imread(desktop, cv.IMREAD_UNCHANGED),
+                                       threshold=0.5)
+
+        if not visionConn.compare() and not visionDesktop.compare():
+            logIt(self.logger, debug=True, msg=f'Connection Is Stable')
 
             # Simulate character movement
-            print("Simulating Character Look Left")
+            logIt(self.logger, debug=True, msg=f'Simulating Character Look Left')
             keyboard.press('a')
             time.sleep(0.3)
             keyboard.release('a')
-            print("Simulating Character Look Right")
+            logIt(self.logger, debug=True, msg=f'Simulating Character Look Right')
             keyboard.press('d')
             time.sleep(0.3)
             keyboard.release('d')
 
         else:
-            print("[!] Disconnected from Server. Stopping Script. [!]")
+            logIt(self.logger, debug=True, msg=f'Disconnected from Server. Stopping Script.')
             quit()
 
         return self.sleep
@@ -464,13 +408,22 @@ class Controller:
         # Switch to STO Window
         for i in self.top_windows:
             if "star trek online" in f"{i[1]}".lower():
-                print("[i]Switching to STO...")
+                logIt(self.logger, write=False, debug=True, msg=f'Switching to STO...')
                 win32gui.ShowWindow(i[0], 5)
                 win32gui.SetForegroundWindow(i[0])
-                print("[i] Taking Screenshot.")
+                logIt(self.logger, write=False, debug=True, msg=f'Taking Screenshot')
                 liveSC = pyautogui.screenshot()
                 liveSC.save(liveImage)
-                print("[i] Screenshot Saved.")
+                logIt(self.logger, write=False, debug=True, msg=f'Screenshot Saved')
+
+
+def logIt(logfile, write=True, debug=False, msg=''):
+    if debug:
+        print(f"{datetime.today().replace(microsecond=0)}: {msg}")
+
+    if write:
+        with open(logfile, 'a') as lf:
+            lf.write(f"{datetime.today().replace(microsecond=0)}: {msg}\n")
 
 
 def click(x, y):
@@ -496,24 +449,6 @@ def screenshot():
     print("[i] Screenshot Saved.")
 
     return liveSC
-
-
-def fore_window():
-    top_windows = []
-    results = []
-
-    # Enumerate opened OS windows
-    win32gui.EnumWindows(window_enumeration_handler, top_windows)
-
-    # Switch to STO Window
-    for i in top_windows:
-        if "star trek online" in f"{i[1]}".lower():
-            print("[i]Switching to STO...")
-            win32gui.ShowWindow(i[0], 5)
-            win32gui.SetForegroundWindow(i[0])
-            break
-
-    time.sleep(0.8)
 
 
 def window_enumeration_handler(hwnd, top_windows):
