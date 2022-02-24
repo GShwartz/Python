@@ -194,89 +194,86 @@ class Game:
         return
 
     def main(self, characters):
-        while True:
-            for character in range(1, characters + 1):
-                # Initialize Controller
-                self.pA = Controller(self.logger, character, self.topTotals, self.totalsList, self.topAssignments,
-                                     self.rewards, self.personalAss, self.engineeringAss,
-                                     self.scienceAss, self.tacticalAss, self.securityAss, self.medicalAss, self.sleep)
+        for character in range(1, characters + 1):
+            # Initialize Controller
+            self.pA = Controller(self.logger, character, self.topTotals, self.totalsList, self.topAssignments,
+                                 self.rewards, self.personalAss, self.engineeringAss,
+                                 self.scienceAss, self.tacticalAss, self.securityAss, self.medicalAss, self.sleep)
 
-                # Start Duff Section
-                logIt(self.logger, debug=True, msg=f'Starting automation round: '
-                                                   f'{self.rounds} for player {character}...')
-                self.duff(character)
-                logIt(self.logger, debug=True, msg=f'Player #{character}: DutyOfficers automation completed.')
-                self.topTotals = {f'Player #{character}': self.topAssignments}
-                self.totalRounds[f'Round #{self.rounds}'] = self.topTotals
-                self.totalsList.append(self.topTotals)
-                logIt(self.logger, msg=f'\n========= Totals for Player #{character}: '
-                                       f'{self.topTotals}=========\n')
+            # Start Duff Section
+            logIt(self.logger, debug=True, msg=f'Starting automation round: '
+                                               f'{self.rounds} for player {character}...')
+            self.duff(character)
+            logIt(self.logger, debug=True, msg=f'Player #{character}: DutyOfficers automation completed.')
+            self.topTotals = {f'Player #{character}': self.topAssignments}
+            self.totalRounds[f'Round #{self.rounds}'] = self.topTotals
+            self.totalsList.append([self.topTotals])
+            logIt(self.logger, msg=f'\n========= Totals for Player #{character}: '
+                                   f'{self.topTotals}=========\n')
 
-                logIt(self.logger, debug=True, msg=f'Resetting lists')
-                self.topTotals = {}
-                self.topAssignments = {}
-                self.tempAssignments = []
+            logIt(self.logger, debug=True, msg=f'Resetting lists')
+            self.topTotals = {}
+            self.topAssignments = {}
+            self.tempAssignments = []
 
-                # Change Character
-                logIt(self.logger, debug=True, msg=f'Starting Character change automation')
-                self.change_character(character)
-                logIt(self.logger, debug=True, msg=f'Character change automation completed')
-                self.playerChanges += 1
+            # Change Character
+            logIt(self.logger, debug=True, msg=f'Starting Character change automation')
+            self.change_character(character)
+            logIt(self.logger, debug=True, msg=f'Character change automation completed')
+            self.playerChanges += 1
+
+            # Check if game is running
+            logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
+            self.check_process('GameClient.exe')
+
+            # Start sleeper if each player had an automation round.
+            if self.playerChanges >= characters:
+                logIt(self.logger, msg=f'**** {self.topTotals} ****')
+                self.totalRounds[f"Round {self.rounds}"] = self.totalsList
+
+                with open(self.resultsLog, 'a') as sumlog:
+                    print(f"Total Rounds: {self.totalRounds}")
+                    logIt(self.logger, debug=True, msg=f'Updating results log...')
+                    sumlog.write(f"===============================================\n" 
+                                 f"{datetime.today().replace(microsecond=0)}\n"
+                                 f"#### Summarization ####\n"
+                                 f"* Rounds: {self.rounds}\n"
+                                 f"* Rewards: {sum(self.rewards)} collected.\n"
+                                 f"* Personal: {sum(self.personalAss)}.\n"
+                                 f"* Engineering: {sum(self.engineeringAss)}.\n"
+                                 f"* Science: {sum(self.scienceAss)}.\n"
+                                 f"* Tactical: {sum(self.tacticalAss)}.\n"
+                                 f"* Security: {sum(self.securityAss)}.\n"
+                                 f"* Medical: {sum(self.medicalAss)}.\n\n"
+
+                                 f"#### Detailed ####\n"
+                                 f"* Total time slept: {self.totalSleep} seconds.\n")
+
+                    for k, v in self.totalRounds.items():
+                        sumlog.write(f"\n{k}: {v}\n")
+                    sumlog.write("===============================================\n\n\n")
+                    logIt(self.logger, debug=True, msg=f'Results log updated.')
+
+                self.totalsList = []
+                logIt(self.logger, msg=f'Rounds: {self.rounds}')
 
                 # Check if game is running
                 logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
                 self.check_process('GameClient.exe')
 
-                # Start sleeper if each player had an automation round.
-                if self.playerChanges >= characters:
-                    logIt(self.logger, msg=f'**** {self.topTotals} ****')
-                    with open(self.resultsLog, 'a') as sumlog:
-                        self.totalRounds[f"Round {self.rounds}"] = self.totalsList
-                        print(f"Total Rounds: {self.totalRounds}")
-                        logIt(self.logger, debug=True, msg=f'Updating results log...')
-                        sumlog.write(f"===============================================\n" 
-                                     f"{datetime.today().replace(microsecond=0)}\n"
-                                     f"#### Summarization ####\n"
-                                     f"* Rounds: {self.rounds}\n"
-                                     f"* Rewards: {sum(self.rewards)} collected.\n"
-                                     f"* Personal: {sum(self.personalAss)}.\n"
-                                     f"* Engineering: {sum(self.engineeringAss)}.\n"
-                                     f"* Science: {sum(self.scienceAss)}.\n"
-                                     f"* Tactical: {sum(self.tacticalAss)}.\n"
-                                     f"* Security: {sum(self.securityAss)}.\n"
-                                     f"* Medical: {sum(self.medicalAss)}.\n\n"
+                # Start Sleeper
+                logIt(self.logger, debug=True, msg=f'Starting Sleeper')
+                self.pA.sleeper()
+                logIt(self.logger, debug=True, msg=f'Sleeper finished')
+                logIt(self.logger, debug=True, msg=f'Time Slept: {sleeptime}')
 
-                                     f"#### Detailed ####\n"
-                                     f"* Total time slept: {self.totalSleep} seconds.\n")
+                # Updating Total Sleeptime
+                self.totalSleep += sleeptime
 
-                        n = 0
-                        for k, v in self.totalRounds.items():
-                            sumlog.write(f"{k[n]}: {v}\n")
-                            n += 1
-
-                        sumlog.write("===============================================\n\n\n")
-                        logIt(self.logger, debug=True, msg=f'Results log updated.')
-
-                    self.totalsList = []
-                    logIt(self.logger, msg=f'Rounds: {self.rounds}')
-
-                    # Check if game is running
-                    logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
-                    self.check_process('GameClient.exe')
-
-                    # Start Sleeper
-                    logIt(self.logger, debug=True, msg=f'Starting Sleeper')
-                    self.pA.sleeper()
-                    logIt(self.logger, debug=True, msg=f'Sleeper finished')
-                    logIt(self.logger, debug=True, msg=f'Time Slept: {sleeptime}')
-
-                    # Updating Total Sleeptime
-                    self.totalSleep += sleeptime
-
-                    # Update Counters
-                    logIt(self.logger, debug=True, msg=f'Updating Counters')
-                    self.playerChanges = 0
-                    self.rounds += 1
+                # Update Counters
+                logIt(self.logger, debug=True, msg=f'Updating Counters')
+                self.playerChanges = 0
+                self.rounds += 1
 
 
 def logIt(logfile, write=True, debug=False, msg=''):
@@ -394,24 +391,25 @@ if __name__ == "__main__":
     # Initialize Game Class
     game = Game(log, resultLog, sleeptime)
 
-    if display:
-        startThread = threading.Thread(target=game.main, args=(charas,), name="Main Thread")
-        startThread.daemon = True
-        startThread.start()
+    while True:
+        if display:
+            startThread = threading.Thread(target=game.main, args=(charas,), name="Main Thread")
+            startThread.daemon = True
+            startThread.start()
 
-        # Display and Record screen capture
-        while True:
-            pyautogui.FAILSAFE = False
-            imgScreen = np.array(ImageGrab.grab(bbox=(0, 0, 1920, 1080)))
-            # frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2GRAY)
-            frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2RGB)
-            width = 1280
-            height = 1024
-            dim = (width, height)
-            resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+            # Display and Record screen capture
+            while True:
+                pyautogui.FAILSAFE = False
+                imgScreen = np.array(ImageGrab.grab(bbox=(0, 0, 1920, 1080)))
+                # frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2GRAY)
+                frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2RGB)
+                width = 1280
+                height = 1024
+                dim = (width, height)
+                resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
 
-            cv2.imshow('LIVE', frame)
-            if cv2.waitKey(1) == ord('q'):
-                cv2.destroyAllWindows()
+                cv2.imshow('LIVE', frame)
+                if cv2.waitKey(1) == ord('q'):
+                    cv2.destroyAllWindows()
 
-    start = game.main(characters=int(charas))
+        start = game.main(characters=int(charas))
