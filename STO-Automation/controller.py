@@ -31,20 +31,19 @@ collect = 'Images/Anchors/collect.JPG'
 desktop = 'Images/Anchors/desktop.JPG'
 
 # Duty Officers vars
-personal_x, personal_y = 95, 185
-filters_x, filters_y = 725, 110
-metReqs_x, metReqs_y = 700, 156
-department_x, department_y = 95, 215
-engineering_x, engineering_y = 485, 435
-science_x, science_y = 485, 540
-medial_x, medical_y = 835, 540
-tactical_x, tactical_y = 475, 645
-security_x, security_y = 830, 645
-plan_x, plan_y = 800, 310
+personal_x, personal_y = 95, 125
+filters_x, filters_y = 725, 55
+metReqs_x, metReqs_y = 700, 102
+department_x, department_y = 95, 165
+engineering_x, engineering_y = 485, 385
+science_x, science_y = 485, 485
+tactical_x, tactical_y = 485, 590
+security_x, security_y = 830, 590
+medial_x, medical_y = 835, 485
+plan_x, plan_y = 800, 260
 begin_x, begin_y = 800, 1025
-duff_folder_x, duff_folder_y = 410, 75
-completed_x, completed_y = 85, 290
-duff_1_x, duff_1_y = random.randint(790, 799), random.randint(238, 248)
+duff_folder_x, duff_folder_y = 410, 25
+completed_x, completed_y = 95, 230
 duffTopScroller_x, duffTopScroller_y = 878, 405
 duffBottomScroller_x, duffBottomScroller_y = 878, 590
 duff_pause = 1.5
@@ -120,12 +119,14 @@ class Controller:
             boxCollect = pyautogui.locateOnScreen(collect, grayscale=True, confidence=.7)
             try:
                 if len(boxCollect):
+                    duff_1_x, duff_1_y = random.randint(790, 799), random.randint(171, 186)
+
                     logIt(self.logger, debug=True, msg=f'Player #{self.player}: Found Rewards')
                     pyautogui.moveTo(duff_1_x, duff_1_y, duration=dur)
                     time.sleep(pause)
                     logIt(self.logger, write=False, debug=True,
                           msg=f'Player #{self.player}: Collecting Reward #{i}...')
-                    click(random.randint(790, 799), random.randint(182, 187))
+                    click(duff_1_x, duff_1_y)
                     time.sleep(0.4)
                     logIt(self.logger, write=False, debug=True,
                           msg=f'Player #{self.player}: Collected Reward #{i}.')
@@ -365,7 +366,7 @@ class Controller:
     def sleeper(self):
         # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
         # sleeptime = random.randint(5, 10)
-        logIt(self.logger, debug=True, msg=f'Sleeper set for {self.sleep} seconds')
+        logIt(self.logger, debug=True, msg=f'Sleeper set for {self.sleep} seconds. ({self.sleep / 60} minutes)')
 
         for x in range(self.sleep, 0, -1):
             sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
@@ -426,7 +427,7 @@ def logIt(logfile, write=True, debug=False, msg=''):
             lf.write(f"{datetime.today().replace(microsecond=0)}: {msg}\n")
 
 
-def click(x, y):
+def clickBAK(x, y):
     # Clear Mouse Status
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
 
@@ -439,6 +440,13 @@ def click(x, y):
 
     # Clear Mouse Status
     win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE, x, y, 0, 0)
+
+
+def click(x, y):
+    win32api.SetCursorPos((x, y))
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
+    time.sleep(0.01)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 
 
 def screenshot():
