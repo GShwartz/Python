@@ -85,7 +85,9 @@ class Controller:
 
     def init_automation(self):
         # Init Mouse Position
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(120, 100, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
 
     def duffWindow(self):
@@ -97,7 +99,9 @@ class Controller:
 
     def duffFolder(self):
         time.sleep(pause)
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(duff_folder_x, duff_folder_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(duff_folder_x, duff_folder_y)
         time.sleep(pause)
@@ -106,7 +110,9 @@ class Controller:
 
     def completed(self):
         # Open Completed Window
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(completed_x, completed_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(completed_x, completed_y)
         time.sleep(pause)
@@ -122,7 +128,9 @@ class Controller:
                     duff_1_x, duff_1_y = random.randint(790, 799), random.randint(171, 186)
 
                     logIt(self.logger, debug=True, msg=f'Player #{self.player}: Found Rewards')
+                    pyautogui.FAILSAFE = False
                     pyautogui.moveTo(duff_1_x, duff_1_y, duration=dur)
+                    pyautogui.FAILSAFE = True
                     time.sleep(pause)
                     logIt(self.logger, write=False, debug=True,
                           msg=f'Player #{self.player}: Collecting Reward #{i}...')
@@ -146,7 +154,9 @@ class Controller:
 
     def personal(self):
         # Click on Personal
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(personal_x, personal_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(personal_x, personal_y)
         time.sleep(duff_pause)
@@ -155,7 +165,9 @@ class Controller:
 
     def filters(self):
         # Click on Filters
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(filters_x, filters_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(filters_x, filters_y)
         time.sleep(duff_pause)
@@ -174,7 +186,9 @@ class Controller:
 
     def scroller(self):
         # Move Scroller up
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(duffBottomScroller_x, duffBottomScroller_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         pyautogui.dragTo(duffTopScroller_x, duffTopScroller_y, duration=dur)
         time.sleep(pause)
@@ -183,7 +197,9 @@ class Controller:
 
     def engineering(self):
         # Click on Engineering Assignments
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(engineering_x, engineering_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(engineering_x, engineering_y)
         time.sleep(duff_pause)
@@ -192,7 +208,9 @@ class Controller:
 
     def science(self):
         # Click on Science Assignments
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(science_x, science_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(science_x, science_y)
         time.sleep(duff_pause)
@@ -201,7 +219,9 @@ class Controller:
 
     def tactical(self):
         # Click on Tactical Assignments
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(tactical_x, tactical_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(tactical_x, tactical_y)
         time.sleep(duff_pause)
@@ -210,7 +230,9 @@ class Controller:
 
     def security(self):
         # Click on Security Assignments
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(security_x, security_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(security_x, security_y)
         time.sleep(duff_pause)
@@ -219,7 +241,9 @@ class Controller:
 
     def medical(self):
         # Click on Medical Assignments
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(medial_x, medical_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(medial_x, medical_y)
         time.sleep(duff_pause)
@@ -235,7 +259,9 @@ class Controller:
 
     def menu(self):
         # Open Main Menu
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(menu_x, menu_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(menu_x, menu_y)
         time.sleep(duff_pause)
@@ -245,7 +271,9 @@ class Controller:
     def change(self):
         time.sleep(pause)
         # Click on Change Character
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(changeButton_x, changeButton_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(changeButton_x, changeButton_y)
         time.sleep(1)
@@ -255,7 +283,9 @@ class Controller:
     def confirm(self):
         time.sleep(1)
         # Confirm character Change
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(changeConfirm_x, changeConfirm_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(changeConfirm_x, changeConfirm_y)
         time.sleep(duff_pause)
@@ -264,9 +294,13 @@ class Controller:
 
     def moveCharScroller(self):
         time.sleep(pause)
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(charTopScroller_x, charTopScroller_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
+        pyautogui.FAILSAFE = False
         pyautogui.dragTo(charBottomScroller_x, charBottomScroller_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(charBottomScroller_x, charBottomScroller_y)
 
@@ -275,7 +309,9 @@ class Controller:
     def choose(self):
         # Choose the middle character
         time.sleep(pause)
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(lastChar_x, lastChar_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(lastChar_x, lastChar_y)
         time.sleep(duff_pause)
@@ -284,7 +320,9 @@ class Controller:
 
     def play(self):
         # Click the Play button
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(play_x, play_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(play_x, play_y)
 
@@ -304,14 +342,18 @@ class Controller:
                     logIt(self.logger, debug=True, msg=f'Player #{self.player}: Found Missions')
                     # Plan
                     logIt(self.logger, debug=True, msg=f'Player #{self.player}: Clicking on Plan #{i}')
+                    pyautogui.FAILSAFE = False
                     pyautogui.moveTo(plan_x, plan_y, duration=dur)
+                    pyautogui.FAILSAFE = True
                     time.sleep(pause)
                     click(plan_x, plan_y)
                     time.sleep(pause)
 
                     # Begin
                     logIt(self.logger, debug=True, msg=f'Player #{self.player}: Clicking on Begin #{i}')
+                    pyautogui.FAILSAFE = False
                     pyautogui.moveTo(begin_x, begin_y, duration=dur)
+                    pyautogui.FAILSAFE = True
                     time.sleep(pause)
                     click(begin_x, begin_y)
                     time.sleep(duff_pause)
@@ -354,19 +396,19 @@ class Controller:
 
     def back(self):
         # Return to Department Heads
+        pyautogui.FAILSAFE = False
         pyautogui.moveTo(department_x, department_y, duration=dur)
+        pyautogui.FAILSAFE = True
         time.sleep(pause)
         click(department_x, department_y)
         time.sleep(duff_pause)
-        click(department_x, department_y)
-        time.sleep(pause)
 
         return
 
     def sleeper(self):
         # sleeptime = random.randint(300, 720)    # Between 5 and 12 minutes.
         # sleeptime = random.randint(5, 10)
-        logIt(self.logger, debug=True, msg=f'Sleeper set for {self.sleep} seconds. ({self.sleep / 60} minutes)')
+        logIt(self.logger, debug=True, msg=f'Sleeper set for {self.sleep} seconds. ({round(self.sleep / 60)} minutes)')
 
         for x in range(self.sleep, 0, -1):
             sys.stdout.write("\r[i]Sleeping for " + str(x) + " seconds...")
@@ -447,16 +489,6 @@ def click(x, y):
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
     time.sleep(0.01)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
-
-
-def screenshot():
-    global liveImage
-    print("[i] Taking Screenshot.")
-    liveSC = pyautogui.screenshot()
-    liveSC.save(liveImage)
-    print("[i] Screenshot Saved.")
-
-    return liveSC
 
 
 def window_enumeration_handler(hwnd, top_windows):
