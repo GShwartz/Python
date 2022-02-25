@@ -21,7 +21,7 @@ class ComputerVision:
     top_windows = []
     results = []
     pytesser_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\CV\Live\live_sc.jpg'
+    liveImage = 'Images/Anchors/live_sc.jpg'
 
     def __init__(self, screenshot, button, threshold):
         self.screen_img = screenshot
