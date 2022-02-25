@@ -18,7 +18,7 @@ import os
 
 
 class Game:
-    def __init__(self, log, resultsLog, sleep):
+    def __init__(self, log, resultsLog):
         self.assignments = ["Engineering", "Science", "Tactical", "Security", "Medical"]
         self.resultsLog = resultsLog    # A File that will store only the final summarization for each round.
         self.logger = log               # Log file.
@@ -26,7 +26,6 @@ class Game:
         self.dur = 0.2                  # Mouse movement duration.
         self.playerChanges = 0          # Number of player changes made.
         self.rounds = 1                 # Number of Total Rounds.
-        self.sleep = sleep              # Sleep time after each round.
 
         self.topTotals = {}             # Will store Rewards and Assignments for each character.
         self.topAssignments = {}        # Will store each character's collected/planned missions.
@@ -186,8 +185,8 @@ class Game:
         self.check_process('GameClient.exe')
         logIt(self.logger, debug=True, msg=f'Clicking on Play')
         self.pA.play()
-        # timer(10)
-        timer(120)      # Wait for the game to load the character
+        timer(10)
+        # timer(120)      # Wait for the game to load the character
         logIt(self.logger, debug=True, msg=f'Closing Welcome Window')
         self.pA.closeChar()
 
@@ -195,10 +194,14 @@ class Game:
 
     def main(self, characters):
         for character in range(1, characters + 1):
+            # Set sleep time
+            # sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
+            sleeptime = random.randint(5, 10)
+
             # Initialize Controller
             self.pA = Controller(self.logger, character, self.topTotals, self.totalsList, self.topAssignments,
                                  self.rewards, self.personalAss, self.engineeringAss,
-                                 self.scienceAss, self.tacticalAss, self.securityAss, self.medicalAss, self.sleep)
+                                 self.scienceAss, self.tacticalAss, self.securityAss, self.medicalAss, sleeptime)
 
             # Start Duff Section
             logIt(self.logger, debug=True, msg=f'Starting automation round: '
@@ -229,8 +232,6 @@ class Game:
             # Start sleeper if each player had an automation round.
             if self.playerChanges >= characters:
                 logIt(self.logger, msg=f'**** {self.topTotals} ****')
-                self.totalRounds[f"Round {self.rounds}"] = self.totalsList
-
                 with open(self.resultsLog, 'a') as sumlog:
                     print(f"Total Rounds: {self.totalRounds}")
                     logIt(self.logger, debug=True, msg=f'Updating results log...')
@@ -250,7 +251,8 @@ class Game:
                                  f"* Total time slept: {self.totalSleep} seconds.\n")
 
                     for k, v in self.totalRounds.items():
-                        sumlog.write(f"\n{k}: {v}\n")
+                        sumlog.write(f"{k}: {v}\n")
+
                     sumlog.write("===============================================\n\n\n")
                     logIt(self.logger, debug=True, msg=f'Results log updated.')
 
@@ -384,12 +386,9 @@ if __name__ == "__main__":
     # Bring Game screen to front and take a screenshot.
     fore_window()
 
-    # Set sleep time
-    sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
-    # sleeptime = random.randint(5, 10)
-
     # Initialize Game Class
-    game = Game(log, resultLog, sleeptime)
+    game = Game(log, resultLog)
+    game.check_process("GameClient.exe")
 
     while True:
         if display:
