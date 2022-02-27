@@ -21,11 +21,11 @@ class ComputerVision:
     top_windows = []
     results = []
     pytesser_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    liveImage = 'Images/Anchors/live_sc.jpg'
+    liveImage = r'G:\School\Python - Homework\Projects\STO-Automation\CV\Live\live_sc.jpg'
 
     def __init__(self, screenshot, button, threshold):
-        self.screen_img = screenshot
-        self.button_img = button
+        self.screen_img = cv.imread(screenshot, cv.IMREAD_UNCHANGED)
+        self.button_img = cv.imread(button, cv.IMREAD_UNCHANGED)
         self.threshold = threshold
         self.button_w = self.button_img.shape[1]
         self.button_h = self.button_img.shape[0]
@@ -42,6 +42,7 @@ class ComputerVision:
 
         else:
             print("\n **** MATCH-FOUND! ****")
+            print(f"Locations: {locations}")
             return True
 
     def process(self, debug_mode='rectangles'):
