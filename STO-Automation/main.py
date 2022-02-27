@@ -1,9 +1,10 @@
+from ComputerVision import ComputerVision
 from controllerC import Controller
 from datetime import datetime
+from threading import Thread
 from PIL import ImageGrab
 import numpy as np
 import subprocess
-import threading
 import pyautogui
 import keyboard
 import win32gui
@@ -43,51 +44,16 @@ class Game:
         self.medicalAss = []            # Will store all Medical Assignments.
 
     def check_process(self, task):
-        crashes = 0     # Number of times the game process was not found.
-        quickLaunch_x, quickLaunch_y = 155, 445     # Epic Games STO Quick Launch Button
-        engage_x, engage_y = 1255, 700              # Launcher Engage Button
+        timer(10)
 
         # Check if game is running and restart if not.
         proc = subprocess.check_output('tasklist', shell=True)
-        if str(task) in str(proc):
-            logIt(self.logger, debug=True, msg=f'Game is running')
 
-            return
-
-        if crashes == 3:
-            logIt(self.logger, debug=True, msg=f'Game crashed 3 times. stopping script.')
+        if str(task) not in str(proc):
+            logIt(self.logger, debug=True, msg=f'Process not found. terminating script.')
             exit()
 
-        logIt(self.logger, debug=True, msg=f'Game is not running. restarting.')
-        logIt(self.logger, debug=True, msg=f'Starting Epic Games Launcher...')
-        subprocess.run(
-            r'c:/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe')
-        timer(30)
-
-        logIt(self.logger, debug=True, msg=f'Clicking on Quick Launch')
-        pyautogui.moveTo(quickLaunch_x, quickLaunch_y, duration=0.3)
-        time.sleep(1)
-        click(quickLaunch_x, quickLaunch_y)
-        time.sleep(30)
-        logIt(self.logger, debug=True, msg=f'Clicking on Engage')
-        pyautogui.moveTo(engage_x, engage_y, duration=0.3)
-        click(engage_x, engage_y)
-        timer(120)
-        logIt(self.logger, debug=True, msg=f'Moving character scroller...')
-        self.pA.moveCharScroller()
-        logIt(self.logger, debug=True, msg=f'Choose last character')
-        self.pA.choose()
-        timer(10)
-        logIt(self.logger, debug=True, msg=f'Clicking on Play')
-        self.pA.play()
-        timer(60)
-        logIt(self.logger, debug=True, msg=f'Closing Welcome Window')
-        self.pA.closeChar()
-        time.sleep(3)
-
-        crashes += 1
-
-        return
+        logIt(debug=True, msg='Game is running.')
 
     def duff(self, player):
         # Start Duty Officers Automation
@@ -181,12 +147,10 @@ class Game:
         logIt(self.logger, debug=True, msg=f'Clicking on Last Character')
         self.pA.choose()
         timer(30)       # Wait for the game to load the character's team screen
-        logIt(self.logger, debug=True, msg=f'Checking if the game is running...')
-        self.check_process('GameClient.exe')
         logIt(self.logger, debug=True, msg=f'Clicking on Play')
         self.pA.play()
-        timer(10)
-        # timer(120)      # Wait for the game to load the character
+        # timer(10)
+        timer(120)      # Wait for the game to load the character
         logIt(self.logger, debug=True, msg=f'Closing Welcome Window')
         self.pA.closeChar()
 
@@ -195,8 +159,8 @@ class Game:
     def main(self, characters):
         for character in range(1, characters + 1):
             # Set sleep time
-            # sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
-            sleeptime = random.randint(5, 10)
+            sleeptime = random.randint(300, 720)  # Between 5 and 12 minutes.
+            # sleeptime = random.randint(5, 10)
 
             # Initialize Controller
             self.pA = Controller(self.logger, character, self.topTotals, self.totalsList, self.topAssignments,
@@ -210,7 +174,7 @@ class Game:
             logIt(self.logger, debug=True, msg=f'Player #{character}: DutyOfficers automation completed.')
             self.topTotals = {f'Player #{character}': self.topAssignments}
             self.totalRounds[f'Round #{self.rounds}'] = self.topTotals
-            self.totalsList.append([self.topTotals])
+            self.totalsList.append(self.topTotals)
             logIt(self.logger, msg=f'\n========= Totals for Player #{character}: '
                                    f'{self.topTotals}=========\n')
 
@@ -232,6 +196,7 @@ class Game:
             # Start sleeper if each player had an automation round.
             if self.playerChanges >= characters:
                 logIt(self.logger, msg=f'**** {self.topTotals} ****')
+                # self.totalRounds[f"Round {self.rounds}"] = self.totalsList
                 with open(self.resultsLog, 'a') as sumlog:
                     print(f"Total Rounds: {self.totalRounds}")
                     logIt(self.logger, debug=True, msg=f'Updating results log...')
@@ -250,8 +215,7 @@ class Game:
                                  f"#### Detailed ####\n"
                                  f"* Total time slept: {self.totalSleep} seconds.\n")
 
-                    for k, v in self.totalRounds.items():
-                        sumlog.write(f"{k}: {v}\n")
+                    sumlog.write(f"{self.totalRounds}\n")
 
                     sumlog.write("===============================================\n\n\n")
                     logIt(self.logger, debug=True, msg=f'Results log updated.')
@@ -278,15 +242,16 @@ class Game:
                 self.rounds += 1
 
 
-def logIt(logfile, write=True, debug=False, msg=''):
+def logIt(logfile=None, write=True, debug=False, msg=''):
     if debug:
         print(f"{datetime.today().replace(microsecond=0)}: {msg}")
 
     if not write:
         return
 
-    with open(logfile, 'a') as lf:
-        lf.write(f"{datetime.today().replace(microsecond=0)}: {msg}\n")
+    if logfile is not None:
+        with open(logfile, 'a') as lf:
+            lf.write(f"{datetime.today().replace(microsecond=0)}: {msg}\n")
 
 
 def timer(t):
@@ -330,11 +295,20 @@ def show_mouse_pos():
         print(pyautogui.position())
 
 
-def check_connection(address):
-    print(f"checking connection to {address}...")
-    response = os.system(f"ping -c 1 {address}")
+def check_connection():
+    fore_window()
+    time.sleep(1)
 
-    return response
+    visionConn = ComputerVision(liveImage, logged_out, threshold=0.5)
+    visionConnVM = ComputerVision(liveImage, logged_outVM, threshold=0.5)
+    visionDesktop = ComputerVision(liveImage, desktop, threshold=0.5)
+
+    if visionConn.compare() or visionConnVM.compare() or visionDesktop.compare():
+        print("Connection broken.")
+        exit()
+
+    print("Connection is Stable.")
+    time.sleep(5)
 
 
 def click(x, y):
@@ -346,8 +320,11 @@ def click(x, y):
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    logged_out = 'Images/Anchors/logged_out.JPG'
+    logged_outVM = 'Images/Anchors/logged_outVM.JPG'
     liveImage = 'Images/Anchors/live_sc.jpg'
     planButton = 'Images/Anchors/planButton.JPG'
+    desktop = 'Images/Anchors/desktop.JPG'
     log = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Log.log"
     resultLog = f"c:\\Users\\{os.getlogin()}\\Documents\\STO-Results.log"
 
@@ -379,7 +356,7 @@ if __name__ == "__main__":
     results = []
 
     # Show Mouse Position for Debugging
-    global_thread = threading.Thread(target=show_mouse_pos, name="Global Conf")
+    global_thread = Thread(target=show_mouse_pos, name="Global Conf")
     # global_thread.daemon = True
     # global_thread.start()
 
@@ -388,17 +365,23 @@ if __name__ == "__main__":
 
     # Initialize Game Class
     game = Game(log, resultLog)
-    game.check_process("GameClient.exe")
 
     while True:
+        checkThread = Thread(target=check_connection, name="Check Connection Thread")
+        checkThread.daemon = True
+        checkThread.start()
+
+        checkProcThread = Thread(target=game.check_process, args=('GameClient.exe', ), name="Check Process Thread")
+        checkProcThread.daemon = True
+        checkProcThread.start()
+
         if display:
-            startThread = threading.Thread(target=game.main, args=(charas,), name="Main Thread")
+            startThread = Thread(target=game.main, args=(charas,), name="Main Thread")
             startThread.daemon = True
             startThread.start()
 
             # Display and Record screen capture
             while True:
-                pyautogui.FAILSAFE = False
                 imgScreen = np.array(ImageGrab.grab(bbox=(0, 0, 1920, 1080)))
                 # frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2GRAY)
                 frame = cv2.cvtColor(imgScreen, cv2.COLOR_BGR2RGB)
