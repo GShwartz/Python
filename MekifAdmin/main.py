@@ -27,287 +27,241 @@ class Client:
     def shell(self, conn, ip, clients):
         errCount = 0
         while True:
+            show_shell_commands()
+
+            # Wait for User Input
+            cmd = input(f"COMMAND@{ip}> ")
+            # Input Validation
             try:
-                show_shell_commands()
-                # Wait for User Input
-                cmd = input(f"{ip} > ")
+                val = float(cmd)
 
-                # Input Validation
-                try:
-                    val = float(cmd)
-                    if int(cmd) <= 0 or int(cmd) > 7:
-                        errCount += 1
-                        if errCount == 3:
-                            print("U obviously don't know what you're doing. goodbye.")
-                            conn.send("exit".encode())
-                            conn.shutdown(socket.SHUT_RDWR)
-                            conn.close()
-                            sys.exit()
+            except ValueError:
+                print(f"[{colored('*', 'red')}]Numbers Only.")
+                errCount += 1
+                if errCount == 3:
+                    print("U obviously don't know what you're doing. goodbye.")
+                    conn.send("exit".encode())
+                    conn.shutdown(socket.SHUT_RDWR)
+                    conn.close()
+                    sys.exit()
 
-                        print(f"[{colored('*', 'red')}]{cmd} not in the menu."
-                              f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
+                continue
 
-                        continue
+            if int(cmd) <= 0 or int(cmd) > 8:
+                errCount += 1
+                if errCount == 3:
+                    print("U obviously don't know what you're doing. goodbye.")
+                    conn.send("exit".encode())
+                    conn.shutdown(socket.SHUT_RDWR)
+                    conn.close()
+                    sys.exit()
 
-                except Exception:
-                    errCount += 1
-                    if errCount == 3:
-                        print("U obviously don't know what you're doing. goodbye.")
-                        conn.send("exit".encode())
-                        conn.shutdown(socket.SHUT_RDWR)
-                        conn.close()
-                        sys.exit()
+                print(f"[{colored('*', 'red')}]{cmd} not in the menu."
+                      f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
 
-                    print(f"[{colored('*', 'red')}]The system only accepts numbers."
-                          f"[try #: {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
+                continue
 
-                    continue
+            # Screenshot
+            if int(cmd) == 1:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
 
-                # Screenshot
-                if int(cmd) == 1:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    chunk = 1000000
-                    print(f"working...")
-                    conn.send('screen'.encode())
-                    filenameRecv = conn.recv(1024)
-                    conn.send("OK filename".encode())
-                    name = ntpath.basename(str(filenameRecv))
-                    print(name)
-                    with open(filenameRecv, 'wb') as file:
-                        try:
-                            fileRecv = conn.recv(chunk)
-                            file.write(fileRecv)
-
-                        except len(fileRecv) == 0:
-                            return
-
-                    # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
-                    conn.send(f"Received file: {name[:-1]}\n".encode())
-                    msg = conn.recv(1024).decode()
-                    print(f"{msg}")
-                    continue
-
-                # System Information
-                elif int(cmd) == 2:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    print(f"working...")
-                    conn.send('si'.encode())
-                    filenameRecv = conn.recv(1024)
-                    time.sleep(10)
-                    fileRecv = conn.recv(4096).decode()
-                    print(fileRecv)
-
-                    with open(filenameRecv, 'w') as file:
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                chunk = 1000000
+                print(f"working...")
+                conn.send('screen'.encode())
+                filenameRecv = conn.recv(1024)
+                conn.send("OK filename".encode())
+                name = ntpath.basename(str(filenameRecv))
+                print(name)
+                with open(filenameRecv, 'wb') as file:
+                    try:
+                        fileRecv = conn.recv(chunk)
                         file.write(fileRecv)
 
-                    name = ntpath.basename(str(filenameRecv))
-                    print(f"[{colored('*', 'green')}]Received: {name} \n")
-                    conn.send(f"Received file: {name}\n".encode())
-                    msg = conn.recv(1024).decode()
-                    print(f"{msg}")
+                    except len(fileRecv) == 0:
+                        return
 
-                    continue
+                # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
+                conn.send(f"Received file: {name[:-1]}\n".encode())
+                msg = conn.recv(1024).decode()
+                print(f"{msg}")
+                continue
 
-                # Show Current Logged On User
-                elif int(cmd) == 3:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    conn.send('user'.encode())
-                    msg = conn.recv(1024)
-                    print(msg.decode())
-                    continue
-
-                # Last Restart Time
-                elif int(cmd) == 4:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    conn.send('lr'.encode())
-                    msg = conn.recv(1024)
-                    print(msg.decode())
-
-                    continue
-
-                # Anydesk
-                elif int(cmd) == 5:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    conn.send('anydesk'.encode())
-                    continue
-
-                # Restart
-                elif int(cmd) == 6:
-                    if len(targets) == 0:
-                        print(f"[{colored('*', 'red')}]No connected stations.")
-                        break
-
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    sure = input("Are you sure you want to restart [Y/n]?")
-                    while True:
-                        try:
-                            if str(sure).lower() == "y":
-                                conn.send('restart'.encode())
-                                targets.remove(conn)
-                                ips.remove(ip)
-                                clients -= 1
-                                break
-
-                            elif str(sure).lower() == "n":
-                                break
-
-                        except TypeError:
-                            print("Wrong Input")
-                    return
-
-                # Back
-                elif int(cmd) == 7:
-                    d = datetime.now().replace(microsecond=0)
-                    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                    conn.send('exit'.encode())
-                    targets.remove(conn)
-                    ips.remove(ip)
-                    self.clients -= 1
+            # System Information
+            elif int(cmd) == 2:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-            except (ConnectionResetError, ConnectionError, ConnectionAbortedError):
-                print(f"[{colored('*', 'red')}]Connection Interrupted.\n")
-                targets.remove(ip)
-                ips.remove(ip)
-                clients -= 1
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                print(f"working...")
+                conn.send('si'.encode())
+                filenameRecv = conn.recv(1024)
+                time.sleep(10)
+                fileRecv = conn.recv(4096).decode()
+                print(fileRecv)
+
+                with open(filenameRecv, 'w') as file:
+                    file.write(fileRecv)
+
+                name = ntpath.basename(str(filenameRecv))
+                print(f"[{colored('*', 'green')}]Received: {name} \n")
+                conn.send(f"Received file: {name}\n".encode())
+                msg = conn.recv(1024).decode()
+                print(f"{msg}")
+
+                continue
+
+            # Show Current Logged On User
+            elif int(cmd) == 3:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
+
+                conn.send('user'.encode())
+                msg = conn.recv(1024)
+                print(msg.decode())
+                continue
+
+            # Last Restart Time
+            elif int(cmd) == 4:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
+
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                conn.send('lr'.encode())
+                msg = conn.recv(1024)
+                print(msg.decode())
+
+                continue
+
+            # Anydesk
+            elif int(cmd) == 5:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
+
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                conn.send('anydesk'.encode())
+                continue
+
+            # Tasks
+            elif int(cmd) == 6:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
+
+                chunk = 1000000
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                print(f"working...")
+                conn.send('tasks'.encode())
+                filenameRecv = conn.recv(1024)
+                time.sleep(10)
+                fileRecv = conn.recv(chunk)
+                print(fileRecv.decode())
+
+                with open(filenameRecv, 'w') as file:
+                    file.write(fileRecv.decode())
+
+                name = ntpath.basename(str(filenameRecv))
+                print(f"[{colored('*', 'green')}]Received: {name} \n")
+                conn.send(f"Received file: {name}\n".encode())
+                msg = conn.recv(1024).decode()
+                print(f"{msg}")
+
+                while True:
+                    try:
+                        choose_task = input(f"Would you like to kill a task [Y/n]? ")
+
+                    except ValueError:
+                        print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
+
+                    if choose_task.lower() == 'y':
+                        while True:
+                            task_to_kill = input("Task filename: ")
+                            try:
+                                confirm_kill = input(f"Are you sure you want to kill {task_to_kill} [Y/n]? ")
+
+                            except ValueError:
+                                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
+
+                            if confirm_kill.lower() == "y":
+                                conn.send('kill'.encode())
+                                conn.send(task_to_kill.encode())
+                                msg = conn.recv(1024).decode()
+                                print(msg)
+                                break
+
+                            elif confirm_kill.lower() == "n":
+                                conn.send('pass'.encode())
+                                break
+
+                            else:
+                                break
+
+                        break
+
+                    elif choose_task.lower() == 'n':
+                        conn.send('pass'.encode())
+                        break
+
+                    else:
+                        print(f"[{colored('*', 'red')}]Choose [Y] or [N]\n")
+                        continue
+
+                continue
+
+            # Restart
+            elif int(cmd) == 7:
+                errCount = 0
+                if len(targets) == 0:
+                    print(f"[{colored('*', 'red')}]No connected stations.")
+                    break
+
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                sure = input("Are you sure you want to restart [Y/n]?")
+                while True:
+                    try:
+                        if str(sure).lower() == "y":
+                            conn.send('restart'.encode())
+                            targets.remove(conn)
+                            ips.remove(ip)
+                            clients -= 1
+                            break
+
+                        elif str(sure).lower() == "n":
+                            break
+
+                    except TypeError:
+                        print("Wrong Input")
                 return
 
-            return
-
-
-class Command:
-    def sendall(self, command):
-        try:
-            for t in self.targets:
-                t.send(command.encode())
-                botnet = t.recv(16184).decode()
-                if not botnet:
-                    raise socket.error
-
-                print(botnet)
-
-        except socket.error as e:
-            print(f"[{colored('-', 'red')}]{colored(e, 'red')}")
-            for t in self.targets:
-                for k, v in self.connections.items():
-                    if k in self.targets:
-                        t.shutdown(socket.SHUT_RDWR)
-                        self.targets.remove(t)
-                        self.ips.remove(v[0])
-                        print(f"[{colored('*', 'blue')}]{colored(v[0], 'yellow')} "
-                              f"has been removed from target list.")
-
-    def pulse_check(self):
-        print(f"[{colored('*', 'cyan')}]Running pulse check (type '{colored('ps', 'white')}' to pause)...")
-        while not self.stop_pulse.is_set():
-            if self.stop_pulse.is_set():
+            # Back
+            elif int(cmd) == 8:
+                d = datetime.now().replace(microsecond=0)
+                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                conn.send('exit'.encode())
+                targets.remove(conn)
+                ips.remove(ip)
+                self.clients -= 1
                 break
 
-            if len(self.targets) == 0:
-                print(f"[{colored('*', 'yellow')}]No connected targets.")
-                print(f"[{colored('*', 'blue')}]Stopping pulse check.")
-                self.stop_pulse.set()
-                break
-
-            i = 0
-            while i < len(self.ips):
-                if i > len(self.ips):
-                    i = 0
-                    continue
-
-                time.sleep(random.randint(2, 3))
-                response = subprocess.call(["ping", "-n", "1", self.ips[i]],
-                                           shell=True,
-                                           stdout=subprocess.PIPE)
-                if response == 0:
-                    if self.stop_pulse.is_set():
-                        break
-
-                    print(f"\n[{colored('*', 'green')}]{colored(self.ips[i], 'green')}")
-                    if self.ips[i] in self.noping_ips:
-                        print(f"[{colored('*', 'green')}]{self.ips[i]} has been removed from no-ping list.")
-                        self.noping_ips.remove(ips[i])
-                        self.noping_targets.remove(targets[i])
-                    i += 1
-
-                else:
-                    if self.stop_pulse.is_set():
-                        break
-
-                    print(f"[{colored('*', 'red')}]{colored(self.ips[i], 'red')}")
-                    if self.ips[i] not in self.noping_ips:
-                        self.noping_targets.append(self.targets[i])
-                        self.noping_ips.append(self.ips[i])
-                        print(f"[{colored('*', 'blue')}]{colored(ips[i], 'yellow')} "
-                              f"has been added to the no-ping list.")
-
-    def poke(self):
-        i = 0
-        callbacks = ['yes']
-        print(f"[{colored('*', 'blue')}]Poking targets...")
-        while not self.stop_poke.is_set():
-            if self.stop_poke.is_set():
-                break
-
-            while i < len(self.ips):
-                if i > len(self.ips):
-                    i = 0
-                    continue
-
-                if len(self.targets) == 0:
-                    print(f"[{colored('*', 'yellow')}]No connected targets.")
-                    print(f"[{colored('*', 'blue')}]Stopping pulse check.")
-                    break
-
-                try:
-                    for t in self.targets:
-                        t.send('alive'.encode())
-                        ans = t.recv(1024).decode()
-                        if ans in callbacks:
-                            print(f"\n[{colored('*', 'blue')}]{colored(self.ips[i], 'yellow')}: "
-                                  f"{colored('Alive', 'green')}")
-                            i += 1
-
-                except socket.error as e:
-                    print(f"[{colored('*', 'red')}]{colored(self.ips[i], 'yellow')} does not respond.")
-                    if t in self.noping_targets:
-                        print(f"\n[{colored('*', 'blue')}]{colored(self.ips[i], 'yellow')} "
-                              f"has been removed from no-ping list.")
-                        self.noping_targets.remove(t)
-                        self.noping_ips.remove(ips[i])
-
-                    if t in self.targets:
-                        print(f"\n[{colored('*', 'blue')}]{colored(self.ips[i], 'yellow')} "
-                              f"has been removed from target list.")
-                        self.targets.remove(t)
-                        self.ips.remove(ips[i])
-
-                    i += 1
-                    continue
+        return
 
 
 def welcome_menu():
@@ -346,9 +300,11 @@ def show_shell_commands():
           f"Show remote station's last restart time")
     print(f"\t\t[{colored('5', 'cyan')}]Anydesk             \t\t---------------> "
           f"Start Anydesk")
-    print(f"\t\t[{colored('6', 'cyan')}]Restart             \t\t---------------> "
+    print(f"\t\t[{colored('6', 'cyan')}]Tasks               \t\t---------------> "
+          f"Show remote station's running tasks")
+    print(f"\t\t[{colored('7', 'cyan')}]Restart             \t\t---------------> "
           f"Restart remote station")
-    print(f"\t\t[{colored('7', 'cyan')}]Back                \t\t---------------> "
+    print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
           f"Back to Control Center\n")
 
 
@@ -370,8 +326,9 @@ def validation(users):
     phrase = ' '
     tries = 0
     while True:
-        validate = pwinput.pwinput(prompt="Enter Password: ", mask='*')
-        if str(validate) == str(phrase):
+        user = input("Username: ")
+        validate = pwinput.pwinput(prompt="Password: ", mask='*')
+        if str(validate) == str(phrase) and user in users:
             tries = 0
             return
 
@@ -421,8 +378,13 @@ if __name__ == '__main__':
         d = datetime.now().replace(microsecond=0)
         dt = str(d.strftime("%b %d %Y %I:%M:%S %p"))
 
-        # Get Remote Computer's Name
-        ident = conn.recv(1024).decode()
+        try:
+            # Get Remote Computer's Name
+            ident = conn.recv(1024).decode()
+
+        except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+            print("Lost Connection")
+            continue
 
         # Update Connection Lists
         if conn not in targets:
@@ -516,7 +478,7 @@ if __name__ == '__main__':
                     conn.close()
                     sys.exit()
 
-            except ValueError:
+            except (ValueError, ConnectionError, ConnectionAbortedError, ConnectionResetError, ConnectionRefusedError):
                 print(f"[{colored('*', 'red')}]Check client's connection. use the {colored('Close', 'yellow')} option.")
                 continue
 
