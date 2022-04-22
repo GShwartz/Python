@@ -1,25 +1,19 @@
 from datetime import datetime
 from termcolor import colored
-from threading import Thread
+from threading import Thread, get_native_id
 from colorama import init
 import subprocess
-import threading
-import argparse
 import pwinput
 import os.path
 import ntpath
-import random
 import socket
 import psutil
 import time
 import sys
 
 
-# DONE: Fixed restart function
-
+# DONE: fixed connection exception in shell/screenshot.
 # TODO: Create/Modify connection exceptions.
-# TODO: Fix Remote Shell Commands.
-
 
 init()
 
@@ -302,6 +296,8 @@ class Server:
 
             print(f"\n[{colored('[Q/q]', 'cyan')}]Back")
 
+            return True
+
         except ConnectionResetError:
             print(f"[{colored('*', 'red')}]Connection terminated by the client.")
             # Iterate self.clients, Shutdown + Close Connection
@@ -407,7 +403,26 @@ class Server:
         print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
               f"Back to Control Center \n")
 
-    def tasks(self, con, ip):
+    def tasks(self, con):
+        self.d = datetime.now().replace(microsecond=0)
+        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
+        print(f"[{colored('*', 'magenta')}]Retrieving remote station's task list\n"
+              f"[{colored('*', 'magenta')}]Please wait...")
+        con.send('tasks'.encode())
+        filenameRecv = con.recv(4096)
+        time.sleep(self.ttl)
+        fileRecv = con.recv(self.chunk)
+        print(fileRecv.decode())
+
+        with open(filenameRecv, 'w') as file:
+            file.write(fileRecv.decode())
+
+        name = ntpath.basename(str(filenameRecv))
+        con.send(f"Received file: {name}\n".encode())
+        msg = con.recv(4096).decode()
+        print(f"[{colored('@', 'green')}]{msg}")
+
+    def kill_tasks(self, con):
         while True:
             try:
                 choose_task = input(f"Would you like to kill a task [Y/n]? ")
@@ -416,26 +431,8 @@ class Server:
                 print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
 
             if choose_task.lower() == 'y':
-                while True:
-                    task_to_kill = input("Task filename: ")
-                    if str(task_to_kill).endswith('exe'):
-                        confirm_kill = input(f"Are you sure you want to kill {task_to_kill} [Y/n]? ")
-                        if confirm_kill.lower() == "y":
-                            con.send('kill'.encode())
-                            con.send(task_to_kill.encode())
-                            msg = con.recv(1024).decode()
-                            print(f"[{colored('*', 'green')}]{msg}\n")
-                            return
-
-                        elif confirm_kill.lower() == "n":
-                            # self.conn.send('pass'.encode())
-                            break
-
-                        else:
-                            print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
-
-                    else:
-                        break
+                self.task_to_kill(con)
+                break
 
             elif choose_task.lower() == 'n':
                 con.send('pass'.encode())
@@ -443,9 +440,44 @@ class Server:
 
             else:
                 print(f"[{colored('*', 'red')}]Choose [Y] or [N].\n")
-                continue
 
         return
+
+    def task_to_kill(self, con):
+        while True:
+            task_to_kill = input(f"Task filename [Q Back]: ")
+            if str(task_to_kill).lower() == 'q':
+                break
+
+            if str(task_to_kill).endswith('exe'):
+                if self.confirm_kill(con, task_to_kill).lower() == "y":
+                    con.send('kill'.encode())
+                    con.send(task_to_kill.encode())
+                    msg = con.recv(1024).decode()
+                    print(f"[{colored('*', 'green')}]{msg}\n")
+                    break
+
+                else:
+                    break
+
+            else:
+                print(f"[{colored('*', 'red')}]{task_to_kill} not found.")
+
+        return task_to_kill
+
+    def confirm_kill(self, con, task_to_kill):
+        while True:
+            confirm_kill = input(f"Are you sure you want to kill {task_to_kill} [Y/n]? ")
+            if confirm_kill.lower() == "y":
+                break
+
+            elif confirm_kill.lower() == "n":
+                break
+
+            else:
+                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
+
+        return confirm_kill
 
     def confirm_restart(self):
         tries = 1
@@ -520,6 +552,48 @@ class Server:
         else:
             return False
 
+    def screenshot(self, con):
+        self.d = datetime.now().replace(microsecond=0)
+        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
+        print(f"working...")
+        con.send('screen'.encode())
+        self.filenameRecv = con.recv(1024)
+        con.send("OK filename".encode())
+        time.sleep(1)
+        self.name = ntpath.basename(str(self.filenameRecv).encode())
+        with open(self.filenameRecv, 'wb') as img:
+            fileRecv = con.recv(self.chunk)
+            img.write(fileRecv)
+
+        # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
+        con.send(f"Received file: {self.name[:-1]}\n".encode())
+        msg = con.recv(1024).decode()
+        print(f"{msg}")
+
+        return
+
+    def system_information(self, con):
+        self.d = datetime.now().replace(microsecond=0)
+        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
+        print(f"[{colored('*', 'magenta')}]Retrieving remote station's system information\n"
+              f"[{colored('*', 'magenta')}]Please wait...")
+
+        con.send('si'.encode())
+        filenameRecv = con.recv(1024)
+        time.sleep(self.ttl)
+        fileRecv = con.recv(self.chunk).decode()
+
+        with open(filenameRecv, 'w') as file:
+            file.write(fileRecv)
+
+        name = ntpath.basename(str(filenameRecv))
+        print(f"[{colored('*', 'green')}]Received: {name} \n")
+        con.send(f"Received file: {name}\n".encode())
+        msg = con.recv(1024).decode()
+        # print(f"{msg}")
+
+        return
+
     def shell(self, con, ip):
         errCount = 0
         while True:
@@ -570,23 +644,25 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                self.d = datetime.now().replace(microsecond=0)
-                self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-                print(f"working...")
-                con.send('screen'.encode())
-                self.filenameRecv = con.recv(1024)
-                con.send("OK filename".encode())
-                time.sleep(1)
-                self.name = ntpath.basename(str(self.filenameRecv).encode())
-                with open(self.filenameRecv, 'wb') as img:
-                    fileRecv = con.recv(self.chunk)
-                    img.write(fileRecv)
+                try:
+                    self.screenshot(con)
 
-                # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
-                con.send(f"Received file: {self.name[:-1]}\n".encode())
-                msg = con.recv(1024).decode()
-                print(f"{msg}")
-                continue
+                except ConnectionResetError:
+                    print(f"[{colored('!', 'red')}]Client lost connection.")
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                if conKey == con and ipKey == ip:
+                                    self.targets.remove(con)
+                                    self.ips.remove(ip)
+
+                                    del self.clients[conKey]
+                                    del self.connections[con]
+                                    print(f"[{colored('*', 'red')}]{ip} has been removed from available list.")
+                        break
+
+                    except RuntimeError:
+                        return
 
             # System Information
             elif int(cmd) == 2:
@@ -594,26 +670,7 @@ class Server:
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
-
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                print(f"[{colored('*', 'magenta')}]Retrieving remote station's system information\n"
-                      f"[{colored('*', 'magenta')}]Please wait...")
-
-                con.send('si'.encode())
-                filenameRecv = con.recv(4096)
-                time.sleep(self.ttl)
-                fileRecv = con.recv(self.chunk).decode()
-
-                with open(filenameRecv, 'w') as file:
-                    file.write(fileRecv)
-
-                name = ntpath.basename(str(filenameRecv))
-                print(f"[{colored('*', 'green')}]Received: {name} \n")
-                con.send(f"Received file: {name}\n".encode())
-                msg = con.recv(1024).decode()
-                # print(f"{msg}")
-
+                self.system_information(con)
                 continue
 
             # Last Restart Time
@@ -651,26 +708,13 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                self.d = datetime.now().replace(microsecond=0)
-                self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-                print(f"[{colored('*', 'magenta')}]Retrieving remote station's task list\n"
-                      f"[{colored('*', 'magenta')}]Please wait...")
-                con.send('tasks'.encode())
-                filenameRecv = con.recv(4096)
-                time.sleep(self.ttl)
-                fileRecv = con.recv(self.chunk)
-                print(fileRecv.decode())
+                self.tasks(con)
+                task = self.kill_tasks(con)
+                if task is None:
+                    continue
 
-                with open(filenameRecv, 'w') as file:
-                    file.write(fileRecv.decode())
-
-                name = ntpath.basename(str(filenameRecv))
-                con.send(f"Received file: {name}\n".encode())
-                msg = con.recv(4096).decode()
-                print(f"[{colored('@', 'green')}]{msg}")
-
-                # Kill Task
-                self.tasks(con, ip)
+                self.task_to_kill(con)
+                return
 
             # Restart
             elif int(cmd) == 6:
@@ -688,7 +732,7 @@ class Server:
                 dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
                 break
 
-        main()
+        return
 
 
 def validation(users):
