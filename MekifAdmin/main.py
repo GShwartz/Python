@@ -1,6 +1,6 @@
 from datetime import datetime
 from termcolor import colored
-from threading import Thread, get_native_id
+from threading import Thread
 from colorama import init
 import subprocess
 import pwinput
@@ -12,8 +12,8 @@ import time
 import sys
 
 
-# DONE: fixed connection exception in shell/screenshot.
-# TODO: Create/Modify connection exceptions.
+# DONE: Added Socket Keep Alive
+# TODO: Create a system specs function.
 
 init()
 
@@ -24,20 +24,24 @@ class Server:
     connHistory = []
     ips = []
     targets = []
-    listeners = []
     threads = []
     tmp_availables = []
     last_reboot = psutil.boot_time()
 
-    def __init__(self, serverIP, serverPort, ttl=1):
+    def __init__(self, serverIP, serverPort, ttl, path):
         self.serverIp = serverIP
         self.serverPort = serverPort
         self.ttl = ttl
+        self.path = path
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 10000, 3000))  # 10 seconds KA, 3 seconds interval.
         self.server.bind((self.serverIp, self.serverPort))
         self.chunk = 40960000
         self.server.listen(5)
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
     def run(self):
         print(f"[{colored('*', 'cyan')}]Server running on IP: {self.serverIp} | Port: {self.serverPort}")
@@ -48,13 +52,6 @@ class Server:
         self.threads.append(self.connectThread)
 
     def connect(self):
-        """
-            :var ident = Contains the remote station's name.
-            :var user = Contains the remote machine's logged on user.
-
-            :return: Infinite Loop
-        """
-
         while True:
             # Capture Date & Time with AM PM
             self.d = datetime.now().replace(microsecond=0)
@@ -88,6 +85,9 @@ class Server:
                 # Add Temp Idents Dict To Idents Dict
                 self.clients.update(self.temp_ident)
 
+            self.d = datetime.now().replace(microsecond=0)
+            self.dt = str(self.d.strftime("%b %d %Y %I:%M:%S %p"))
+
             # Create a Dict of Connection, IP, Computer Name, Date & Time
             self.temp_connection_record = {self.conn: {self.ip: {self.ident: {self.user: self.dt}}}}
             # Add Connection to Connection History
@@ -115,12 +115,6 @@ class Server:
                 return False
 
     def connection_history(self):
-        """
-            Show connection history list.
-
-            :return: Connection History List.
-        """
-
         print(f"{colored('=', 'blue')}=>{colored('Connection History', 'red')}<={colored('=', 'blue')}")
 
         # Capture Current Date & Time
@@ -129,7 +123,7 @@ class Server:
 
         # Break If Connection History List Is Empty
         if len(self.connHistory) == 0:
-            print(f"[{colored('*', 'red')}]List is empty.\n")
+            print(f"[{colored('*', 'cyan')}]List is empty.\n")
             return
 
         c = 1  # Initiate Counter for Connection Number
@@ -153,12 +147,6 @@ class Server:
             return
 
     def vitals_input(self):
-        """
-            Ask user for confirmation.
-            :var pick = User Input: 1 or 2
-            :return: True if 1, False if 2
-        """
-
         while True:
             # Wait For User Input
             self.pick = input("CONTROL@> ")
@@ -228,7 +216,7 @@ class Server:
                     i += 1
                     time.sleep(1)
 
-            except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+            except ConnectionResetError:
                 print(f"[{colored('*', 'red')}]{self.ips[i]} does not respond.")
                 tempIP = self.ips[i]
                 # Iterate self.clients, Shutdown + Close Connection
@@ -250,8 +238,11 @@ class Server:
 
                                     del self.connections[conKey]
                                     del self.clients[conKey]
-                                    print(f"[{colored('*', 'cyan')}]{colored(tempIP, 'red')} "
-                                          f"has been removed from the stations list.")
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{self.ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
 
                 except (ConnectionResetError, ConnectionError,
                         ConnectionAbortedError, ConnectionRefusedError, RuntimeError):
@@ -267,7 +258,7 @@ class Server:
 
     def show_available_connections(self):
         if len(self.ips) == 0:
-            print(f"[{colored('*', 'red')}]No connected stations.\n")
+            print(f"[{colored('*', 'cyan')}]No connected stations.\n")
             return
 
         try:
@@ -300,27 +291,7 @@ class Server:
 
         except ConnectionResetError:
             print(f"[{colored('*', 'red')}]Connection terminated by the client.")
-            # Iterate self.clients, Shutdown + Close Connection
-            # Remove Connection Details From Lists
-            try:
-                for conKey, ipValue in self.clients.items():
-                    for con in self.targets:
-                        if conKey is con and conKey in self.targets:
-                            for ipKey, identValue in ipValue.items():
-                                conKey.shutdown(socket.SHUT_RDWR)
-                                conKey.close()
-
-                                self.targets.remove(conKey)
-                                self.ips.remove(ipKey)
-                                del self.connections[conKey]
-                                del self.clients[conKey]
-
-                                count -= 1
-                                print(f"[{colored('*', 'cyan')}]Removed {conKey} from connected lists.")
-
-            except RuntimeError:
-                print(f"[{colored('*', 'cyan')}]Runtime: Idents & Connections Dicts Changed Size.")
-                return False
+            self.remove_lost_connection(con, ip)
 
     def get_station_number(self):
         if len(self.tmp_availables) == 0:
@@ -400,50 +371,64 @@ class Server:
               f"Restart remote station")
         print(f"\t\t[{colored('7', 'cyan')}]CLS                 \t\t---------------> "
               f"Clear Screen")
-        print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
+        print(f"\t\t[{colored('8', 'cyan')}]Radix               \t\t---------------> "
+              f"Restore Radix Image")
+        print(f"\t\t[{colored('9', 'cyan')}]Back                \t\t---------------> "
               f"Back to Control Center \n")
 
-    def tasks(self, con):
+    def tasks(self, con, ip):
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-        print(f"[{colored('*', 'magenta')}]Retrieving remote station's task list\n"
-              f"[{colored('*', 'magenta')}]Please wait...")
-        con.send('tasks'.encode())
-        filenameRecv = con.recv(4096)
-        time.sleep(self.ttl)
-        fileRecv = con.recv(self.chunk)
-        print(fileRecv.decode())
+        print(f"[{colored('*', 'cyan')}]Retrieving remote station's task list\n"
+              f"[{colored('*', 'cyan')}]Please wait...")
+        try:
+            con.send('tasks'.encode())
+            filenameRecv = con.recv(4096)
+            time.sleep(self.ttl)
+            fileRecv = con.recv(self.chunk)
+            print(fileRecv.decode())
 
-        with open(filenameRecv, 'w') as file:
-            file.write(fileRecv.decode())
+            with open(filenameRecv, 'w') as file:
+                file.write(fileRecv.decode())
 
-        name = ntpath.basename(str(filenameRecv))
-        con.send(f"Received file: {name}\n".encode())
-        msg = con.recv(4096).decode()
-        print(f"[{colored('@', 'green')}]{msg}")
+            name = ntpath.basename(str(filenameRecv))
+            con.send(f"Received file: {name}\n".encode())
+            msg = con.recv(4096).decode()
+            print(f"[{colored('@', 'green')}]{msg}")
 
-    def kill_tasks(self, con):
+            return True
+
+        except ConnectionResetError:
+            print(f"[{colored('!', 'red')}]Client lost connection.")
+            self.remove_lost_connection(con, ip)
+
+    def kill_tasks(self, con, ip):
         while True:
             try:
-                choose_task = input(f"Would you like to kill a task [Y/n]? ")
+                choose_task = input(f"[?]Kill a task [Y/n]? ")
 
             except ValueError:
                 print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
 
             if choose_task.lower() == 'y':
-                self.task_to_kill(con)
+                self.task_to_kill(con, ip)
                 break
 
             elif choose_task.lower() == 'n':
-                con.send('pass'.encode())
-                break
+                try:
+                    con.send('pass'.encode())
+                    break
+
+                except ConnectionResetError:
+                    self.remove_lost_connection(con, ip)
+                    break
 
             else:
                 print(f"[{colored('*', 'red')}]Choose [Y] or [N].\n")
 
         return
 
-    def task_to_kill(self, con):
+    def task_to_kill(self, con, ip):
         while True:
             task_to_kill = input(f"Task filename [Q Back]: ")
             if str(task_to_kill).lower() == 'q':
@@ -451,11 +436,16 @@ class Server:
 
             if str(task_to_kill).endswith('exe'):
                 if self.confirm_kill(con, task_to_kill).lower() == "y":
-                    con.send('kill'.encode())
-                    con.send(task_to_kill.encode())
-                    msg = con.recv(1024).decode()
-                    print(f"[{colored('*', 'green')}]{msg}\n")
-                    break
+                    try:
+                        con.send('kill'.encode())
+                        con.send(task_to_kill.encode())
+                        msg = con.recv(1024).decode()
+                        print(f"[{colored('*', 'green')}]{msg}\n")
+                        break
+
+                    except ConnectionResetError:
+                        print(f"[{colored('!', 'red')}]Client lost connection.")
+                        self.remove_lost_connection(con, ip)
 
                 else:
                     break
@@ -523,31 +513,33 @@ class Server:
 
     def restart(self, con, ip):
         errCount = 0
-
-        if len(self.targets) == 0:
-            print(f"[{colored('*', 'red')}]No connected stations.")
-            return
-
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
         self.sure = input("Are you sure you want to restart [Y/n]?")
         if self.confirm_restart():
-            con.send('restart'.encode())
             try:
-                self.targets.remove(con)
-                self.ips.remove(ip)
+                con.send('restart'.encode())
+                try:
+                    for conKey, ipValue in self.clients.items():
+                        for ipKey, identValue in ipValue.items():
+                            for identKey, userValue in identValue.items():
+                                self.targets.remove(con)
+                                self.ips.remove(ip)
 
-                del self.connections[con]
-                del self.clients[con]
-                print(f"[{colored('*', 'cyan')}]{colored(ip, 'red')} "
-                      f"has been removed from the stations list.")
+                                del self.connections[con]
+                                del self.clients[con]
+                                print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                      f"{colored(f'{identKey}', 'red')} | "
+                                      f"{colored(f'{userValue}', 'red')}) "
+                                      f"has been removed from the availables list.")
+                    return False
 
-                return False
+                except RuntimeError:
+                    return False
 
-            except (ConnectionResetError, ConnectionError,
-                    ConnectionAbortedError, ConnectionRefusedError, RuntimeError):
-                print(f"[{colored('*', 'cyan')}]Runtime: Idents & Connections Dicts Changed Size.")
-                pass
+            except ConnectionResetError:
+                print(f"[{colored('!', 'red')}]Client lost connection.")
+                self.remove_lost_connection(con, ip)
 
         else:
             return False
@@ -567,8 +559,8 @@ class Server:
 
         # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
         con.send(f"Received file: {self.name[:-1]}\n".encode())
-        msg = con.recv(1024).decode()
-        print(f"{msg}")
+        # msg = con.recv(1024).decode()
+        # print(f"{msg}")
 
         return
 
@@ -581,16 +573,30 @@ class Server:
         con.send('si'.encode())
         filenameRecv = con.recv(1024)
         time.sleep(self.ttl)
-        fileRecv = con.recv(self.chunk).decode()
+        try:
+            fileRecv = con.recv(self.chunk).decode()
+
+        except socket.error:
+            print(f"[{colored('*', 'red')}]Connection timed out.\n")
+            return False
+
+        except ConnectionResetError:
+            print(f"[{colored('*', 'red')}]Client lost connection.\n")
+            return False
 
         with open(filenameRecv, 'w') as file:
             file.write(fileRecv)
 
         name = ntpath.basename(str(filenameRecv))
+
+        with open(filenameRecv, 'r') as file:
+            data = file.read()
+            print(data)
+
         print(f"[{colored('*', 'green')}]Received: {name} \n")
         con.send(f"Received file: {name}\n".encode())
         msg = con.recv(1024).decode()
-        # print(f"{msg}")
+        print(f"{msg}")
 
         return
 
@@ -623,7 +629,7 @@ class Server:
                 continue
 
             # Create INT Zone Condition
-            if int(cmd) <= 0 or int(cmd) > 8:
+            if int(cmd) <= 0 or int(cmd) > 9:
                 errCount += 1
                 if errCount == 3:
                     print("U obviously don't know what you're doing. goodbye.")
@@ -634,8 +640,6 @@ class Server:
 
                 print(f"[{colored('*', 'red')}]{cmd} not in the menu."
                       f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
-
-                continue
 
             # Screenshot
             if int(cmd) == 1:
@@ -658,7 +662,11 @@ class Server:
 
                                     del self.clients[conKey]
                                     del self.connections[con]
-                                    print(f"[{colored('*', 'red')}]{ip} has been removed from available list.")
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
                         break
 
                     except RuntimeError:
@@ -670,8 +678,30 @@ class Server:
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
-                self.system_information(con)
-                continue
+
+                try:
+                    self.system_information(con)
+
+                except ConnectionResetError:
+                    print(f"[{colored('!', 'red')}]Client lost connection.")
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                if conKey == con and ipKey == ip:
+                                    self.targets.remove(con)
+                                    self.ips.remove(ip)
+
+                                    del self.clients[conKey]
+                                    del self.connections[con]
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
+                        break
+
+                    except RuntimeError:
+                        return
 
             # Last Restart Time
             elif int(cmd) == 3:
@@ -680,13 +710,34 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
-                con.send('lr'.encode())
-                msg = con.recv(4096)
-                print(f"[{colored('@', 'green')}]{msg.decode()}")
+                self.d = datetime.now().replace(microsecond=0)
+                self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
 
-                continue
+                try:
+                    con.send('lr'.encode())
+                    msg = con.recv(4096)
+                    print(f"[{colored('@', 'green')}]{msg.decode()}")
+
+                except ConnectionResetError:
+                    print(f"[{colored('!', 'red')}]Client lost connection.")
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                if conKey == con and ipKey == ip:
+                                    self.targets.remove(con)
+                                    self.ips.remove(ip)
+
+                                    del self.clients[conKey]
+                                    del self.connections[con]
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
+                        break
+
+                    except RuntimeError:
+                        return
 
             # Anydesk
             elif int(cmd) == 4:
@@ -698,8 +749,31 @@ class Server:
 
                 self.d = datetime.now().replace(microsecond=0)
                 self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-                con.send('anydesk'.encode())
-                continue
+
+                try:
+                    con.send('anydesk'.encode())
+                    continue
+
+                except ConnectionResetError:
+                    print(f"[{colored('!', 'red')}]Client lost connection.")
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                if conKey == con and ipKey == ip:
+                                    self.targets.remove(con)
+                                    self.ips.remove(ip)
+
+                                    del self.clients[conKey]
+                                    del self.connections[con]
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
+                        break
+
+                    except RuntimeError:
+                        return
 
             # Tasks
             elif int(cmd) == 5:
@@ -708,16 +782,42 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                self.tasks(con)
-                task = self.kill_tasks(con)
+                if not self.tasks(con, ip):
+                    return False
+
+                task = self.kill_tasks(con, ip)
                 if task is None:
                     continue
 
-                self.task_to_kill(con)
-                return
+                try:
+                    self.task_to_kill(con, ip)
+                    return True
+
+                except ConnectionResetError:
+                    print(f"[{colored('!', 'red')}]Client lost connection.")
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                if conKey == con and ipKey == ip:
+                                    self.targets.remove(con)
+                                    self.ips.remove(ip)
+
+                                    del self.clients[conKey]
+                                    del self.connections[con]
+                                    for identKey, userValue in identValue.items():
+                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
+                                              f"{colored(f'{identKey}', 'red')} | "
+                                              f"{colored(f'{userValue}', 'red')}) "
+                                              f"has been removed from the availables list.")
+
+                                return False
+
+                    except RuntimeError:
+                        return False
 
             # Restart
             elif int(cmd) == 6:
+
                 self.restart(con, ip)
                 return
 
@@ -726,13 +826,60 @@ class Server:
                 os.system('cls')
                 continue
 
-            # Back
+            # Radix
             elif int(cmd) == 8:
+                while True:
+                    user = 'admin'
+                    passwords = ['1qaz2wsx', 'Alumot12']
+                    for pas in passwords:
+                        command = f'srcmd.exe –restore=latest –u=admin -p={pas}'
+                        try:
+                            con.send(f'{command}'.encode())
+                            time.sleep(1)
+
+                        except ConnectionResetError:
+                            print(f"[{colored('*', 'red')}]Client lost connection.")
+                            break
+                    break
+
+                try:
+                    msg = con.recv(1024).decode()
+                    print(f"{msg}")
+
+                except ConnectionResetError:
+                    print(f"[{colored('*', 'red')}]Client lost connection.")
+                    break
+
+                return
+
+            # Back
+            elif int(cmd) == 9:
                 d = datetime.now().replace(microsecond=0)
                 dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
                 break
 
         return
+
+    def remove_lost_connection(self, con, ip):
+        try:
+            for conKey, ipValue in self.clients.items():
+                if conKey == con:
+                    for ipKey, identValue in ipValue.items():
+                        if ipKey == ip:
+                            for identKey, userValue in identValue.items():
+                                self.targets.remove(con)
+                                self.ips.remove(ip)
+                                del self.connections[con]
+                                del self.clients[con]
+
+                                print(f"[{colored('*', 'red')}]{colored(f'{ip}', 'yellow')} | "
+                                      f"{colored(f'{identKey}', 'yellow')} | "
+                                      f"{colored(f'{userValue}', 'yellow')} "
+                                      f"Removed from Availables list.\n")
+            return False
+
+        except RuntimeError:
+            return False
 
 
 def validation(users):
@@ -761,14 +908,14 @@ def headline():
     print(f""
           f"\t\t\t\t{colored('By Gil Shwartz', 'green')} {colored('@2022', 'yellow')}\n")
     print(f"\t\t({colored('1', 'yellow')})Remote Control          ---------------> "
-          f"Show remote commands")
+          f"Show Remote Commands")
     print(f"\t\t({colored('2', 'yellow')})Connection History      ---------------> "
           f"Show connection history.")
     print(f"\t\t({colored('3', 'yellow')})Vital signs             ---------------> "
           f"Check for vital signs from remote stations")
     print(f"\t\t({colored('4', 'yellow')})CLS                     ---------------> "
-          f"Clear Screen")
-    print(f"\t\t({colored('5', 'yellow')})Exit                    ---------------> "
+          f"Clear Local Screen")
+    print(f"\n\t\t({colored('5', 'red')})Exit                    ---------------> "
           f"Close connections and exit program.\n")
 
 
@@ -802,7 +949,7 @@ def main():
             server.get_station_number()
 
         else:
-            print(f"[{colored('*', 'red')}]No available connections.")
+            print(f"[{colored('*', 'cyan')}]No available connections.")
 
         return
 
@@ -814,7 +961,7 @@ def main():
     # Vital Signs
     elif int(command) == 3:
         if len(server.ips) == 0:
-            print(f"[{colored('*', 'yellow')}]No connected stations.")
+            print(f"[{colored('*', 'cyan')}]No connected stations.")
             return
 
         print(f"{colored('=', 'blue')}=>{colored('Vital Signs', 'red')}<={colored('=', 'blue')}")
@@ -856,16 +1003,18 @@ def main():
 if __name__ == '__main__':
     users = ['g', 'r', 'o', 'i']
     port = 55400
-    ttl = 10
+    ttl = 5
     hostname = socket.gethostname()
     serverIP = str(socket.gethostbyname(hostname))
+    path = r'c:\MekifRemoteAdmin'
 
     # Run User Validation
     # validation(users)
 
     # Initialize Server Class
-    server = Server(serverIP, port, ttl)
+    server = Server(serverIP, port, ttl, path)
     server.run()
 
     while True:
         main()
+
