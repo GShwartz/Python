@@ -10,9 +10,9 @@ import socket
 import psutil
 import time
 import sys
+import io
 
-
-# DONE: Added Socket Keep Alive
+# DONE: Removed socket timeout.
 # TODO: Create a system specs function.
 
 init()
@@ -35,7 +35,6 @@ class Server:
         self.path = path
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 10000, 3000))  # 10 seconds KA, 3 seconds interval.
         self.server.bind((self.serverIp, self.serverPort))
         self.chunk = 40960000
         self.server.listen(5)
@@ -308,8 +307,9 @@ class Server:
                 if int(station_num) <= 0 or int(station_num) <= (len(self.tmp_availables)):
                     tarnum = self.targets[int(station_num)]
                     ipnum = self.ips[int(station_num)]
-                    self.shell(tarnum, ipnum)
-                    break
+                    # self.shell(tarnum, ipnum)
+                    return int(station_num), tarnum, ipnum
+                    # break
 
                 else:
                     print(f"[{colored('*', 'red')}]Wrong Number. Choose between [1 - {len(self.tmp_availables)}].\n"
@@ -342,8 +342,6 @@ class Server:
 
                 tries += 1
 
-        return int(station_num), tarnum, ipnum
-
     def show_shell_commands(self, ip):
         print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('REMOTE CONTROL', 'red')} <=",
               f"{colored('=', 'blue')}" * 20)
@@ -371,9 +369,7 @@ class Server:
               f"Restart remote station")
         print(f"\t\t[{colored('7', 'cyan')}]CLS                 \t\t---------------> "
               f"Clear Screen")
-        print(f"\t\t[{colored('8', 'cyan')}]Radix               \t\t---------------> "
-              f"Restore Radix Image")
-        print(f"\t\t[{colored('9', 'cyan')}]Back                \t\t---------------> "
+        print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
               f"Back to Control Center \n")
 
     def tasks(self, con, ip):
@@ -544,23 +540,44 @@ class Server:
         else:
             return False
 
+    def bytes_to_number(self, b):
+        # if Python2.x
+        # b = map(ord, b)
+        res = 0
+        for i in range(4):
+            res += b[i] << (i * 8)
+        return res
+
     def screenshot(self, con):
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
         print(f"working...")
         con.send('screen'.encode())
         self.filenameRecv = con.recv(1024)
+        print(self.filenameRecv)
         con.send("OK filename".encode())
-        time.sleep(1)
+        time.sleep(0.1)
         self.name = ntpath.basename(str(self.filenameRecv).encode())
-        with open(self.filenameRecv, 'wb') as img:
-            fileRecv = con.recv(self.chunk)
-            img.write(fileRecv)
+        size = con.recv(4)
+        size = self.bytes_to_number(size)
+        current_size = 0
+        buffer = b""
 
-        # print(f"[{colored('*', 'green')}]Received: {name[:-2]} \n")
+        with open(self.filenameRecv, 'wb') as screenshotFile:
+            while current_size < size:
+                data = con.recv(1024)
+                if not data:
+                    break
+
+                if len(data) + current_size > size:
+                    data = data[:size - current_size]
+
+                buffer += data
+                current_size += len(data)
+                screenshotFile.write(data)
+
+        print(f"[{colored('*', 'green')}]Received: {self.name[:-1]} \n")
         con.send(f"Received file: {self.name[:-1]}\n".encode())
-        # msg = con.recv(1024).decode()
-        # print(f"{msg}")
 
         return
 
@@ -629,7 +646,7 @@ class Server:
                 continue
 
             # Create INT Zone Condition
-            if int(cmd) <= 0 or int(cmd) > 9:
+            if int(cmd) <= 0 or int(cmd) > 8:
                 errCount += 1
                 if errCount == 3:
                     print("U obviously don't know what you're doing. goodbye.")
@@ -826,34 +843,8 @@ class Server:
                 os.system('cls')
                 continue
 
-            # Radix
-            elif int(cmd) == 8:
-                while True:
-                    user = 'admin'
-                    passwords = ['1qaz2wsx', 'Alumot12']
-                    for pas in passwords:
-                        command = f'srcmd.exe –restore=latest –u=admin -p={pas}'
-                        try:
-                            con.send(f'{command}'.encode())
-                            time.sleep(1)
-
-                        except ConnectionResetError:
-                            print(f"[{colored('*', 'red')}]Client lost connection.")
-                            break
-                    break
-
-                try:
-                    msg = con.recv(1024).decode()
-                    print(f"{msg}")
-
-                except ConnectionResetError:
-                    print(f"[{colored('*', 'red')}]Client lost connection.")
-                    break
-
-                return
-
             # Back
-            elif int(cmd) == 9:
+            elif int(cmd) == 8:
                 d = datetime.now().replace(microsecond=0)
                 dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
                 break
@@ -869,9 +860,9 @@ class Server:
                             for identKey, userValue in identValue.items():
                                 self.targets.remove(con)
                                 self.ips.remove(ip)
+
                                 del self.connections[con]
                                 del self.clients[con]
-
                                 print(f"[{colored('*', 'red')}]{colored(f'{ip}', 'yellow')} | "
                                       f"{colored(f'{identKey}', 'yellow')} | "
                                       f"{colored(f'{userValue}', 'yellow')} "
@@ -934,7 +925,7 @@ def main():
             f"[{colored('1', 'yellow')} - {colored('5', 'yellow')}].\n")
         return
 
-    if int(command) < 0 or int(command) > 5:  # Validate input is in the menu
+    if int(command) <= 0 or int(command) > 5:  # Validate input is in the menu
         print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('5', 'yellow')}]!")
         return False
 
@@ -946,7 +937,9 @@ def main():
             server.show_available_connections()
 
             # Get Number from User and start Remote Shell
-            server.get_station_number()
+            station = server.get_station_number()
+            server.shell(station[1], station[2])
+            return
 
         else:
             print(f"[{colored('*', 'cyan')}]No available connections.")
@@ -1001,7 +994,7 @@ def main():
 
 
 if __name__ == '__main__':
-    users = ['g', 'r', 'o', 'i']
+    users = ['g', 'r', 'i']
     port = 55400
     ttl = 5
     hostname = socket.gethostname()
@@ -1017,4 +1010,3 @@ if __name__ == '__main__':
 
     while True:
         main()
-

