@@ -19,7 +19,7 @@ class Client:
         self.main_path = main_path
         self.server_host = server[0]
         self.server_port = server[1]
-        self.buffer_size = 16184
+        self.buffer_size = 1024
         self.d = datetime.now()
         self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
         self.current_user = os.getlogin()
