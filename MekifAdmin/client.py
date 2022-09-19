@@ -42,12 +42,27 @@ class Client:
                 print(colored(e, 'red'))
                 continue
 
+    def anydeskThread(self):
+        return subprocess.call([r"C:\Program Files (x86)\AnyDesk\anydesk.exe"])
+
     def anydesk(self):
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-        subprocess.call([r"C:\Program Files (x86)\AnyDesk\anydesk.exe"])
+        try:
+            if os.path.exists(r"C:\Program Files (x86)\AnyDesk\anydesk.exe"):
+                anydeskThread = threading.Thread(target=self.anydeskThread, name="Run Anydesk")
+                anydeskThread.daemon = True
+                anydeskThread.start()
+                soc.send("OK".encode())
 
-        return
+            else:
+                error = "Anydesk not installed."
+                soc.send(error.encode())
+                return
+
+        except FileNotFoundError:
+            print("Anydesk.exe was not found.")
+            return
 
     def convert_to_bytes(self, no):
         result = bytearray()
@@ -344,8 +359,8 @@ if __name__ == "__main__":
     while True:
         for server in servers:
             client = Client(server, mekif_path)
-            time.sleep(1)
             try:
+                time.sleep(1)
                 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 soc.connect(server)
@@ -353,12 +368,7 @@ if __name__ == "__main__":
 
             except socket.error as e:
                 print(e)
-                continue
 
-                # soc.connect(server)
-                # continue
-
-        # soc.shutdown(socket.SHUT_RD)
         soc = socket.socket()
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         soc.close()

