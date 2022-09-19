@@ -107,7 +107,7 @@ class Client:
                     try:
                         soc.send('yes'.encode())
 
-                    except ConnectionResetError:
+                    except socket.error:
                         break
 
                 # Capture Screenshot
