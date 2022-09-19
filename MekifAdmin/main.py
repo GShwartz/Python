@@ -11,8 +11,8 @@ import psutil
 import time
 import sys
 import io
+import validation
 
-# DONE: Removed socket timeout.
 # TODO: Create a system specs function.
 
 init()
@@ -43,9 +43,9 @@ class Server:
             os.makedirs(self.path)
 
     def run(self):
-        print(f"[{colored('*', 'cyan')}]Server running on IP: {self.serverIp} | Port: {self.serverPort}")
-        print(f"[{colored('*', 'cyan')}]Server's last restart: "
-              f"{datetime.fromtimestamp(self.last_reboot).replace(microsecond=0)}\n")
+        # print(f"[{colored('*', 'cyan')}]Server running on IP: {self.serverIp} | Port: {self.serverPort}")
+        # print(f"[{colored('*', 'cyan')}]Server's last restart: "
+        #       f"{datetime.fromtimestamp(self.last_reboot).replace(microsecond=0)}\n")
 
         self.connectThread = Thread(target=self.connect, daemon=True, name=f"Connect Thread").start()
         self.threads.append(self.connectThread)
@@ -122,7 +122,7 @@ class Server:
 
         # Break If Connection History List Is Empty
         if len(self.connHistory) == 0:
-            print(f"[{colored('*', 'cyan')}]List is empty.\n")
+            print(f"[{colored('*', 'cyan')}]List is empty.")
             return
 
         c = 1  # Initiate Counter for Connection Number
@@ -194,8 +194,8 @@ class Server:
 
         # Return False If Socket Connection List is Empty
         if len(self.targets) == 0:
-            print(f"[{colored('*', 'cyan')}]No connected stations.")
-            print(f"[{colored('*', 'cyan')}]Terminating process.")
+            print(f"[{colored('*', 'yellow')}]No connected stations.")
+            print(f"[{colored('*', 'yellow')}]Terminating process.")
             return False
 
         # Iterate Through Temp Connected Sockets List
@@ -439,7 +439,7 @@ class Server:
                         print(f"[{colored('*', 'green')}]{msg}\n")
                         break
 
-                    except ConnectionResetError:
+                    except socket.error:
                         print(f"[{colored('!', 'red')}]Client lost connection.")
                         self.remove_lost_connection(con, ip)
 
@@ -466,7 +466,7 @@ class Server:
         return confirm_kill
 
     def confirm_restart(self):
-        tries = 1
+        tries = 0
         while True:
             try:
                 str(self.sure)
@@ -508,7 +508,7 @@ class Server:
                 tries += 1
 
     def restart(self, con, ip):
-        errCount = 0
+        errCount = 3
         self.d = datetime.now().replace(microsecond=0)
         self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
         self.sure = input("Are you sure you want to restart [Y/n]?")
@@ -537,8 +537,9 @@ class Server:
                 print(f"[{colored('!', 'red')}]Client lost connection.")
                 self.remove_lost_connection(con, ip)
 
-        else:
-            return False
+        return
+        # else:
+        #     return False
 
     def bytes_to_number(self, b):
         # if Python2.x
@@ -902,11 +903,13 @@ def headline():
           f"Show Remote Commands")
     print(f"\t\t({colored('2', 'yellow')})Connection History      ---------------> "
           f"Show connection history.")
-    print(f"\t\t({colored('3', 'yellow')})Vital signs             ---------------> "
-          f"Check for vital signs from remote stations")
+    print(f"\t\t({colored('3', 'yellow')})Show Connected Stations ---------------> "
+          f"Display Current connected stations")
     print(f"\t\t({colored('4', 'yellow')})CLS                     ---------------> "
           f"Clear Local Screen")
-    print(f"\n\t\t({colored('5', 'red')})Exit                    ---------------> "
+    print(f"\t\t({colored('5', 'yellow')})Server Info             ---------------> "
+          f"Show Server Information")
+    print(f"\n\t\t({colored('6', 'red')})Exit                    ---------------> "
           f"Close connections and exit program.\n")
 
 
@@ -925,7 +928,7 @@ def main():
             f"[{colored('1', 'yellow')} - {colored('5', 'yellow')}].\n")
         return
 
-    if int(command) <= 0 or int(command) > 5:  # Validate input is in the menu
+    if int(command) <= 0 or int(command) > 6:  # Validate input is in the menu
         print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('5', 'yellow')}]!")
         return False
 
@@ -938,8 +941,9 @@ def main():
 
             # Get Number from User and start Remote Shell
             station = server.get_station_number()
-            server.shell(station[1], station[2])
-            return
+            if station:
+                server.shell(station[1], station[2])
+                return
 
         else:
             print(f"[{colored('*', 'cyan')}]No available connections.")
@@ -954,7 +958,7 @@ def main():
     # Vital Signs
     elif int(command) == 3:
         if len(server.ips) == 0:
-            print(f"[{colored('*', 'cyan')}]No connected stations.")
+            print(f"[{colored('*', 'yellow')}]No connected stations.")
             return
 
         print(f"{colored('=', 'blue')}=>{colored('Vital Signs', 'red')}<={colored('=', 'blue')}")
@@ -972,23 +976,32 @@ def main():
     elif int(command) == 4:
         os.system('cls')
 
-    # Exit Program
+    # Show Server's Information
     elif int(command) == 5:
+        print(f"\n[{colored('*', 'cyan')}]Server running on IP: {server.serverIp} | Port: {server.serverPort}")
+        print(f"[{colored('*', 'cyan')}]Server's last restart: "
+              f"{datetime.fromtimestamp(server.last_reboot).replace(microsecond=0)}")
+        print(f"[{colored('*', 'cyan')}]Connected Stations: {len(server.clients)}\n")
+
+    # Exit Program
+    elif int(command) == 6:
         server.d = datetime.now().replace(microsecond=0)
         server.dt = str(server.d.strftime("%b %d %Y %I:%M:%S %p"))
         if len(server.targets) > 0:
             try:
                 for t in server.targets:
                     t.send('exit'.encode())
-                    t.shutdown(socket.SHUT_RDWR)
+                    # t.shutdown(socket.SHUT_RDWR)
                     t.close()
 
             except ConnectionResetError:
+                print("Connection Reset")
                 pass
-            sys.exit()
 
-        else:
-            sys.exit()
+        sys.exit()
+
+        # else:
+        #     sys.exit()
 
     return
 
