@@ -262,16 +262,19 @@ class Client:
                     for t in task_list:
                         print(t)
 
-                    time.sleep(0.5)
-                    sysinfo = open(self.taskfile, 'r')
+                    length = os.path.getsize(self.taskfile)
+                    print(f"SC Size: {length}")
+                    soc.send(self.convert_to_bytes(length))
 
-                    while True:
-                        data = sysinfo.read(chunk)
-                        soc.sendall(data.encode())
+                    # Send file content
+                    with open(self.taskfile, 'rb') as tsk_file:
+                        tsk_data = tsk_file.read(1024)
+                        while tsk_data:
+                            soc.send(tsk_data)
+                            if not tsk_data:
+                                break
 
-                        if not data:
-                            sysinfo.close()
-                            break
+                            tsk_data = tsk_file.read(1024)
 
                     msg = soc.recv(1024).decode()
                     soc.send(f"{self.hostname} | {self.localIP}: Task List Sent.\n".encode())

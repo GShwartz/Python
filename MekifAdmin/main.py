@@ -14,6 +14,7 @@ import io
 import validation
 import screenshot
 import connectedstations
+import tasks
 
 
 # TODO: Create a system specs function.
@@ -46,10 +47,6 @@ class Server:
             os.makedirs(self.path)
 
     def run(self):
-        # print(f"[{colored('*', 'cyan')}]Server running on IP: {self.serverIp} | Port: {self.serverPort}")
-        # print(f"[{colored('*', 'cyan')}]Server's last restart: "
-        #       f"{datetime.fromtimestamp(self.last_reboot).replace(microsecond=0)}\n")
-
         self.connectThread = Thread(target=self.connect, daemon=True, name=f"Connect Thread").start()
         self.threads.append(self.connectThread)
 
@@ -148,42 +145,7 @@ class Server:
         except (KeyError, socket.error, ConnectionResetError):
             return
 
-    def vitals_input(self):
-        while True:
-            # Wait For User Input
-            self.pick = input("CONTROL@> ")
-            try:
-                float(self.pick)
-
-            # Restart Loop If Input Is Not a Number
-            except ValueError:
-                print(f"[{colored('*', 'yellow')}]Wrong choice.")
-                continue
-
-            # Start
-            if int(self.pick) == 1:
-                return True
-
-            # Back
-            elif int(self.pick) == 2:
-                return False
-
-            # Restart Loop If Input Number Is Incorrect
-            else:
-                print(f"[{colored('*', 'red')}]Wrong Number! "
-                      f"[{colored('1', 'yellow')} - {colored('3', 'yellow')}]")
-
     def vital_signs(self):
-        """
-            Create temp lists for current connected sockets.
-            Send a Poke message to each socket connection and wait for answer.
-            If the socket doesn't respond then shutdown the socket connection,
-            close the socket connection and remove connection details from connection lists.
-            Reset temp lists.
-
-            :return: Process Completed.
-        """
-
         # Return False If Socket Connection List is Empty
         if len(self.targets) == 0:
             print(f"[{colored('*', 'yellow')}]No connected stations.")
@@ -192,16 +154,10 @@ class Server:
 
         if connectedstations.vitals_input():
             connectedstations.vital_signs(self.targets, self.ips, self.clients, self.connections)
+            return True
 
         else:
-            return
-
-        # Reset Temp Lists
-        tmpconns = []
-        tempips = []
-        templist = []
-
-        return
+            return False
 
     def show_available_connections(self):
         if len(self.ips) == 0:
@@ -319,99 +275,6 @@ class Server:
               f"Clear Screen")
         print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
               f"Back to Control Center \n")
-
-    def tasks(self, con, ip):
-        self.d = datetime.now().replace(microsecond=0)
-        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
-        print(f"[{colored('*', 'cyan')}]Retrieving remote station's task list\n"
-              f"[{colored('*', 'cyan')}]Please wait...")
-        try:
-            con.send('tasks'.encode())
-            filenameRecv = con.recv(4096)
-            time.sleep(self.ttl)
-            fileRecv = con.recv(self.chunk)
-            print(fileRecv.decode())
-
-            with open(filenameRecv, 'w') as file:
-                file.write(fileRecv.decode())
-
-            name = ntpath.basename(str(filenameRecv))
-            con.send(f"Received file: {name}\n".encode())
-            msg = con.recv(4096).decode()
-            print(f"[{colored('@', 'green')}]{msg}")
-
-            return True
-
-        except ConnectionResetError:
-            print(f"[{colored('!', 'red')}]Client lost connection.")
-            self.remove_lost_connection(con, ip)
-
-    def kill_tasks(self, con, ip):
-        while True:
-            try:
-                choose_task = input(f"[?]Kill a task [Y/n]? ")
-
-            except ValueError:
-                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
-
-            if choose_task.lower() == 'y':
-                self.task_to_kill(con, ip)
-                break
-
-            elif choose_task.lower() == 'n':
-                try:
-                    con.send('pass'.encode())
-                    break
-
-                except ConnectionResetError:
-                    self.remove_lost_connection(con, ip)
-                    break
-
-            else:
-                print(f"[{colored('*', 'red')}]Choose [Y] or [N].\n")
-
-        return
-
-    def task_to_kill(self, con, ip):
-        while True:
-            task_to_kill = input(f"Task filename [Q Back]: ")
-            if str(task_to_kill).lower() == 'q':
-                break
-
-            if str(task_to_kill).endswith('exe'):
-                if self.confirm_kill(con, task_to_kill).lower() == "y":
-                    try:
-                        con.send('kill'.encode())
-                        con.send(task_to_kill.encode())
-                        msg = con.recv(1024).decode()
-                        print(f"[{colored('*', 'green')}]{msg}\n")
-                        break
-
-                    except socket.error:
-                        print(f"[{colored('!', 'red')}]Client lost connection.")
-                        self.remove_lost_connection(con, ip)
-
-                else:
-                    break
-
-            else:
-                print(f"[{colored('*', 'red')}]{task_to_kill} not found.")
-
-        return task_to_kill
-
-    def confirm_kill(self, con, task_to_kill):
-        while True:
-            confirm_kill = input(f"Are you sure you want to kill {task_to_kill} [Y/n]? ")
-            if confirm_kill.lower() == "y":
-                break
-
-            elif confirm_kill.lower() == "n":
-                break
-
-            else:
-                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
-
-        return confirm_kill
 
     def confirm_restart(self):
         tries = 0
@@ -553,6 +416,7 @@ class Server:
 
             # Wait for User Input
             cmd = input(f"COMMAND@{ip}> ")
+
             # Input Validation
             try:
                 val = int(cmd)
@@ -569,7 +433,7 @@ class Server:
 
                 continue
 
-            # Run Custom Program
+            # Run Custom Command
             if int(cmd) == 100:
                 print("Future Secret Commands")
                 continue
@@ -716,35 +580,21 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                if not self.tasks(con, ip):
+                if not tasks.tasks(con, ip, self.ttl, self.clients, self.connections):
                     return False
 
-                task = self.kill_tasks(con, ip)
+                task = tasks.kill_tasks(con, ip, self.clients, self.connections)
                 if task is None:
                     continue
 
                 try:
-                    self.task_to_kill(con, ip)
+                    tasks.task_to_kill(con, ip, self.clients, self.connections)
                     return True
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
-                        for conKey, ipValue in self.clients.items():
-                            for ipKey, identValue in ipValue.items():
-                                if conKey == con and ipKey == ip:
-                                    self.targets.remove(con)
-                                    self.ips.remove(ip)
-
-                                    del self.clients[conKey]
-                                    del self.connections[con]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
-
-                                return False
+                        self.remove_lost_connection(con, ip)
 
                     except RuntimeError:
                         return False
@@ -788,24 +638,6 @@ class Server:
 
         except RuntimeError:
             return False
-
-
-def validation(users):
-    phrase = ' '
-    tries = 0
-    while True:
-        user = input("Username: ")
-        validate = pwinput.pwinput(prompt="Password: ", mask='*')
-        if str(validate) == str(phrase) and user in users:
-            tries = 0
-            return
-
-        else:
-            tries += 1
-            print(f"Wrong password! [{tries} of 3]")
-            if int(tries) >= 3:
-                print("Exiting.")
-                sys.exit()
 
 
 def headline():
@@ -871,7 +703,7 @@ def main():
         server.connection_history()
         return
 
-    # Vital Signs
+    # Vital Signs - Show Connected Stations
     elif int(command) == 3:
         if len(server.ips) == 0:
             print(f"[{colored('*', 'yellow')}]No connected stations.")
@@ -902,7 +734,6 @@ def main():
             try:
                 for t in server.targets:
                     t.send('exit'.encode())
-                    # t.shutdown(socket.SHUT_RDWR)
                     t.close()
 
             except ConnectionResetError:
@@ -923,7 +754,7 @@ if __name__ == '__main__':
     path = r'c:\MekifRemoteAdmin'
 
     # Run User Validation
-    # validation(users)
+    # validation.validation(users)
 
     # Initialize Server Class
     server = Server(serverIP, port, ttl, path)

@@ -5,8 +5,6 @@ import time
 
 
 def bytes_to_number(b):
-    # if Python2.x
-    # b = map(ord, b)
     res = 0
     for i in range(4):
         res += b[i] << (i * 8)
