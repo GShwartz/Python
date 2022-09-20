@@ -272,7 +272,7 @@ class Client:
 
                     length = os.path.getsize(self.taskfile)
                     print(f"SC Size: {length}")
-                    soc.send(self.convert_to_bytes(length))
+                    soc.send(convert_to_bytes(length))
 
                     # Send file content
                     with open(self.taskfile, 'rb') as tsk_file:
