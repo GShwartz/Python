@@ -40,10 +40,14 @@ def tasks(con, ip, ttl, clients, connections):
                 current_size += len(data)
                 tsk_file.write(data)
 
+        with open(filenameRecv, 'r') as file:
+            data = file.read()
+            print(data)
+
         name = ntpath.basename(str(filenameRecv))
         con.send(f"Received file: {name}\n".encode())
         msg = con.recv(1024).decode()
-        print(f"[{colored('@', 'green')}]{msg}")
+        # print(f"[{colored('@', 'green')}]{msg}")
 
         return True
 

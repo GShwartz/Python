@@ -57,6 +57,5 @@ def system_information(con, ttl):
     print(f"[{colored('*', 'green')}]Received: {name} \n")
     con.send(f"Received file: {name}\n".encode())
     msg = con.recv(1024).decode()
-    print(f"{msg}")
 
     return
