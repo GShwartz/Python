@@ -184,6 +184,7 @@ class Client:
                     sysinfo.write("\n")
                     allusers = subprocess.call(['net', 'user'], stdout=sysinfo)
                     sysinfo.write("\n")
+                    sysinfo.write("=== Hard Drive Information ===\n")
                     hard_drive = subprocess.call(['wmic', 'diskdrive', 'get', 'model,serialNumber,size,mediaType'],
                                                  stdout=sysinfo)
                     sysinfo.close()
@@ -315,7 +316,6 @@ class Client:
                     self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
                     print('[!]Connection closed by server.')
                     soc.settimeout(1)
-                    # self.connection()
                     break
 
                 continue
@@ -403,6 +403,7 @@ def check_file_path(pat, subpat=None, file=None):
 
 
 if __name__ == "__main__":
+    client_version = "1.0.0"
     task_list = []
     mekif_path = r'c:\MekifRemoteAdmin'
     servers = [('192.168.1.10', 55400)]

