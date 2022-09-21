@@ -440,19 +440,7 @@ class Server:
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
-                        for conKey, ipValue in self.clients.items():
-                            for ipKey, identValue in ipValue.items():
-                                if conKey == con and ipKey == ip:
-                                    self.targets.remove(con)
-                                    self.ips.remove(ip)
-
-                                    del self.clients[conKey]
-                                    del self.connections[con]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
+                        self.remove_lost_connection(con, ip)
                         break
 
                     except RuntimeError:
@@ -480,19 +468,7 @@ class Server:
                         ConnectionAbortedError, ConnectionRefusedError):
                     print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
-                        for conKey, ipValue in self.clients.items():
-                            for ipKey, identValue in ipValue.items():
-                                if conKey == con and ipKey == ip:
-                                    self.targets.remove(con)
-                                    self.ips.remove(ip)
-
-                                    del self.clients[conKey]
-                                    del self.connections[con]
-                                    for identKey, userValue in identValue.items():
-                                        print(f"[{colored('*', 'red')}]({colored(f'{ip}', 'red')} | "
-                                              f"{colored(f'{identKey}', 'red')} | "
-                                              f"{colored(f'{userValue}', 'red')}) "
-                                              f"has been removed from the availables list.")
+                        self.remove_lost_connection(con, ip)
                         break
 
                     except RuntimeError:
@@ -674,7 +650,6 @@ def main():
 
 
 if __name__ == '__main__':
-    users = ['g', 'r', 'i']
     port = 55400
     ttl = 5
     hostname = socket.gethostname()
@@ -682,7 +657,7 @@ if __name__ == '__main__':
     path = r'c:\MekifRemoteAdmin'
 
     # Run User Validation
-    # validation.validation(users)
+    # validation.validation()
 
     # Initialize Server Class
     server = Server(serverIP, port, ttl, path)
