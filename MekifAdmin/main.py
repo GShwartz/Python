@@ -396,7 +396,7 @@ class Server:
                     break
 
                 try:
-                    screenshot.screenshot(con)
+                    screenshot.screenshot(con, path, self.tmp_availables, self.clients)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")

@@ -122,5 +122,3 @@ def freestyle(con):
         except socket.error as e:
             print(e)
             break
-
-        return

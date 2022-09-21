@@ -142,24 +142,25 @@ class Client:
                 # Freestyle
                 if str(command).lower() == "freestyle":
                     print(command)
-                    try:
-                        command = soc.recv(1024).decode()
-                        if str(command) == "ps":
-                            cmd = soc.recv(1024).decode()
-                            run_powershell(cmd, self.hostname, self.localIP, self.dt)
+                    while True:
+                        try:
+                            command = soc.recv(1024).decode()
+                            if str(command) == "ps":
+                                cmd = soc.recv(1024).decode()
+                                run_powershell(cmd, self.hostname, self.localIP, self.dt)
 
-                        elif str(command) == "cmd":
-                            cmd = soc.recv(1024).decode()
-                            run_cmd(cmd, self.hostname, self.localIP, self.dt)
+                            elif str(command) == "cmd":
+                                cmd = soc.recv(1024).decode()
+                                run_cmd(cmd, self.hostname, self.localIP, self.dt)
 
-                        elif str(command) == "back":
-                            msg = "back".encode()
-                            soc.send(msg)
-                            continue
+                            elif str(command) == "back":
+                                msg = "back".encode()
+                                soc.send(msg)
+                                break
 
-                    except socket.error as e:
-                        print(e)
-                        break
+                        except socket.error as e:
+                            print(e)
+                            break
 
                 # Vital Signs
                 if str(command).lower() == "alive":
@@ -326,15 +327,8 @@ class Client:
 
 def run_powershell(cmd, hostname, localip, fulldt):
     filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {fulldt}.txt"
-    if not os.path.exists(filename):
-        with open(filename, 'w') as file:
-            p = subprocess.run(cmd, stdout=file, shell=True)
-            file.write(f"\n*** End of Command: {cmd} ***\n")
-
-    else:
-        with open(filename, 'a') as file:
-            p = subprocess.run(cmd, stdout=file, shell=True)
-            file.write(f"\n*** End of Command: {cmd} ***\n")
+    with open(filename, 'w') as file:
+        p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()
@@ -379,21 +373,16 @@ def bytes_to_number(b):
 
 
 def run_cmd(cmd, hostname, localip, fulldt):
-    path = "c:\\MekifRemoteAdmin\\"
-    path = os.path.join(path, hostname)
-    if not os.path.exists(path):
-        os.makedirs(path)
-        filename = rf"{path}\cmd {hostname} {str(localip)} {fulldt}.txt"
-
+    filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {fulldt}.txt"
+    if not os.path.exists(filename):
         with open(filename, 'w') as file:
+            file.write("*** Command ***\n")
             p = subprocess.run(cmd, stdout=file, shell=True)
-            file.write(f"\n*** End of Command: {cmd} ***\n")
 
     else:
-        filename = rf"{path}\cmd {hostname} {str(localip)} {fulldt}.txt"
         with open(filename, 'a') as file:
+            file.write("*** Command ***\n")
             p = subprocess.run(cmd, stdout=file, shell=True)
-            file.write(f"\n*** End of Command: {cmd} ***\n")
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()
@@ -415,7 +404,7 @@ def run_cmd(cmd, hostname, localip, fulldt):
 
         msg = soc.recv(1024).decode()
         print(f"@Server: {msg}")
-        soc.send(f"{hostname} | {localip}: Powershell Command Completed.\n".encode())
+        soc.send(f"{hostname} | {localip}: CMD Command Completed.\n".encode())
 
     except socket.error:
         return False

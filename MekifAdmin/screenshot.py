@@ -14,11 +14,11 @@ def bytes_to_number(b):
 
 
 def screenshot(con, root, tmp_availables, clients):
-    # path = ''
-    # user = ''
     d = datetime.now().replace(microsecond=0)
     dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
     print(f"working...")
+
+    # Create a directory with host's name if not already exists.
     for item in tmp_availables:
         for conKey, ipValue in clients.items():
             for ipKey in ipValue.keys():

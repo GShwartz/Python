@@ -1,5 +1,6 @@
 from termcolor import colored
 import time
+import socket
 
 
 def vitals_input():
