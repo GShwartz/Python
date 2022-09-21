@@ -326,8 +326,15 @@ class Client:
 
 def run_powershell(cmd, hostname, localip, fulldt):
     filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {fulldt}.txt"
-    with open(filename, 'w') as file:
-        p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
+    if not os.path.exists(filename):
+        with open(filename, 'w') as file:
+            p = subprocess.run(cmd, stdout=file, shell=True)
+            file.write(f"\n*** End of Command: {cmd} ***\n")
+
+    else:
+        with open(filename, 'a') as file:
+            p = subprocess.run(cmd, stdout=file, shell=True)
+            file.write(f"\n*** End of Command: {cmd} ***\n")
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()
@@ -372,9 +379,21 @@ def bytes_to_number(b):
 
 
 def run_cmd(cmd, hostname, localip, fulldt):
-    filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {fulldt}.txt"
-    with open(filename, 'w') as file:
-        p = subprocess.run(cmd, stdout=file)
+    path = "c:\\MekifRemoteAdmin\\"
+    path = os.path.join(path, hostname)
+    if not os.path.exists(path):
+        os.makedirs(path)
+        filename = rf"{path}\cmd {hostname} {str(localip)} {fulldt}.txt"
+
+        with open(filename, 'w') as file:
+            p = subprocess.run(cmd, stdout=file, shell=True)
+            file.write(f"\n*** End of Command: {cmd} ***\n")
+
+    else:
+        filename = rf"{path}\cmd {hostname} {str(localip)} {fulldt}.txt"
+        with open(filename, 'a') as file:
+            p = subprocess.run(cmd, stdout=file, shell=True)
+            file.write(f"\n*** End of Command: {cmd} ***\n")
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()
