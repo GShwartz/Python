@@ -372,7 +372,7 @@ class Server:
             # Run Custom Command
             if int(cmd) == 100:
                 con.send("freestyle".encode())
-                freestyle(con)
+                freestyle(con, path, self.tmp_availables, self.clients)
                 continue
 
             # Create INT Zone Condition
@@ -411,7 +411,7 @@ class Server:
                     break
 
                 try:
-                    sysinfo.system_information(con, self.ttl)
+                    sysinfo.system_information(con, self.ttl, path, self.tmp_availables, self.clients)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")

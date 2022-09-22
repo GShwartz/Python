@@ -37,7 +37,6 @@ def screenshot(con, root, tmp_availables, clients):
     filenameRecv = con.recv(1024)
     con.send("OK filename".encode())
     filenameRecv = str(filenameRecv).strip("b'")
-    rootfile = f"{path}\\{filenameRecv}"
 
     time.sleep(0.1)
     name = ntpath.basename(str(filenameRecv).encode())
@@ -59,8 +58,8 @@ def screenshot(con, root, tmp_availables, clients):
             current_size += len(data)
             screenshotFile.write(data)
 
-    print(f"[{colored('*', 'green')}]Received: {name}")
-    con.send(f"Received {name}\n".encode())
+    print(f"[{colored('*', 'green')}]Received: {filenameRecv}")
+    con.send(f"Received {filenameRecv}\n".encode())
 
     # Move screenshot file to directory
     src = os.path.abspath(filenameRecv)

