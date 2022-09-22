@@ -172,7 +172,11 @@ def freestyle(con, root, tmp_availables, clients):
                 # Move screenshot file to directory
                 src = os.path.abspath(filename)
                 dst = fr"{path}"
-                shutil.move(src, dst)
+                try:
+                    shutil.move(src, dst)
+
+                except FileExistsError:
+                    pass
 
             # Change Hostname
             elif int(choice) == 3:

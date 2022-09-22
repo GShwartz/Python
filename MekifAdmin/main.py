@@ -481,7 +481,9 @@ class Server:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
-                tasks = Tasks(con, ip, ttl, self.clients, self.connections, self.targets, self.ips)
+                tasks = Tasks(con, ip, ttl, self.clients, self.connections,
+                              self.targets, self.ips, self.tmp_availables, path)
+
                 if not tasks.tasks():
                     return False
 
