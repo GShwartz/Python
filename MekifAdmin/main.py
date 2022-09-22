@@ -16,7 +16,7 @@ import screenshot
 import connectedstations
 from tasks import Tasks
 import sysinfo
-from freestyle import freestyle
+from freestyle import Freestyle
 
 
 # TODO: Break to modules.
@@ -372,7 +372,9 @@ class Server:
             # Run Custom Command
             if int(cmd) == 100:
                 con.send("freestyle".encode())
-                freestyle(con, path, self.tmp_availables, self.clients)
+                free = Freestyle(con, path, self.tmp_availables, self.clients)
+                free.freestyle()
+                # freestyle(con, path, self.tmp_availables, self.clients)
                 continue
 
             # Create INT Zone Condition
