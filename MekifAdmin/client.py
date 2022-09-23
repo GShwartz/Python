@@ -118,6 +118,75 @@ class Client:
         os.remove(self.filename)
         os.remove(self.path)
 
+    def system_information(self):
+        def command_to_file():
+            try:
+                sysinfo = open(self.sifile, 'w')
+                sinfo = subprocess.call(['systeminfo'], stdout=sysinfo)
+                sysinfo.write("\n")
+                allusers = subprocess.call(['net', 'user'], stdout=sysinfo)
+                sysinfo.write("\n")
+                sysinfo.write("=== Hard Drive Information ===\n")
+                hard_drive = subprocess.call(['wmic', 'diskdrive', 'get', 'model,serialNumber,size,mediaType'],
+                                             stdout=sysinfo)
+                sysinfo.close()
+
+                return True
+
+            except (FileNotFoundError, FileExistsError):
+                return False
+
+        def send_file_name():
+            try:
+                soc.send(f"{self.sifile}".encode())
+
+            except ConnectionResetError:
+                return False
+
+        def send_file_size():
+            try:
+                length = os.path.getsize(self.sifile)
+                print(f"SysInfoFile Size: {length}")
+                soc.send(convert_to_bytes(length))
+
+                return True
+
+            except ConnectionResetError:
+                return False
+
+        def send_file_content():
+            try:
+                with open(self.sifile, 'rb') as sy_file:
+                    sys_data = sy_file.read(1024)
+                    while sys_data:
+                        soc.send(sys_data)
+                        if not sys_data:
+                            break
+
+                        sys_data = sy_file.read(1024)
+
+            except (WindowsError, socket.error, FileExistsError, FileNotFoundError):
+                return False
+
+        def confirm():
+            try:
+                msg = soc.recv(1024).decode()
+                print(f"@Server: {msg}")
+                soc.send(f"{self.hostname} | {self.localIP}: System Information Sent.\n".encode())
+
+            except (WindowsError, socket.error):
+                return False
+
+        dt = self.get_date()
+        self.sifile = rf"c:\MekifRemoteAdmin\systeminfo {self.hostname} {str(self.localIP)} {dt}.txt"
+
+        command_to_file()
+        send_file_name()
+        send_file_size()
+        send_file_content()
+        confirm()
+        os.remove(self.sifile)
+
     def get_date(self):
         d = datetime.now().replace(microsecond=0)
         dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
@@ -176,243 +245,261 @@ class Client:
         def confirm():
             msg = soc.recv(1024).decode()
             print(f"@Server: {msg}")
-            soc.send(f"{self.hostname} | {self.localIP}: Powershell Command Completed.\n".encode())
+            soc.send(f"{self.hostname} | {self.localIP}: Command: {cmd} Completed.\n".encode())
 
         run_command()
         send_file_name()
         send_file_size()
         send_file_content()
         confirm()
+        os.remove(filename)
 
-    def backdoor(self, soc):
-        try:
-            # Send Computer Name to Server
-            ident = self.hostname
-            try:
-                soc.send(ident.encode())
-
-            except (WindowsError, socket.error):
-                return False
-
-            user = self.current_user
-            try:
-                soc.send(user.encode())
-
-            except (WindowsError, socket.error):
-                return False
-
-            # Wait For Message
-            try:
-                message = soc.recv(self.buffer_size).decode()
-                print(f"{colored(message, 'green')}")
-
-            except (WindowsError, socket.error):
-                return False
-
-        except (ConnectionResetError, ConnectionError,
-                ConnectionAbortedError, ConnectionRefusedError) as e:
-            print(e)
-            return False
-
+    def free_style(self):
+        dt = self.get_date()
         while True:
             try:
-                command = soc.recv(self.buffer_size).decode()
+                command = soc.recv(1024).decode()
+                if str(command).lower() == "ps":
+                    cmd = soc.recv(1024).decode()
+                    self.execute("ps", cmd)
 
-            except (ConnectionResetError, ConnectionError,
-                    ConnectionAbortedError, WindowsError, socket.error):
-                break
+                elif str(command).lower() == "cmd":
+                    cmd = soc.recv(1024).decode()
+                    self.execute("cmd", cmd)
 
-            try:
-                if len(str(command)) == 0:
-                    print(colored("[!]Disconnected!", 'red'))
+                elif str(command).lower() == "instad":
+                    pass
+
+                elif str(command).lower() == "back":
+                    msg = "back".encode()
+                    soc.send(msg)
                     break
 
-                # Freestyle
-                if str(command).lower() == "freestyle":
-                    while True:
-                        try:
-                            command = soc.recv(1024).decode()
-                            if str(command).lower() == "ps":
-                                cmd = soc.recv(1024).decode()
-                                self.execute("ps", cmd)
+            except (WindowsError, socket.error) as e:
+                print(e)
+                break
 
-                            elif str(command).lower() == "cmd":
-                                cmd = soc.recv(1024).decode()
-                                self.execute("cmd", cmd)
+        return
 
-                            elif str(command).lower() == "instad":
-                                pass
+    def tasks(self):
+        def command_to_file():
+            try:
+                tskinfo = open(self.taskfile, 'w')
+                sinfo = subprocess.call(['tasklist'], stdout=tskinfo)
+                tskinfo.write("\n")
+                tskinfo.close()
+                return True
 
-                            elif str(command).lower() == "back":
-                                msg = "back".encode()
-                                soc.send(msg)
-                                break
+            except (FileNotFoundError, FileExistsError):
+                dt = self.get_date()
+                return False
 
-                        except (WindowsError, socket.error) as e:
-                            print(e)
+        def send_file_name():
+            try:
+                soc.send(f"{self.taskfile}".encode())
+                return True
+
+            except (WindowsError, socket.error):
+                dt = self.get_date()
+                return False
+
+        def print_file_content():
+            dt = self.get_date()
+            with open(self.taskfile, 'r') as file:
+                for line in file.readlines():
+                    task_list.append(line)
+
+            for t in task_list:
+                print(t)
+
+        def send_file_size():
+            dt = self.get_date()
+            length = os.path.getsize(self.taskfile)
+            print(f"SC Size: {length}")
+            try:
+                soc.send(convert_to_bytes(length))
+                return True
+
+            except (WindowsError, socket.error):
+                return False
+
+        def send_file_content():
+            with open(self.taskfile, 'rb') as tsk_file:
+                tsk_data = tsk_file.read(1024)
+                try:
+                    while tsk_data:
+                        soc.send(tsk_data)
+                        if not tsk_data:
                             break
 
-                # Vital Signs
-                if str(command).lower() == "alive":
-                    try:
-                        soc.send('yes'.encode())
-
-                    except socket.error:
-                        break
-
-                # Capture Screenshot
-                elif str(command.lower()[:6]) == "screen":
-                    self.screenshot()
-
-                # Get System Information & Users
-                elif str(command.lower()[:2]) == "si":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    self.sifile = rf"c:\MekifRemoteAdmin\systeminfo {self.hostname} {str(self.localIP)} {self.dt}.txt"
-
-                    sysinfo = open(self.sifile, 'w')
-                    sinfo = subprocess.call(['systeminfo'], stdout=sysinfo)
-                    sysinfo.write("\n")
-                    allusers = subprocess.call(['net', 'user'], stdout=sysinfo)
-                    sysinfo.write("\n")
-                    sysinfo.write("=== Hard Drive Information ===\n")
-                    hard_drive = subprocess.call(['wmic', 'diskdrive', 'get', 'model,serialNumber,size,mediaType'],
-                                                 stdout=sysinfo)
-                    sysinfo.close()
-                    try:
-                        soc.send(f"{self.sifile}".encode())
-
-                    except ConnectionResetError:
-                        break
-
-                    time.sleep(2)
-                    length = os.path.getsize(self.sifile)
-                    print(f"SysInfoFile Size: {length}")
-                    soc.send(convert_to_bytes(length))
-
-                    try:
-                        with open(self.sifile, 'rb') as sy_file:
-                            sys_data = sy_file.read(1024)
-                            while sys_data:
-                                soc.send(sys_data)
-                                if not sys_data:
-                                    break
-
-                                sys_data = sy_file.read(1024)
-
-                        msg = soc.recv(1024).decode()
-                        print(f"@Server: {msg}")
-                        soc.send(f"{self.hostname} | {self.localIP}: System Information Sent.\n".encode())
-
-                    except socket.error:
-                        break
-
-                    os.remove(self.sifile)
-                    continue
-
-                # Get Last Restart Time
-                elif str(command).lower()[:2] == "lr":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    last_reboot = psutil.boot_time()
-                    try:
-                        soc.send(f"{self.hostname} | {self.localIP}: "
-                                 f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
-
-                        continue
-
-                    except ConnectionResetError:
-                        break
-
-                # Get Current Logged-on User
-                elif str(command).lower()[:4] == "user":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    try:
-                        soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
-                        continue
-
-                    except ConnectionResetError:
-                        break
-
-                # Run Anydesk
-                elif str(command.lower()[:7]) == "anydesk":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    self.anydesk()
-                    continue
-
-                # Task List
-                elif (str(command.lower())) == "tasks":
-                    chunk = 1000000
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    self.taskfile = rf"c:\MekifRemoteAdmin\tasks {self.hostname} {str(self.localIP)} {self.dt}.txt"
-
-                    sysinfo = open(self.taskfile, 'w')
-                    sinfo = subprocess.call(['tasklist'], stdout=sysinfo)
-                    sysinfo.write("\n")
-                    sysinfo.close()
-                    soc.send(f"{self.taskfile}".encode())
-
-                    with open(self.taskfile, 'r') as file:
-                        for line in file.readlines():
-                            task_list.append(line)
-
-                    for t in task_list:
-                        print(t)
-
-                    length = os.path.getsize(self.taskfile)
-                    print(f"SC Size: {length}")
-                    soc.send(convert_to_bytes(length))
-
-                    # Send file content
-                    with open(self.taskfile, 'rb') as tsk_file:
                         tsk_data = tsk_file.read(1024)
-                        while tsk_data:
-                            soc.send(tsk_data)
-                            if not tsk_data:
-                                break
 
-                            tsk_data = tsk_file.read(1024)
+                except (WindowsError, socket.error):
+                    dt = self.get_date()
+                    return False
 
-                    msg = soc.recv(1024).decode()
-                    soc.send(f"{self.hostname} | {self.localIP}: Task List Sent.\n".encode())
-                    os.remove(self.taskfile)
+        def confirm():
+            try:
+                msg = soc.recv(1024).decode()
+                soc.send(f"{self.hostname} | {self.localIP}: Task List Sent.\n".encode())
 
-                    # Kill Task
-                    try:
-                        kill = soc.recv(1024).decode()
-                        if str(kill) == "kill":
-                            task2kill = soc.recv(1024).decode()
-                            os.system(f'taskkill /IM {task2kill} /F')
-                            soc.send(f"Task: {task2kill} Killed.".encode())
-                            continue
+            except (WindowsError, socket.error):
+                dt = self.get_date()
+                return False
 
-                        else:
-                            continue
+        def kill():
+            # Kill Task
+            try:
+                kill = soc.recv(1024).decode()
+                if str(kill) == "kill":
+                    task2kill = soc.recv(1024).decode()
+                    os.system(f'taskkill /IM {task2kill} /F')
+                    soc.send(f"Task: {task2kill} Killed.".encode())
+                    return True
 
-                    except (ConnectionResetError, ConnectionAbortedError, ConnectionError):
-                        break
+                else:
+                    return False
 
-                # Restart Machine
-                elif str(command.lower()[:7]) == "restart":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    os.system('shutdown /r /t 1')
+            except (ConnectionResetError, ConnectionAbortedError, ConnectionError):
+                return False
 
-                # Close Connection
-                elif str(command.lower()) == "exit":
-                    self.d = datetime.now().replace(microsecond=0)
-                    self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                    print('[!]Connection closed by server.')
-                    soc.settimeout(1)
+        dt = self.get_date()
+        self.taskfile = rf"c:\MekifRemoteAdmin\tasks {self.hostname} {str(self.localIP)} {dt}.txt"
+
+        command_to_file()
+        send_file_name()
+        print_file_content()
+        send_file_size()
+        send_file_content()
+        confirm()
+        os.remove(self.taskfile)
+        kill()
+
+    def backdoor(self, soc):
+        def intro():
+            def send_host_name():
+                # Send Computer Name to Server
+                ident = self.hostname
+                try:
+                    soc.send(ident.encode())
+
+                except (WindowsError, socket.error):
+                    return False
+
+            def send_current_user():
+                user = self.current_user
+                try:
+                    soc.send(user.encode())
+
+                except (WindowsError, socket.error):
+                    return False
+
+            def confirm():
+                # Wait For Message
+                try:
+                    message = soc.recv(self.buffer_size).decode()
+                    print(f"{colored(message, 'green')}")
+
+                except (WindowsError, socket.error):
+                    return False
+
+            send_host_name()
+            send_current_user()
+            confirm()
+
+        def main_menu():
+            while True:
+                try:
+                    command = soc.recv(self.buffer_size).decode()
+
+                except (ConnectionResetError, ConnectionError,
+                        ConnectionAbortedError, WindowsError, socket.error):
                     break
 
-                continue
+                try:
+                    if len(str(command)) == 0:
+                        print(colored("[!]Disconnected!", 'red'))
+                        break
 
-            except (Exception, socket.error) as err:
-                break
+                    # Freestyle
+                    if str(command).lower() == "freestyle":
+                        self.free_style()
+
+                    # Vital Signs
+                    if str(command).lower() == "alive":
+                        try:
+                            soc.send('yes'.encode())
+
+                        except socket.error:
+                            break
+
+                    # Capture Screenshot
+                    elif str(command.lower()[:6]) == "screen":
+                        self.screenshot()
+
+                    # Get System Information & Users
+                    elif str(command.lower()[:2]) == "si":
+                        dt = self.get_date()
+                        self.system_information()
+
+                    # Get Last Restart Time
+                    elif str(command).lower()[:2] == "lr":
+                        self.d = datetime.now().replace(microsecond=0)
+                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        last_reboot = psutil.boot_time()
+                        try:
+                            soc.send(f"{self.hostname} | {self.localIP}: "
+                                     f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
+
+                            continue
+
+                        except ConnectionResetError:
+                            break
+
+                    # Get Current Logged-on User
+                    elif str(command).lower()[:4] == "user":
+                        self.d = datetime.now().replace(microsecond=0)
+                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        try:
+                            soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
+                            continue
+
+                        except ConnectionResetError:
+                            break
+
+                    # Run Anydesk
+                    elif str(command.lower()[:7]) == "anydesk":
+                        self.d = datetime.now().replace(microsecond=0)
+                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        self.anydesk()
+                        continue
+
+                    # Task List
+                    elif (str(command.lower())) == "tasks":
+                        dt = self.get_date()
+                        self.tasks()
+
+                    # Restart Machine
+                    elif str(command.lower()[:7]) == "restart":
+                        self.d = datetime.now().replace(microsecond=0)
+                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        os.system('shutdown /r /t 1')
+
+                    # Close Connection
+                    elif str(command.lower()) == "exit":
+                        self.d = datetime.now().replace(microsecond=0)
+                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        print('[!]Connection closed by server.')
+                        soc.settimeout(1)
+                        break
+
+                    continue
+
+                except (Exception, socket.error) as err:
+                    break
+
+        intro()
+        main_menu()
 
 
 def convert_to_bytes(no):

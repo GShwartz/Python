@@ -8,6 +8,7 @@ import os.path
 import ntpath
 import socket
 import psutil
+import shutil
 import time
 import sys
 import io
@@ -47,15 +48,13 @@ class Server:
             os.makedirs(self.path)
 
     def run(self):
+        dt = get_date()
         self.connectThread = Thread(target=self.connect, daemon=True, name=f"Connect Thread").start()
         self.threads.append(self.connectThread)
 
     def connect(self):
         while True:
-            # Capture Date & Time with AM PM
-            self.d = datetime.now().replace(microsecond=0)
-            self.dt = str(self.d.strftime("%b %d %Y %I:%M:%S %p"))
-
+            dt = get_date()
             self.conn, (self.ip, self.port) = self.server.accept()
 
             try:
@@ -66,6 +65,7 @@ class Server:
                 self.user = self.conn.recv(1024).decode()
 
             except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+                dt = get_date()
                 print("Lost Connection")
                 return  # Restart The Loop
 
@@ -84,11 +84,9 @@ class Server:
                 # Add Temp Idents Dict To Idents Dict
                 self.clients.update(self.temp_ident)
 
-            self.d = datetime.now().replace(microsecond=0)
-            self.dt = str(self.d.strftime("%b %d %Y %I:%M:%S %p"))
-
+            dt = get_date()
             # Create a Dict of Connection, IP, Computer Name, Date & Time
-            self.temp_connection_record = {self.conn: {self.ip: {self.ident: {self.user: self.dt}}}}
+            self.temp_connection_record = {self.conn: {self.ip: {self.ident: {self.user: dt}}}}
             # Add Connection to Connection History
             self.connHistory.append(self.temp_connection_record)
 
@@ -96,6 +94,8 @@ class Server:
                 continue
 
     def welcome_message(self):
+        dt = get_date()
+
         # Send Welcome Message
         try:
             self.welcome = "Connection Established!"
@@ -104,6 +104,7 @@ class Server:
             return True
 
         except (socket.error, ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+            dt = get_date()
             print(f"[{colored('*', 'red')}]Check client's connection.")
             if self.conn in self.targets and self.ip in self.ips:
                 self.targets.remove(self.conn)
@@ -114,11 +115,8 @@ class Server:
                 return False
 
     def connection_history(self):
+        dt = get_date()
         print(f"{colored('=', 'blue')}=>{colored('Connection History', 'red')}<={colored('=', 'blue')}")
-
-        # Capture Current Date & Time
-        self.d = datetime.now().replace(microsecond=0)
-        self.dt = str(self.d.strftime("%b %d %Y %I:%M:%S %p"))
 
         # Break If Connection History List Is Empty
         if len(self.connHistory) == 0:
@@ -143,9 +141,12 @@ class Server:
 
         # Break If Client Lost Connection
         except (KeyError, socket.error, ConnectionResetError):
+            dt = get_date()
             return
 
     def vital_signs(self):
+        dt = get_date()
+
         # Return False If Socket Connection List is Empty
         if len(self.targets) == 0:
             print(f"[{colored('*', 'yellow')}]No connected stations.")
@@ -157,9 +158,11 @@ class Server:
             return True
 
         else:
+            dt = get_date()
             return False
 
     def show_available_connections(self):
+        dt = get_date()
         if len(self.ips) == 0:
             print(f"[{colored('*', 'cyan')}]No connected stations.\n")
             return
@@ -179,6 +182,7 @@ class Server:
                                 self.tmp_availables.append((count, ipKey, identKey, userValue))
                 count += 1
 
+            dt = get_date()
             for item in self.tmp_availables:
                 for conKey, ipValue in self.clients.items():
                     for ipKey in ipValue.keys():
@@ -193,10 +197,12 @@ class Server:
             return True
 
         except ConnectionResetError:
+            dt = get_date()
             print(f"[{colored('*', 'red')}]Connection terminated by the client.")
             self.remove_lost_connection(con, ip)
 
     def get_station_number(self):
+        dt = get_date()
         if len(self.tmp_availables) == 0:
             return
 
@@ -220,8 +226,10 @@ class Server:
                           f"[Try {colored(f'{tries}', 'yellow')}/{colored('3', 'yellow')}]")
 
                     if tries == 3:
+                        dt = get_date()
                         print("U obviously don't know what you're doing. goodbye.")
                         if len(server.targets) > 0:
+                            dt = get_date()
                             for t in server.targets:
                                 t.send('exit'.encode())
                                 t.shutdown(socket.SHUT_RDWR)
@@ -235,18 +243,22 @@ class Server:
                 print(f"[{colored('*', 'red')}]Numbers only. Choose between [1 - {len(self.tmp_availables)}].\n"
                       f"[Try {colored(f'{tries}', 'yellow')}/{colored('3', 'yellow')}]")
                 if tries == 3:
+                    dt = get_date()
                     if len(server.targets) > 0:
+                        dt = get_date()
                         for t in server.targets:
                             t.send('exit'.encode())
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
                     print("U obviously don't know what you're doing. goodbye.")
+                    dt = get_date()
                     sys.exit()
 
                 tries += 1
 
     def show_shell_commands(self, ip):
+        dt = get_date()
         print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('REMOTE CONTROL', 'red')} <=",
               f"{colored('=', 'blue')}" * 20)
         for conKey, ipValue in self.clients.items():
@@ -277,16 +289,19 @@ class Server:
               f"Back to Control Center \n")
 
     def confirm_restart(self):
+        dt = get_date()
         tries = 0
         while True:
             try:
                 str(self.sure)
 
             except TypeError:
+                dt = get_date()
                 print(f"[{colored('*', 'red')}]Wrong Input. [({colored('Y/y', 'yellow')}) | "
                       f"({colored('N/n', 'yellow')})]")
 
                 if tries == 3:
+                    dt = get_date()
                     print("U obviously don't know what you're doing. goodbye.")
                     if len(server.targets) > 0:
                         for t in server.targets:
@@ -294,13 +309,15 @@ class Server:
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
-                    sys.exit()
+                    sys.exit(1)
                 tries += 1
 
             if str(self.sure).lower() == "y":
+                dt = get_date()
                 return True
 
             elif str(self.sure).lower() == "n":
+                dt = get_date()
                 return False
 
             else:
@@ -308,20 +325,21 @@ class Server:
                       f"({colored('N/n', 'yellow')})]")
 
                 if tries == 3:
+                    dt = get_date()
                     print("U obviously don't know what you're doing. goodbye.")
                     if len(server.targets) > 0:
+                        dt = get_date()
                         for t in server.targets:
                             t.send('exit'.encode())
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
-                    sys.exit()
+                    sys.exit(1)
                 tries += 1
 
     def restart(self, con, ip):
         errCount = 3
-        self.d = datetime.now().replace(microsecond=0)
-        self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
+        dt = get_date()
         self.sure = input("Are you sure you want to restart [Y/n]?")
         if self.confirm_restart():
             try:
@@ -331,21 +349,25 @@ class Server:
                     return False
 
                 except RuntimeError:
+                    dt = get_date()
                     return False
 
             except ConnectionResetError:
+                dt = get_date()
                 print(f"[{colored('!', 'red')}]Client lost connection.")
                 self.remove_lost_connection(con, ip)
 
         return
 
     def bytes_to_number(self, b):
+        dt = get_date()
         res = 0
         for i in range(4):
             res += b[i] << (i * 8)
         return res
 
     def shell(self, con, ip):
+        dt = get_date()
         errCount = 0
         while True:
             self.show_shell_commands(ip)
@@ -371,33 +393,40 @@ class Server:
 
             # Run Custom Command
             if int(cmd) == 100:
-                con.send("freestyle".encode())
-                free = Freestyle(con, path, self.tmp_availables, self.clients)
+                dt = get_date()
+                try:
+                    con.send("freestyle".encode())
+
+                except (WindowsError, socket.error):
+                    break
+
+                free = Freestyle(con, path, self.tmp_availables, self.clients, self.targets)
                 free.freestyle()
-                # freestyle(con, path, self.tmp_availables, self.clients)
                 continue
 
             # Create INT Zone Condition
             if int(cmd) <= 0 or int(cmd) > 8:
+                dt = get_date()
                 errCount += 1
                 if errCount == 3:
                     print("U obviously don't know what you're doing. goodbye.")
                     con.send("exit".encode())
-                    con.shutdown(socket.SHUT_RDWR)
                     con.close()
-                    sys.exit()
+                    sys.exit(1)
 
                 print(f"[{colored('*', 'red')}]{cmd} not in the menu."
                       f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
 
             # Screenshot
             if int(cmd) == 1:
+                dt = get_date()
                 errCount = 0
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
                 try:
+                    con.send('screen'.encode())
                     screenshot.screenshot(con, path, self.tmp_availables, self.clients)
 
                 except ConnectionResetError:
@@ -407,6 +436,7 @@ class Server:
 
             # System Information
             elif int(cmd) == 2:
+                dt = get_date()
                 errCount = 0
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
@@ -426,13 +456,11 @@ class Server:
 
             # Last Restart Time
             elif int(cmd) == 3:
+                dt = get_date()
                 errCount = 0
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
-
-                self.d = datetime.now().replace(microsecond=0)
-                self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
 
                 try:
                     con.send('lr'.encode())
@@ -450,14 +478,13 @@ class Server:
 
             # Anydesk
             elif int(cmd) == 4:
+                dt = get_date()
+
                 errCount = 0
                 print(f"[{colored('*', 'magenta')}]Starting AnyDesk...\n")
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
-
-                self.d = datetime.now().replace(microsecond=0)
-                self.dt = str(self.d.strftime("%b %d %Y | %I-%M-%S"))
 
                 try:
                     con.send('anydesk'.encode())
@@ -517,8 +544,7 @@ class Server:
 
             # Back
             elif int(cmd) == 8:
-                d = datetime.now().replace(microsecond=0)
-                dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+                dt = get_date()
                 break
 
         return
@@ -539,7 +565,7 @@ class Server:
                                       f"{colored(f'{identKey}', 'yellow')} | "
                                       f"{colored(f'{userValue}', 'yellow')} "
                                       f"Removed from Availables list.\n")
-            return False
+            return True
 
         except RuntimeError:
             return False
@@ -566,6 +592,13 @@ def headline():
           f"Close connections and exit program.\n")
 
 
+def get_date():
+    d = datetime.now().replace(microsecond=0)
+    dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+
+    return dt
+
+
 def main():
     headline()
 
@@ -589,14 +622,17 @@ def main():
 
     # Remote Shell Commands
     if int(command) == 1:
+        dt = get_date()
         if len(server.clients) != 0:
             print(f"{colored('=', 'blue')}=>{colored('Remote Shell', 'red')}<={colored('=', 'blue')}")
+
             # Show Available Connections
             server.show_available_connections()
 
             # Get Number from User and start Remote Shell
             station = server.get_station_number()
             if station:
+                dt = get_date()
                 server.shell(station[1], station[2])
                 return
 
@@ -607,11 +643,14 @@ def main():
 
     # Connection History
     elif int(command) == 2:
+        dt = get_date()
         server.connection_history()
         return
 
     # Vital Signs - Show Connected Stations
     elif int(command) == 3:
+        dt = get_date()
+
         if len(server.ips) == 0:
             print(f"[{colored('*', 'yellow')}]No connected stations.")
             return
@@ -620,14 +659,17 @@ def main():
         print(f"[{colored('1', 'green')}]Start | "
               f"[{colored('2', 'cyan')}]Back\n")
 
+        dt = get_date()
         server.vital_signs()
 
     # Clear Screen
     elif int(command) == 4:
+        dt = get_date()
         os.system('cls')
 
     # Show Server's Information
     elif int(command) == 5:
+        dt = get_date()
         last_reboot = psutil.boot_time()
         print(f"\n[{colored('*', 'cyan')}]Server running on IP: {server.serverIp} | Port: {server.serverPort}")
         print(f"[{colored('*', 'cyan')}]Server's last restart: "
@@ -636,8 +678,8 @@ def main():
 
     # Exit Program
     elif int(command) == 6:
-        server.d = datetime.now().replace(microsecond=0)
-        server.dt = str(server.d.strftime("%b %d %Y %I:%M:%S %p"))
+        dt = get_date()
+
         if len(server.targets) > 0:
             try:
                 for t in server.targets:
@@ -645,10 +687,11 @@ def main():
                     t.close()
 
             except ConnectionResetError:
-                print("Connection Reset")
-                pass
+                dt = get_date()
+                print(f"[{colored('X', 'red')}]Connection Reset by client.")
+                sys.exit(1)
 
-        sys.exit()
+        sys.exit(0)
 
     return
 
