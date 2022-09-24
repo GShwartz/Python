@@ -97,7 +97,7 @@ class Client:
 
                 # Receive filename Confirmation from the server
                 self.logIt(logfile=log_path, debug=True, msg='Waiting for confirmation from server')
-                msg = soc.recv(self.chunk).decode()
+                msg = soc.recv(1024).decode()
                 self.logIt(logfile=log_path, debug=True, msg=f'Server confirmation: {msg}')
                 self.logIt(logfile=log_path, debug=True, msg=f'Get file size')
                 length = os.path.getsize(self.filename)
@@ -124,6 +124,9 @@ class Client:
             try:
                 self.logIt(logfile=log_path, debug=True, msg=f'Sending confirmation')
                 soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
+                self.logIt(logfile=log_path, debug=True, msg=f'Waiting for server response')
+                msg = soc.recv(1024).decode()
+                self.logIt(logfile=log_path, debug=True, msg=f'From Server: {msg}')
 
             except (WindowsError, socket.error):
                 self.logIt(logfile=log_path, debug=True, msg=f'Connection Error')
@@ -512,91 +515,93 @@ class Client:
 
         def main_menu():
             self.logIt(logfile=log_path, debug=True, msg='Starting main menu')
-            try:
-                self.logIt(logfile=log_path, debug=True, msg='Waiting for command')
-                command = soc.recv(self.buffer_size).decode()
+            while True:
+                try:
+                    self.logIt(logfile=log_path, debug=True, msg='Waiting for command')
+                    command = soc.recv(self.buffer_size).decode()
 
-            except (ConnectionResetError, ConnectionError,
-                    ConnectionAbortedError, WindowsError, socket.error):
-                return
+                except (ConnectionResetError, ConnectionError,
+                        ConnectionAbortedError, WindowsError, socket.error):
+                    break
 
-            try:
-                if len(str(command)) == 0:
-                    self.logIt(logfile=log_path, debug=True, msg='Connection Lost')
-                    return
+                try:
+                    if len(str(command)) == 0:
+                        self.logIt(logfile=log_path, debug=True, msg='Connection Lost')
+                        break
 
-                # Freestyle
-                if str(command).lower() == "freestyle":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling freestyle')
-                    self.free_style()
+                    # Freestyle
+                    if str(command).lower() == "freestyle":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling freestyle')
+                        self.free_style()
 
-                # Vital Signs
-                if str(command).lower() == "alive":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling Vital Signs')
-                    try:
-                        self.logIt(logfile=log_path, debug=True, msg='Answer yes to server')
-                        soc.send('yes'.encode())
+                    # Vital Signs
+                    if str(command).lower() == "alive":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling Vital Signs')
+                        try:
+                            self.logIt(logfile=log_path, debug=True, msg='Answer yes to server')
+                            soc.send('yes'.encode())
 
-                    except socket.error:
-                        return
+                        except socket.error:
+                            break
 
-                # Capture Screenshot
-                elif str(command.lower()[:6]) == "screen":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling screenshot')
-                    self.screenshot()
+                    # Capture Screenshot
+                    elif str(command.lower()[:6]) == "screen":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling screenshot')
+                        self.screenshot()
 
-                # Get System Information & Users
-                elif str(command.lower()[:2]) == "si":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling system information')
-                    self.system_information()
+                    # Get System Information & Users
+                    elif str(command.lower()[:2]) == "si":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling system information')
+                        self.system_information()
 
-                # Get Last Restart Time
-                elif str(command).lower()[:2] == "lr":
-                    self.logIt(logfile=log_path, debug=True, msg='Fetching last restart time')
-                    last_reboot = psutil.boot_time()
-                    try:
-                        self.logIt(logfile=log_path, debug=True, msg='Sending last restart time')
-                        soc.send(f"{self.hostname} | {self.localIP}: "
-                                 f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
+                    # Get Last Restart Time
+                    elif str(command).lower()[:2] == "lr":
+                        self.logIt(logfile=log_path, debug=True, msg='Fetching last restart time')
+                        last_reboot = psutil.boot_time()
+                        try:
+                            self.logIt(logfile=log_path, debug=True, msg='Sending last restart time')
+                            soc.send(f"{self.hostname} | {self.localIP}: "
+                                     f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
 
-                    except ConnectionResetError:
-                        return
+                            continue
 
-                # Get Current Logged-on User
+                        except ConnectionResetError:
+                            break
 
-                elif str(command).lower()[:4] == "user":
-                    try:
-                        self.logIt(logfile=log_path, debug=True, msg='Sending current logged user')
-                        soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
-                        return
+                    # Get Current Logged-on User
+                    elif str(command).lower()[:4] == "user":
+                        try:
+                            self.logIt(logfile=log_path, debug=True, msg='Sending current logged user')
+                            soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
+                            continue
 
-                    except ConnectionResetError:
-                        return
+                        except ConnectionResetError:
+                            break
 
-                # Run Anydesk
-                elif str(command.lower()[:7]) == "anydesk":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling anydesk')
-                    self.anydesk()
-                    return
+                    # Run Anydesk
+                    elif str(command.lower()[:7]) == "anydesk":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling anydesk')
+                        self.anydesk()
+                        continue
 
-                # Task List
-                elif (str(command.lower())[:5]) == "tasks":
-                    self.logIt(logfile=log_path, debug=True, msg='Calling tasks')
-                    self.tasks()
+                    # Task List
+                    elif (str(command.lower())[:5]) == "tasks":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling tasks')
+                        self.tasks()
 
-                # Restart Machine
-                elif str(command.lower()[:7]) == "restart":
-                    self.logIt(logfile=log_path, debug=True, msg='Restarting local station')
-                    os.system('shutdown /r /t 1')
+                    # Restart Machine
+                    elif str(command.lower()[:7]) == "restart":
+                        self.logIt(logfile=log_path, debug=True, msg='Restarting local station')
+                        os.system('shutdown /r /t 1')
 
-                # Close Connection
-                elif str(command.lower()[:4]) == "exit":
-                    self.logIt(logfile=log_path, debug=True, msg='Server closed the connection')
-                    soc.settimeout(1)
-                    return
+                    # Close Connection
+                    elif str(command.lower()[:4]) == "exit":
+                        self.logIt(logfile=log_path, debug=True, msg='Server closed the connection')
+                        soc.settimeout(1)
+                        break
 
-            except (Exception, socket.error) as err:
-                return
+                except (Exception, socket.error) as err:
+                    break
 
         self.logIt(logfile=log_path, debug=True, msg='Calling intro()')
         intro()

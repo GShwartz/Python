@@ -33,13 +33,11 @@ def screenshot(con, root, tmp_availables, clients):
                     except FileExistsError:
                         pass
 
-    con.send('screen'.encode())
     filenameRecv = con.recv(1024)
     con.send("OK filename".encode())
     filenameRecv = str(filenameRecv).strip("b'")
 
     time.sleep(0.1)
-    name = ntpath.basename(str(filenameRecv).encode())
     size = con.recv(4)
     size = bytes_to_number(size)
     current_size = 0
