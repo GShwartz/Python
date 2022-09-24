@@ -248,6 +248,7 @@ class Client:
 
         self.logIt(logfile=log_path, debug=True, msg='Removing system information file')
         os.remove(self.sifile)
+        self.logIt(logfile=log_path, debug=True, msg=f'=== End of system_information() ===')
 
     def get_date(self):
         d = datetime.now().replace(microsecond=0)

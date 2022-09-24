@@ -17,6 +17,7 @@ import screenshot
 import connectedstations
 from tasks import Tasks
 import sysinfo
+from sysinfo import Sysinfo
 from freestyle import Freestyle
 
 
@@ -443,7 +444,9 @@ class Server:
                     break
 
                 try:
-                    sysinfo.system_information(con, self.ttl, path, self.tmp_availables, self.clients)
+                    sysinfo = Sysinfo(con, self.ttl, path, self.tmp_availables, self.clients)
+                    sysinfo.run()
+                    # sysinfo.system_information(con, self.ttl, path, self.tmp_availables, self.clients)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
