@@ -5,23 +5,23 @@ from colorama import init
 import subprocess
 import pwinput
 import os.path
-import ntpath
 import socket
 import psutil
 import shutil
 import time
 import sys
 import io
-import validation
-import screenshot
+
+# Local Modules
+from freestyle import Freestyle
+from sysinfo import Sysinfo
 import connectedstations
 from tasks import Tasks
-import sysinfo
-from sysinfo import Sysinfo
-from freestyle import Freestyle
+import validation
+import screenshot
 
 
-# TODO: Break to modules.
+# TODO: Add logger
 
 init()
 
@@ -35,11 +35,12 @@ class Server:
     threads = []
     tmp_availables = []
 
-    def __init__(self, serverIP, serverPort, ttl, path):
+    def __init__(self, serverIP, serverPort, ttl, path, log_path):
         self.serverIp = serverIP
         self.serverPort = serverPort
         self.ttl = ttl
         self.path = path
+        self.log_path = log_path
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.serverIp, self.serverPort))
@@ -48,75 +49,147 @@ class Server:
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 
+    def get_date(self):
+        d = datetime.now().replace(microsecond=0)
+        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+
+        return dt
+
+    def logIt(self, logfile=None, debug=None, msg=''):
+        dt = self.get_date()
+        if debug:
+            print(f"{dt}: {msg}")
+
+        if logfile is not None:
+            try:
+                if not os.path.exists(logfile):
+                    with open(logfile, 'w') as lf:
+                        lf.write(f"{dt}: {msg}\n")
+
+                    return True
+
+                else:
+                    with open(logfile, 'a') as lf:
+                        lf.write(f"{dt}: {msg}\n")
+
+                    return True
+
+            except FileExistsError:
+                pass
+
+    def logIt_thread(self, log_path=None, debug=True, msg=''):
+        self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread").start()
+        self.threads.append(self.logit_thread)
+
+        return
+
     def run(self):
-        dt = get_date()
+        self.logIt_thread(log_path, debug=True, msg=f'Testing Thread')
+        self.logIt_thread(log_path, debug=True, msg=f'Running run()...')
+        self.logIt_thread(log_path, debug=True, msg=f'Calling connect() in new thread...')
         self.connectThread = Thread(target=self.connect, daemon=True, name=f"Connect Thread").start()
+        self.logIt_thread(log_path, debug=True, msg=f'Adding thread to threads list...')
         self.threads.append(self.connectThread)
+        self.logIt_thread(log_path, debug=True, msg=f'Thread added to threads list.')
 
     def connect(self):
+        self.logIt_thread(log_path, debug=True, msg=f'Running connect()...')
         while True:
-            dt = get_date()
+            self.logIt_thread(log_path, debug=True, msg=f'Accepting connection...')
             self.conn, (self.ip, self.port) = self.server.accept()
+            self.logIt_thread(log_path, debug=True, msg=f'Connection from {self.ip} accepted.')
 
             try:
                 # Get Remote Computer's Name
+                self.logIt_thread(log_path, debug=True, msg=f'Waiting for remote station name...')
                 self.ident = self.conn.recv(1024).decode()
+                self.logIt_thread(log_path, debug=True, msg=f'Remote station name: {self.ident}')
 
                 # Get Current User:
+                self.logIt_thread(log_path, debug=True, msg=f'Waiting for remote station current logged user...')
                 self.user = self.conn.recv(1024).decode()
+                self.logIt_thread(log_path, debug=True, msg=f'Remote station user: {self.user}')
 
-            except (ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
-                dt = get_date()
-                print("Lost Connection")
+            except (WindowsError, socket.error) as e:
+                self.logIt_thread(log_path, debug=True, msg=f'Connection Error: {e}')
                 return  # Restart The Loop
 
             # Update Thread Dict and Connection Lists
             if self.conn not in self.targets and self.ip not in self.ips:
+                self.logIt_thread(log_path, debug=True, msg=f'New Connection!')
+
                 # Add Socket Connection To Targets list
+                self.logIt_thread(log_path, debug=True, msg=f'Adding socket connection: {self.conn} to targets list...')
                 self.targets.append(self.conn)
-                # Add IP Address Connection To Targets list
+                self.logIt_thread(log_path, debug=True, msg=f'targets list updated.')
+
+                # Add IP Address Connection To IPs list
+                self.logIt_thread(log_path, debug=True, msg=f'Adding ip: {self.ip} to ips list...')
                 self.ips.append(self.ip)
-                # Set Temp Dict To Update Connections List
+                self.logIt_thread(log_path, debug=True, msg=f'ips list updated.')
+
+                # Set Temp Dict To Update Live Connections List
+                self.logIt_thread(log_path, debug=True, msg=f'Adding {self.conn} | {self.ip} to temp live connections dict...')
                 self.temp_connection = {self.conn: self.ip}
+                self.logIt_thread(log_path, debug=True, msg=f'Temp connections dict updated.')
+
                 # Add Temp Dict To Connections List
+                self.logIt_thread(log_path, debug=True, msg=f'Updating connections list...')
                 self.connections.update(self.temp_connection)
+                self.logIt_thread(log_path, debug=True, msg=f'Connections list updated.')
+
                 # Set Temp Idents Dict For Idents
+                self.logIt_thread(log_path, debug=True, msg=f'Creating dict to hold ident details...')
                 self.temp_ident = {self.conn: {self.ip: {self.ident: self.user}}}
+                self.logIt_thread(log_path, debug=True, msg=f'Dict created: {self.temp_ident}')
+
                 # Add Temp Idents Dict To Idents Dict
+                self.logIt_thread(log_path, debug=True, msg=f'Updating live clients list...')
                 self.clients.update(self.temp_ident)
+                self.logIt_thread(log_path, debug=True, msg=f'Live clients list updated.')
 
-            dt = get_date()
             # Create a Dict of Connection, IP, Computer Name, Date & Time
+            self.logIt_thread(log_path, debug=True, msg=f'Fetching current date & time...')
+            dt = get_date()
+            self.logIt_thread(log_path, debug=True, msg=f'Creating a connection dict...')
             self.temp_connection_record = {self.conn: {self.ip: {self.ident: {self.user: dt}}}}
-            # Add Connection to Connection History
-            self.connHistory.append(self.temp_connection_record)
+            self.logIt_thread(log_path, debug=True, msg=f'Connection dict created: {self.temp_connection_record}')
 
+            # Add Connection to Connection History
+            self.logIt_thread(log_path, debug=True, msg=f'Adding connection to connection history...')
+            self.connHistory.append(self.temp_connection_record)
+            self.logIt_thread(log_path, debug=True, msg=f'Connection added to connection history.')
+
+            self.logIt_thread(log_path, debug=True, msg=f'Calling self.welcome_message() condition...')
             if self.welcome_message():
                 continue
 
     def welcome_message(self):
-        dt = get_date()
+        self.logIt_thread(log_path, debug=True, msg=f'Running welcome_message()...')
 
         # Send Welcome Message
         try:
             self.welcome = "Connection Established!"
+            self.logIt_thread(log_path, debug=True, msg=f'Sending welcome message...')
             self.conn.send(f"@Server: {self.welcome}".encode())
+            self.logIt_thread(log_path, debug=True, msg=f'Send Completed.')
 
             return True
 
-        except (socket.error, ConnectionResetError, ConnectionError, ConnectionAbortedError, ConnectionRefusedError):
-            dt = get_date()
-            print(f"[{colored('*', 'red')}]Check client's connection.")
+        except (WindowsError, socket.error) as e:
+            self.logIt_thread(log_path, debug=True, msg=f'Connection Error: {e}')
             if self.conn in self.targets and self.ip in self.ips:
+                self.logIt_thread(log_path, debug=True, msg=f'Removing connection from live connections list...')
                 self.targets.remove(self.conn)
                 self.ips.remove(self.ip)
                 del self.connections[self.conn]
                 del self.clients[self.conn]
+                self.logIt_thread(log_path, debug=True, msg=f'Connection removed from lists.')
 
                 return False
 
     def connection_history(self):
-        dt = get_date()
+        self.logIt_thread(log_path, debug=True, msg=f'Running connection_history()...')
         print(f"{colored('=', 'blue')}=>{colored('Connection History', 'red')}<={colored('=', 'blue')}")
 
         # Break If Connection History List Is Empty
@@ -368,7 +441,6 @@ class Server:
         return res
 
     def shell(self, con, ip):
-        dt = get_date()
         errCount = 0
         while True:
             self.show_shell_commands(ip)
@@ -394,7 +466,6 @@ class Server:
 
             # Run Custom Command
             if int(cmd) == 100:
-                dt = get_date()
                 try:
                     con.send("freestyle".encode())
 
@@ -420,13 +491,13 @@ class Server:
 
             # Screenshot
             if int(cmd) == 1:
-                dt = get_date()
                 errCount = 0
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
                 try:
+                    print(f"[{colored('*', 'cyan')}]Fetching screenshot...")
                     con.send('screen'.encode())
                     screenshot.screenshot(con, path, self.tmp_availables, self.clients)
 
@@ -437,7 +508,6 @@ class Server:
 
             # System Information
             elif int(cmd) == 2:
-                dt = get_date()
                 errCount = 0
                 if len(self.targets) == 0:
                     print(f"[{colored('*', 'red')}]No connected stations.")
@@ -445,8 +515,8 @@ class Server:
 
                 try:
                     sysinfo = Sysinfo(con, self.ttl, path, self.tmp_availables, self.clients)
+                    print(f"[{colored('*', 'cyan')}]Fetching system information, please wait... ")
                     sysinfo.run()
-                    # sysinfo.system_information(con, self.ttl, path, self.tmp_availables, self.clients)
 
                 except ConnectionResetError:
                     print(f"[{colored('!', 'red')}]Client lost connection.")
@@ -705,12 +775,13 @@ if __name__ == '__main__':
     hostname = socket.gethostname()
     serverIP = str(socket.gethostbyname(hostname))
     path = r'c:\MekifRemoteAdmin'
+    log_path = r'c:\MekifRemoteAdmin\main_log.txt'
 
     # Run User Validation
     # validation.validation()
 
     # Initialize Server Class
-    server = Server(serverIP, port, ttl, path)
+    server = Server(serverIP, port, ttl, path, log_path)
     server.run()
 
     while True:
