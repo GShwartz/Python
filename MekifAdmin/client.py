@@ -455,27 +455,37 @@ class Client:
         self.logIt(logfile=log_path, debug=True, msg=f'=== End of execute({platform}, {cmd}) ===')
 
     def free_style(self):
-        dt = self.get_date()
         while True:
             try:
+                self.logIt(logfile=log_path, debug=True, msg='Waiting for platform...')
                 command = soc.recv(1024).decode()
+                self.logIt(logfile=log_path, debug=True, msg=f'Received {command}')
+
                 if str(command).lower() == "ps":
+                    self.logIt(logfile=log_path, debug=True, msg=f'Waiting for command...')
                     cmd = soc.recv(1024).decode()
+                    self.logIt(logfile=log_path, debug=True, msg=f'Calling self.execute({command}, {cmd})...')
                     self.execute("ps", cmd)
 
                 elif str(command).lower() == "cmd":
+                    self.logIt(logfile=log_path, debug=True, msg=f'Waiting for command...')
                     cmd = soc.recv(1024).decode()
+                    self.logIt(logfile=log_path, debug=True, msg=f'Calling self.execute({command}, {cmd})...')
                     self.execute("cmd", cmd)
 
                 elif str(command).lower() == "instad":
+                    self.logIt(logfile=log_path, debug=True, msg=f'Installing Anydesk...')
                     pass
 
                 elif str(command).lower() == "back":
                     msg = "back".encode()
+                    self.logIt(logfile=log_path, debug=True, msg=f'Sending back message to server...')
                     soc.send(msg)
+                    self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
                     break
 
             except (WindowsError, socket.error) as e:
+                self.logIt(logfile=log_path, debug=True, msg=f'Connection Error: {e}')
                 print(e)
                 break
 
@@ -483,50 +493,72 @@ class Client:
 
     def tasks(self):
         def command_to_file():
+            self.logIt(logfile=log_path, debug=True, msg=f'Running command_to_file()...')
             try:
+                self.logIt(logfile=log_path, debug=True, msg=f'Opening file: {self.taskfile}...')
                 tskinfo = open(self.taskfile, 'w')
+
+                self.logIt(logfile=log_path, debug=True, msg=f'Writing output to {self.taskfile}...')
                 sinfo = subprocess.call(['tasklist'], stdout=tskinfo)
                 tskinfo.write("\n")
+                self.logIt(logfile=log_path, debug=True, msg=f'Closing file: {self.taskfile}...')
                 tskinfo.close()
+                self.logIt(logfile=log_path, debug=True, msg=f'File closed.')
+
                 return True
 
-            except (FileNotFoundError, FileExistsError):
-                dt = self.get_date()
+            except (FileNotFoundError, FileExistsError) as e:
+                self.logIt(logfile=log_path, debug=True, msg=f'File Error: {e}')
                 return False
 
         def send_file_name():
+            self.logIt(logfile=log_path, debug=True, msg=f'Running send_file_name()...')
             try:
+                self.logIt(logfile=log_path, debug=True, msg=f'Sending file name: {self.taskfile}...')
                 soc.send(f"{self.taskfile}".encode())
+                self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
                 return True
 
-            except (WindowsError, socket.error):
-                dt = self.get_date()
+            except (WindowsError, socket.error) as e:
+                self.logIt(logfile=log_path, debug=True, msg=f'Connection Error: {e}')
                 return False
 
         def print_file_content():
-            dt = self.get_date()
+            self.logIt(logfile=log_path, debug=True, msg=f'Running print_file_content()...')
+            self.logIt(logfile=log_path, debug=True, msg=f'Opening file: {self.taskfile}...')
             with open(self.taskfile, 'r') as file:
+                self.logIt(logfile=log_path, debug=True, msg=f'Adding content to list...')
                 for line in file.readlines():
                     task_list.append(line)
 
+            self.logIt(logfile=log_path, debug=True, msg=f'Printing content from list...')
             for t in task_list:
                 print(t)
 
         def send_file_size():
-            dt = self.get_date()
+            self.logIt(logfile=log_path, debug=True, msg=f'Running send_file_size()...')
+            self.logIt(logfile=log_path, debug=True, msg=f'Defining file size...')
             length = os.path.getsize(self.taskfile)
-            print(f"SC Size: {length}")
+            self.logIt(logfile=log_path, debug=True, msg=f'File Size: {length}')
+
             try:
+                self.logIt(logfile=log_path, debug=True, msg=f'Sending file size...')
                 soc.send(convert_to_bytes(length))
+                self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
                 return True
 
-            except (WindowsError, socket.error):
+            except (WindowsError, socket.error) as e:
+                self.logIt(logfile=log_path, debug=True, msg=f'Connection Error: {e}')
                 return False
 
         def send_file_content():
+            self.logIt(logfile=log_path, debug=True, msg=f'Running send_file_content()...')
+            self.logIt(logfile=log_path, debug=True, msg=f'Opening file: {self.taskfile}...')
             with open(self.taskfile, 'rb') as tsk_file:
+                self.logIt(logfile=log_path, debug=True, msg=f'Reading content from {self.taskfile}...')
                 tsk_data = tsk_file.read(1024)
                 try:
+                    self.logIt(logfile=log_path, debug=True, msg=f'Sending file content...')
                     while tsk_data:
                         soc.send(tsk_data)
                         if not tsk_data:
@@ -534,51 +566,79 @@ class Client:
 
                         tsk_data = tsk_file.read(1024)
 
-                except (WindowsError, socket.error):
-                    dt = self.get_date()
+                    self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
+
+                except (WindowsError, socket.error) as e:
+                    self.logIt(logfile=log_path, debug=True, msg=f'Connection Error: {e}')
                     return False
 
         def confirm():
+            self.logIt(logfile=log_path, debug=True, msg=f'Running confirm()...')
             try:
+                self.logIt(logfile=log_path, debug=True, msg=f'Waiting for confirmation from server...')
                 msg = soc.recv(1024).decode()
+                self.logIt(logfile=log_path, debug=True, msg=f'Server Confirmation: {msg}')
+
+                self.logIt(logfile=log_path, debug=True, msg=f'Sending confirmation...')
                 soc.send(f"{self.hostname} | {self.localIP}: Task List Sent.\n".encode())
+                self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
 
             except (WindowsError, socket.error):
                 dt = self.get_date()
                 return False
 
         def kill():
-            # Kill Task
             try:
-                kill = soc.recv(1024).decode()
-                if str(kill) == "kill":
-                    task2kill = soc.recv(1024).decode()
-                    os.system(f'taskkill /IM {task2kill} /F')
-                    soc.send(f"Task: {task2kill} Killed.".encode())
-                    return True
+                self.logIt(logfile=log_path, debug=True, msg=f'Waiting for task name...')
+                task2kill = soc.recv(1024).decode()
+                self.logIt(logfile=log_path, debug=True, msg=f'Task name: {task2kill}')
 
-                else:
-                    return False
+                self.logIt(logfile=log_path, debug=True, msg=f'Killing {task2kill}...')
+                os.system(f'taskkill /IM {task2kill} /F')
+                self.logIt(logfile=log_path, debug=True, msg=f'{task2kill} killed.')
 
-            except (ConnectionResetError, ConnectionAbortedError, ConnectionError):
+                self.logIt(logfile=log_path, debug=True, msg=f'Sending killed confirmation to server...')
+                soc.send(f"Task: {task2kill} Killed.".encode())
+                self.logIt(logfile=log_path, debug=True, msg=f'Send Completed.')
+
+            except (WindowsError, socket.error) as e:
+                self.logIt(logfile=log_path, debug=True, msg=f'Connection Error: {e}')
                 return False
 
+            return
+
+        self.logIt(logfile=log_path, debug=True, msg=f'Defining tasks file name...')
         dt = self.get_date()
         self.taskfile = rf"c:\MekifRemoteAdmin\tasks {self.hostname} {str(self.localIP)} {dt}.txt"
+        self.logIt(logfile=log_path, debug=True, msg=f'Tasks file name: {self.taskfile}')
 
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling command_to_file()...')
         command_to_file()
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling send_file_name()...')
         send_file_name()
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling print_file_content()...')
         print_file_content()
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling send_file_size()...')
         send_file_size()
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling send_file_content()...')
         send_file_content()
+        self.logIt(logfile=log_path, debug=True, msg=f'Calling confirm()...')
         confirm()
+
+        self.logIt(logfile=log_path, debug=True, msg=f'Removing file: {self.taskfile}...')
         os.remove(self.taskfile)
-        kill()
+
+        kil = soc.recv(1024).decode()
+        if str(kil)[:4].lower() == "kill":
+            self.logIt(logfile=log_path, debug=True, msg=f'Calling kill()...')
+            kill()
+
+        else:
+            return False
 
     def backdoor(self, soc):
         def intro():
             def send_host_name():
-                # Send Computer Name to Server
                 ident = self.hostname
                 try:
                     self.logIt(logfile=log_path, debug=True, msg=f'Sending hostname: {self.hostname}...')
@@ -600,7 +660,6 @@ class Client:
                     return False
 
             def confirm():
-                # Wait For Message
                 try:
                     self.logIt(logfile=log_path, debug=True, msg='Waiting for confirmation from server...')
                     message = soc.recv(self.buffer_size).decode()
@@ -645,6 +704,7 @@ class Client:
                         try:
                             self.logIt(logfile=log_path, debug=True, msg='Answer yes to server')
                             soc.send('yes'.encode())
+                            self.logIt(logfile=log_path, debug=True, msg=f'Send completed.')
 
                         except socket.error:
                             break
@@ -668,7 +728,7 @@ class Client:
                             soc.send(f"{self.hostname} | {self.localIP}: "
                                      f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}".encode())
 
-                            continue
+                            self.logIt(logfile=log_path, debug=True, msg=f'Send completed.')
 
                         except ConnectionResetError:
                             break
@@ -678,6 +738,7 @@ class Client:
                         try:
                             self.logIt(logfile=log_path, debug=True, msg=f'Sending current logged user: {self.current_user}...')
                             soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
+
                             continue
 
                         except ConnectionResetError:
@@ -754,7 +815,7 @@ if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
     mekif_path = r'c:\MekifRemoteAdmin'
-    log_path = r'c:\MekifRemoteAdmin\log.txt'
+    log_path = r'c:\MekifRemoteAdmin\client_log.txt'
     servers = [('192.168.1.10', 55400)]
 
     # Start Client
@@ -782,3 +843,4 @@ if __name__ == "__main__":
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         client.logIt(logfile=log_path, debug=True, msg='Closing socket...')
         soc.close()
+        client.logIt(logfile=log_path, debug=True, msg='Socket closed...')

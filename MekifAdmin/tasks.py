@@ -6,6 +6,8 @@ import ntpath
 import os
 import shutil
 
+# TODO: Re-arrange functions & Fix confirmation bug when choosing 'n'
+
 
 class Tasks:
     def __init__(self, con, ip, ttl, clients, connections, targets, ips, tmp_availables, root):
@@ -134,6 +136,7 @@ class Tasks:
                         self.remove_lost_connection()
 
                 else:
+                    self.con.send('pass'.encode())
                     break
 
             else:
