@@ -97,10 +97,6 @@ class Sysinfo:
                 filename = self.con.recv(1024)
                 self.logIt_thread(self.log_path, debug=False, msg=f'File name: {filename}')
 
-                # self.logIt_thread(self.log_path, debug=False, msg=f'Sending confirmation to client...')
-                # self.con.send("Filename OK".encode())
-                # self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
-
                 return filename
 
             except (WindowsError, socket.error) as e:
@@ -174,13 +170,16 @@ class Sysinfo:
         def confirm():
             self.logIt_thread(self.log_path, debug=False, msg=f'Running confirm()...')
             try:
-                self.con.send('ooooo'.encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Sending "confirmation" to {self.con}...')
+                self.con.send('confirmation!'.encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
                 self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for answer from client...')
                 ans = self.con.recv(1024).decode()
                 self.logIt_thread(self.log_path, debug=False, msg=f'Client answer: {ans}')
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Printing confirmation to screen...')
-                # print(f"[{colored('V', 'green')}]{ans}")
+                print(f"[{colored('V', 'green')}]{ans}")
 
             except (WindowsError, socket.error) as e:
                 self.logIt_thread(self.log_path, debug=False, msg=f'Error: {e}')
@@ -188,7 +187,7 @@ class Sysinfo:
 
         def move(filename, path):
             self.logIt_thread(self.log_path, debug=False, msg=f'Running move({filename}, {path})...')
-            # Move screenshot file to directory
+
             self.logIt_thread(self.log_path, debug=False, msg=f'Renaming {filename}...')
             filename = str(filename).strip("b'")
             self.logIt_thread(self.log_path, debug=False, msg=f'New filename: {filename}')

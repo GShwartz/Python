@@ -63,7 +63,6 @@ class Screenshot:
         def make_dir():
             self.logIt_thread(self.log_path, debug=False, msg=f'Running make_dir()...')
             self.logIt_thread(self.log_path, debug=False, msg=f'Creating Directory...')
-            # Create a directory with host's name if not already exists.
             for item in self.tmp_availables:
                 for conKey, ipValue in self.clients.items():
                     for ipKey in ipValue.keys():
@@ -113,6 +112,7 @@ class Screenshot:
 
                 current_size = 0
                 buffer = b""
+
                 try:
                     self.logIt_thread(self.log_path, debug=False, msg=f'Opening file: {filename} for writing...')
                     with open(filename, 'wb') as file:
@@ -176,7 +176,7 @@ class Screenshot:
 
         def move(filename, path):
             self.logIt_thread(self.log_path, debug=False, msg=f'Running move({filename}, {path})...')
-            # Move screenshot file to directory
+
             self.logIt_thread(self.log_path, debug=False, msg=f'Renaming {filename}...')
             filename = str(filename).strip("b'")
             self.logIt_thread(self.log_path, debug=False, msg=f'New filename: {filename}')
@@ -204,6 +204,7 @@ class Screenshot:
         self.logIt_thread(self.log_path, debug=False, msg=f'Calling fetch({filename})...')
         fetch(filename)
 
+        self.logIt_thread(self.log_path, debug=False, msg=f'Calling confirm()...')
         confirm()
 
         self.logIt_thread(self.log_path, debug=False, msg=f'Calling move({filename}, {path})')
