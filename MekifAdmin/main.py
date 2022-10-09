@@ -2,23 +2,18 @@ from datetime import datetime
 from termcolor import colored
 from threading import Thread
 from colorama import init
-from decouple import config
-import subprocess
-import pwinput
 import os.path
 import socket
 import psutil
-import shutil
-import time
 import sys
 
 # Local Modules
-import validation
-from screenshot import Screenshot
-from tasks import Tasks
-from vital_signs import Vitals
-from sysinfo import Sysinfo
-from freestyle import Freestyle
+from Modules.screenshot import Screenshot
+from Modules.tasks import Tasks
+from Modules.vital_signs import Vitals
+from Modules.sysinfo import Sysinfo
+from Modules.freestyle import Freestyle
+from Modules import ftp_server
 
 # TODO: Finish logger
 
@@ -43,7 +38,7 @@ class Server:
         self.server = socket.socket()
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.serverIp, self.serverPort))
-        self.server.listen(5)
+        self.server.listen()
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
@@ -54,7 +49,7 @@ class Server:
 
         return dt
 
-    def logIt(self, logfile=None, debug=False, msg=''):
+    def logIt(self, logfile=None, debug=None, msg=''):
         dt = self.get_date()
         if debug:
             print(f"{dt}: {msg}")
@@ -76,139 +71,129 @@ class Server:
             except FileExistsError:
                 pass
 
-    def logIt_thread(self, log_path=None, debug=True, msg=''):
+    def logIt_thread(self, log_path=None, debug=False, msg=''):
         self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
         self.logit_thread.start()
         self.threads.append(self.logit_thread)
         return
 
     def run(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running run()...')
-        self.logIt_thread(self.log_path, debug=False, msg=f'Calling connect() in new thread...')
+        self.logIt_thread(self.log_path, msg=f'Running run()...')
+        self.logIt_thread(self.log_path, msg=f'Calling connect() in new thread...')
         self.connectThread = Thread(target=self.connect, daemon=True, name=f"Connect Thread").start()
-        self.logIt_thread(self.log_path, debug=False, msg=f'Adding thread to threads list...')
+        self.logIt_thread(self.log_path, msg=f'Adding thread to threads list...')
         self.threads.append(self.connectThread)
-        self.logIt_thread(self.log_path, debug=False, msg=f'Thread added to threads list.')
+        self.logIt_thread(self.log_path, msg=f'Thread added to threads list.')
 
     def connect(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running connect()...')
+        self.logIt_thread(self.log_path, msg=f'Running connect()...')
         while True:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Accepting connections...')
+            self.logIt_thread(self.log_path, msg=f'Accepting connections...')
             self.conn, (self.ip, self.port) = self.server.accept()
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connection from {self.ip} accepted.')
+            self.logIt_thread(self.log_path, msg=f'Connection from {self.ip} accepted.')
 
             try:
                 # Get Remote Computer's Name
-                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for remote station name...')
+                self.logIt_thread(self.log_path, msg=f'Waiting for remote station name...')
                 self.ident = self.conn.recv(1024).decode()
-                self.logIt_thread(self.log_path, debug=False, msg=f'Remote station name: {self.ident}')
+                self.logIt_thread(self.log_path, msg=f'Remote station name: {self.ident}')
 
                 # Get Current User:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for remote station current logged user...')
+                self.logIt_thread(self.log_path, msg=f'Waiting for remote station current logged user...')
                 self.user = self.conn.recv(1024).decode()
-                self.logIt_thread(self.log_path, debug=False, msg=f'Remote station user: {self.user}')
+                self.logIt_thread(self.log_path, msg=f'Remote station user: {self.user}')
 
             except (WindowsError, socket.error) as e:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+                self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
                 return  # Restart The Loop
 
             # Update Thread Dict and Connection Lists
             if self.conn not in self.targets and self.ip not in self.ips:
-                self.logIt_thread(self.log_path, debug=False, msg=f'New Connection!')
+                self.logIt_thread(self.log_path, msg=f'New Connection!')
 
                 # Add Socket Connection To Targets list
-                self.logIt_thread(self.log_path, debug=False,
-                                  msg=f'Adding {self.conn} to targets list...')
+                self.logIt_thread(self.log_path, msg=f'Adding {self.conn} to targets list...')
                 self.targets.append(self.conn)
-                self.logIt_thread(self.log_path, debug=False, msg=f'targets list updated.')
+                self.logIt_thread(self.log_path, msg=f'targets list updated.')
 
                 # Add IP Address Connection To IPs list
-                self.logIt_thread(self.log_path, debug=False, msg=f'Adding {self.ip} to ips list...')
+                self.logIt_thread(self.log_path, msg=f'Adding {self.ip} to ips list...')
                 self.ips.append(self.ip)
-                self.logIt_thread(self.log_path, debug=False, msg=f'ips list updated.')
+                self.logIt_thread(self.log_path, msg=f'ips list updated.')
 
                 # Set Temp Dict To Update Live Connections List
-                self.logIt_thread(self.log_path, debug=False,
-                                  msg=f'Adding {self.conn} | {self.ip} to temp live connections dict...')
+                self.logIt_thread(self.log_path, msg=f'Adding {self.conn} | {self.ip} to temp live connections dict...')
                 self.temp_connection = {self.conn: self.ip}
-                self.logIt_thread(self.log_path, debug=False, msg=f'Temp connections dict updated.')
+                self.logIt_thread(self.log_path, msg=f'Temp connections dict updated.')
 
                 # Add Temp Dict To Connections List
-                self.logIt_thread(self.log_path, debug=False, msg=f'Updating connections list...')
+                self.logIt_thread(self.log_path, msg=f'Updating connections list...')
                 self.connections.update(self.temp_connection)
-                self.logIt_thread(self.log_path, debug=False, msg=f'Connections list updated.')
+                self.logIt_thread(self.log_path, msg=f'Connections list updated.')
 
                 # Set Temp Idents Dict For Idents
-                self.logIt_thread(self.log_path, debug=False, msg=f'Creating dict to hold ident details...')
+                self.logIt_thread(self.log_path, msg=f'Creating dict to hold ident details...')
                 self.temp_ident = {self.conn: {self.ip: {self.ident: self.user}}}
-                self.logIt_thread(self.log_path, debug=False, msg=f'Dict created: {self.temp_ident}')
+                self.logIt_thread(self.log_path, msg=f'Dict created: {self.temp_ident}')
 
                 # Add Temp Idents Dict To Idents Dict
-                self.logIt_thread(self.log_path, debug=False, msg=f'Updating live clients list...')
+                self.logIt_thread(self.log_path, msg=f'Updating live clients list...')
                 self.clients.update(self.temp_ident)
-                self.logIt_thread(self.log_path, debug=False, msg=f'Live clients list updated.')
+                self.logIt_thread(self.log_path, msg=f'Live clients list updated.')
 
             # Create a Dict of Connection, IP, Computer Name, Date & Time
-            self.logIt_thread(self.log_path, debug=False, msg=f'Fetching current date & time...')
+            self.logIt_thread(self.log_path, msg=f'Fetching current date & time...')
             dt = get_date()
-            self.logIt_thread(self.log_path, debug=False, msg=f'Creating a connection dict...')
+            self.logIt_thread(self.log_path, msg=f'Creating a connection dict...')
             self.temp_connection_record = {self.conn: {self.ip: {self.ident: {self.user: dt}}}}
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connection dict created: {self.temp_connection_record}')
+            self.logIt_thread(self.log_path, msg=f'Connection dict created: {self.temp_connection_record}')
 
             # Add Connection to Connection History
-            self.logIt_thread(self.log_path, debug=False, msg=f'Adding connection to connection history...')
+            self.logIt_thread(self.log_path, msg=f'Adding connection to connection history...')
             self.connHistory.append(self.temp_connection_record)
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connection added to connection history.')
+            self.logIt_thread(self.log_path, msg=f'Connection added to connection history.')
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'Calling self.welcome_message() condition...')
+            self.logIt_thread(self.log_path, msg=f'Calling self.welcome_message() condition...')
             if self.welcome_message():
                 continue
 
     def welcome_message(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running welcome_message()...')
+        self.logIt_thread(self.log_path, msg=f'Running welcome_message()...')
 
         # Send Welcome Message
         try:
             self.welcome = "Connection Established!"
-            self.logIt_thread(self.log_path, debug=False, msg=f'Sending welcome message...')
+            self.logIt_thread(self.log_path, msg=f'Sending welcome message...')
             self.conn.send(f"@Server: {self.welcome}".encode())
-            self.logIt_thread(self.log_path, debug=False, msg=f'{self.welcome} sent to {self.ident}.')
+            self.logIt_thread(self.log_path, msg=f'{self.welcome} sent to {self.ident}.')
 
             return True
 
         except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
             if self.conn in self.targets and self.ip in self.ips:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Removing {self.conn} from self.targets...')
+                self.logIt_thread(self.log_path, msg=f'Removing {self.conn} from self.targets...')
                 self.targets.remove(self.conn)
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Removing {self.ip} from self.ips list...')
+                self.logIt_thread(self.log_path, msg=f'Removing {self.ip} from self.ips list...')
                 self.ips.remove(self.ip)
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Deleting {self.conn} from self.connections.')
+                self.logIt_thread(self.log_path, msg=f'Deleting {self.conn} from self.connections.')
                 del self.connections[self.conn]
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Deleting {self.conn} from self.clients...')
+                self.logIt_thread(self.log_path, msg=f'Deleting {self.conn} from self.clients...')
                 del self.clients[self.conn]
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'[V]Connection removed from lists.')
+                self.logIt_thread(self.log_path, msg=f'[V]Connection removed from lists.')
 
                 return False
 
     def connection_history(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running connection_history()...')
-        print(f"{colored('=', 'blue')}=>{colored('Connection History', 'red')}<={colored('=', 'blue')}")
-
-        self.logIt_thread(self.log_path, debug=False, msg=f'Check if connection history list is empty...')
-        if len(self.connHistory) == 0:
-            self.logIt_thread(self.log_path, debug=False, msg=f'List is empty.')
-            print(f"[{colored('*', 'cyan')}]List is empty.")
-            return
-
+        self.logIt_thread(self.log_path, msg=f'Running connection_history()...')
         c = 1  # Initiate Counter for Connection Number
         try:
             # Iterate Through Connection History List Items
-            self.logIt_thread(self.log_path, debug=False, msg=f'Iterating self.connHistory...')
+            self.logIt_thread(self.log_path, msg=f'Iterating self.connHistory...')
             for connection in self.connHistory:
                 for conKey, ipValue in connection.items():
                     for ipKey, identValue in ipValue.items():
@@ -224,18 +209,14 @@ class Server:
 
         # Break If Client Lost Connection
         except (KeyError, socket.error, ConnectionResetError) as e:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Iteration Error: {e}')
+            self.logIt_thread(self.log_path, msg=f'Iteration Error: {e}')
             return
 
     def vital_signs(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running vital_signs()...')
+        self.logIt_thread(self.log_path, msg=f'Running vital_signs()...')
 
-        if len(self.targets) == 0:
-            self.logIt_thread(self.log_path, debug=False, msg=f'No connected stations.')
-            print(f"[{colored('*', 'cyan')}]No connected stations.\n")
-            return False
-
-        self.logIt_thread(self.log_path, debug=False, msg=f'Init class: vitals({self.targets, self.ips, self.clients, self.connections, self.log_path})...')
+        self.logIt_thread(self.log_path,
+                          msg=f'Init class: vitals({self.targets, self.ips, self.clients, self.connections, self.log_path})...')
         vitals = Vitals(self.targets, self.ips, self.clients,
                         self.connections, self.log_path, self.ident)
         if vitals.vitals_input():
@@ -243,13 +224,13 @@ class Server:
             return True
 
         else:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Closing vital_signs()...')
+            self.logIt_thread(self.log_path, msg=f'Closing vital_signs()...')
             return False
 
     def show_available_connections(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running show_available_connections()...')
+        self.logIt_thread(self.log_path, msg=f'Running show_available_connections()...')
         if len(self.ips) == 0:
-            self.logIt_thread(self.log_path, debug=False, msg=f'No connected Stations')
+            self.logIt_thread(self.log_path, msg=f'No connected Stations')
             print(f"[{colored('*', 'cyan')}]No connected stations.\n")
             return
 
@@ -257,7 +238,7 @@ class Server:
             print(f"[{colored('*', 'cyan')}] {colored('Available Connections', 'green')} [{colored('*', 'cyan')}]")
             print(f"{colored('=', 'yellow') * 29}")
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'Creating available list...')
+            self.logIt_thread(self.log_path, msg=f'Creating available list...')
             count = 0
             for conKey, ipValue in self.clients.items():
                 for ipKey, identValue in ipValue.items():
@@ -270,9 +251,9 @@ class Server:
                                 self.tmp_availables.append((count, ipKey, identKey, userValue))
                 count += 1
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'Available list created.')
+            self.logIt_thread(self.log_path, msg=f'Available list created.')
 
-            self.logIt_thread(self.log_path, debug=False,
+            self.logIt_thread(self.log_path,
                               msg=f'Extracting: Session | Station IP | Station Name | Logged User from clients list...')
             for item in self.tmp_availables:
                 for conKey, ipValue in self.clients.items():
@@ -284,95 +265,94 @@ class Server:
                                   f"Logged User: {colored(f'{item[3]}', 'green')}")
 
             print(f"\n[{colored('[Q/q]', 'cyan')}]Back")
-            self.logIt_thread(self.log_path, debug=False, msg=f'Extraction completed.')
+            self.logIt_thread(self.log_path, msg=f'Extraction completed.')
             return True
 
         except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
             print(f"[{colored('*', 'red')}]Connection terminated by the client.")
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'Removing connection from available list...')
+            self.logIt_thread(self.log_path, msg=f'Removing connection from available list...')
             self.remove_lost_connection(con, ip)
-            self.logIt_thread(self.log_path, debug=False, msg=f'Available list updated.')
+            self.logIt_thread(self.log_path, msg=f'Available list updated.')
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'=== End of show_available_connections ===')
+            self.logIt_thread(self.log_path, msg=f'=== End of show_available_connections ===')
 
     def get_station_number(self):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running get_station_number()...')
+        self.logIt_thread(self.log_path, msg=f'Running get_station_number()...')
         if len(self.tmp_availables) == 0:
-            self.logIt_thread(self.log_path, debug=False, msg=f'No available connections.')
+            self.logIt_thread(self.log_path, msg=f'No available connections.')
             print(f"[{colored('*', 'cyan')}]No available connections.\n")
             return
 
         tries = 1
         while True:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for station number...')
+            self.logIt_thread(self.log_path, msg=f'Waiting for station number...')
             station_num = input(f"\n@Session #>> ")
-            self.logIt_thread(self.log_path, debug=False, msg=f'Station number: {station_num}')
+            self.logIt_thread(self.log_path, msg=f'Station number: {station_num}')
             if str(station_num).lower() == 'q':
-                self.logIt_thread(self.log_path, debug=False, msg=f'Station number: {station_num} | moving back...')
+                self.logIt_thread(self.log_path, msg=f'Station number: {station_num} | moving back...')
                 return False
 
             try:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Running input validation on {station_num}')
+                self.logIt_thread(self.log_path, msg=f'Running input validation on {station_num}')
                 val = int(station_num)
                 if int(station_num) <= 0 or int(station_num) <= (len(self.tmp_availables)):
                     tarnum = self.targets[int(station_num)]
                     ipnum = self.ips[int(station_num)]
-                    self.logIt_thread(log_path, debug=False, msg=f'=== End of get_station_number() ===')
+                    self.logIt_thread(log_path, msg=f'=== End of get_station_number() ===')
                     return int(station_num), tarnum, ipnum
 
                 else:
-                    self.logIt_thread(log_path, debug=False, msg=f'Wrong input detected.')
+                    self.logIt_thread(log_path, msg=f'Wrong input detected.')
                     print(f"[{colored('*', 'red')}]Wrong Number. Choose between [1 - {len(self.tmp_availables)}].\n"
                           f"[Try {colored(f'{tries}', 'yellow')}/{colored('3', 'yellow')}]")
 
                     if tries == 3:
                         print("U obviously don't know what you're doing. goodbye.")
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Tries: 3 | Ending program...')
+                        self.logIt_thread(self.log_path, msg=f'Tries: 3 | Ending program...')
                         if len(server.targets) > 0:
-                            self.logIt_thread(self.log_path, debug=False, msg=f'Closing live connections...')
+                            self.logIt_thread(self.log_path, msg=f'Closing live connections...')
                             for t in server.targets:
                                 t.send('exit'.encode())
                                 t.shutdown(socket.SHUT_RDWR)
                                 t.close()
 
-                            self.logIt_thread(self.log_path, debug=False, msg=f'Live connections closed.')
+                            self.logIt_thread(self.log_path, msg=f'Live connections closed.')
 
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app...')
+                        self.logIt_thread(self.log_path, msg=f'Exiting app...')
                         sys.exit()
 
                     tries += 1
 
             except (TypeError, ValueError, IndexError):
-                self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                self.logIt_thread(self.log_path, msg=f'Wrong input detected.')
                 print(f"[{colored('*', 'red')}]Numbers only. Choose between [1 - {len(self.tmp_availables)}].\n"
                       f"[Try {colored(f'{tries}', 'yellow')}/{colored('3', 'yellow')}]")
                 if tries == 3:
                     dt = get_date()
                     if len(server.targets) > 0:
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Closing live connections...')
+                        self.logIt_thread(self.log_path, msg=f'Closing live connections...')
                         for t in server.targets:
                             t.send('exit'.encode())
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Live connections closed.')
+                        self.logIt_thread(self.log_path, msg=f'Live connections closed.')
 
                     print("U obviously don't know what you're doing. goodbye.")
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app...')
+                    self.logIt_thread(self.log_path, msg=f'Exiting app...')
                     sys.exit()
 
                 tries += 1
 
     def show_shell_commands(self, ip):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running show_shell_commands()...')
-        self.logIt_thread(self.log_path, debug=False, msg=f'Displaying headline...')
+        self.logIt_thread(self.log_path, msg=f'Running show_shell_commands()...')
+        self.logIt_thread(self.log_path, msg=f'Displaying headline...')
         print("\t\t" + f"{colored('=', 'blue')}" * 20, f"=> {colored('REMOTE CONTROL', 'red')} <=",
               f"{colored('=', 'blue')}" * 20)
 
-        self.logIt_thread(self.log_path, debug=False,
-                          msg=f'Displaying Station IP | Station Name | Logged User in headline...')
+        self.logIt_thread(self.log_path, msg=f'Displaying Station IP | Station Name | Logged User in headline...')
         for conKey, ipValue in self.clients.items():
             for ipKey, userValue in ipValue.items():
                 if ipKey == ip:
@@ -383,7 +363,7 @@ class Server:
 
         print("\t\t" + f"{colored('=', 'yellow')}" * 62 + "\n")
 
-        self.logIt_thread(self.log_path, debug=False, msg=f'Displaying shell commands menu...')
+        self.logIt_thread(self.log_path, msg=f'Displaying shell commands menu...')
         print(f"\t\t[{colored('1', 'cyan')}]Screenshot          \t\t---------------> "
               f"Capture screenshot.")
         print(f"\t\t[{colored('2', 'cyan')}]System Info         \t\t---------------> "
@@ -401,94 +381,92 @@ class Server:
         print(f"\t\t[{colored('8', 'cyan')}]Back                \t\t---------------> "
               f"Back to Control Center \n")
 
-        self.logIt_thread(self.log_path, debug=False, msg=f'=== End of show_shell_commands() ===')
+        self.logIt_thread(self.log_path, msg=f'=== End of show_shell_commands() ===')
 
     def confirm_restart(self, con):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running confirm_restart()...')
+        self.logIt_thread(self.log_path, msg=f'Running confirm_restart()...')
         tries = 0
         while True:
             try:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Running input validation on {self.sure}...')
+                self.logIt_thread(self.log_path, msg=f'Running input validation on {self.sure}...')
                 str(self.sure)
 
             except TypeError:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                self.logIt_thread(self.log_path, msg=f'Wrong input detected.')
                 print(f"[{colored('*', 'red')}]Wrong Input. [({colored('Y/y', 'yellow')}) | "
                       f"({colored('N/n', 'yellow')})]")
 
                 if tries == 3:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Tries: 3')
+                    self.logIt_thread(self.log_path, msg=f'Tries: 3')
                     print("U obviously don't know what you're doing. goodbye.")
                     if len(server.targets) > 0:
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Closing live connections...')
+                        self.logIt_thread(self.log_path, msg=f'Closing live connections...')
                         for t in server.targets:
                             t.send('exit'.encode())
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Live connections closed.')
+                        self.logIt_thread(self.log_path, msg=f'Live connections closed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app with code 1...')
+                    self.logIt_thread(self.log_path, msg=f'Exiting app with code 1...')
                     sys.exit(1)
 
                 tries += 1
 
             if str(self.sure).lower() == "y":
-                self.logIt_thread(self.log_path, debug=False, msg=f'User input: {self.sure} | Returning TRUE...')
+                self.logIt_thread(self.log_path, msg=f'User input: {self.sure} | Returning TRUE...')
                 return True
 
             elif str(self.sure).lower() == "n":
-                self.logIt_thread(self.log_path, debug=False, msg=f'User input: {self.sure} | Returning FALSE...')
+                self.logIt_thread(self.log_path, msg=f'User input: {self.sure} | Returning FALSE...')
                 con.send('n'.encode())
                 break
 
             else:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                self.logIt_thread(self.log_path, msg=f'Wrong input detected.')
                 print(f"[{colored('*', 'red')}]Wrong Input. [({colored('Y/y', 'yellow')}) | "
                       f"({colored('N/n', 'yellow')})]")
 
                 if tries == 3:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Tries: 3')
+                    self.logIt_thread(self.log_path, msg=f'Tries: 3')
                     print("U obviously don't know what you're doing. goodbye.")
                     if len(server.targets) > 0:
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Closing live connections...')
+                        self.logIt_thread(self.log_path, msg=f'Closing live connections...')
                         dt = get_date()
                         for t in server.targets:
                             t.send('exit'.encode())
                             t.shutdown(socket.SHUT_RDWR)
                             t.close()
 
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Live connections closed.')
+                        self.logIt_thread(self.log_path, msg=f'Live connections closed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app with code 1...')
+                    self.logIt_thread(self.log_path, msg=f'Exiting app with code 1...')
                     sys.exit(1)
 
                 tries += 1
 
     def restart(self, con, ip):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running restart({con}, {ip})...')
+        self.logIt_thread(self.log_path, msg=f'Running restart({con}, {ip})...')
         errCount = 3
         self.sure = input("Are you sure you want to restart [Y/n]?")
         if self.confirm_restart(con):
             try:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Sending restart command to client...')
+                self.logIt_thread(self.log_path, msg=f'Sending restart command to client...')
                 con.send('restart'.encode())
                 try:
-                    self.logIt_thread(self.log_path, debug=False,
-                                      msg=f'Calling self.remove_lost_connection({con}, {ip})...')
+                    self.logIt_thread(self.log_path, msg=f'Calling self.remove_lost_connection({con}, {ip})...')
                     self.remove_lost_connection(con, ip)
                     return False
 
                 except RuntimeError as e:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Runtime Error: {e}')
+                    self.logIt_thread(self.log_path, msg=f'Runtime Error: {e}')
                     return False
 
             except (WindowsError, socket.error) as e:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+                self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
                 print(f"[{colored('!', 'red')}]Client lost connection.")
 
-                self.logIt_thread(self.log_path, debug=False,
-                                  msg=f'Calling self.remove_lost_connection({con}, {ip})...')
+                self.logIt_thread(self.log_path, msg=f'Calling self.remove_lost_connection({con}, {ip})...')
                 self.remove_lost_connection(con, ip)
 
         else:
@@ -503,142 +481,138 @@ class Server:
         return res
 
     def shell(self, con, ip):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running shell({con}, {ip})...')
+        self.logIt_thread(self.log_path, msg=f'Running shell({con}, {ip})...')
         errCount = 0
         while True:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Calling self.show_shell_commands({ip})...')
+            self.logIt_thread(self.log_path, msg=f'Calling self.show_shell_commands({ip})...')
             self.show_shell_commands(ip)
 
             # Wait for User Input
-            self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
+            self.logIt_thread(self.log_path, msg=f'Waiting for user input...')
             cmd = input(f"COMMAND@{ip}> ")
 
             # Input Validation
             try:
-                self.logIt_thread(self.log_path, debug=False,
-                                  msg=f'Performing input validation on user input: {cmd}...')
+                self.logIt_thread(self.log_path, msg=f'Performing input validation on user input: {cmd}...')
                 val = int(cmd)
 
             except (TypeError, ValueError):
-                self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                self.logIt_thread(self.log_path, msg=f'Wrong input detected.')
                 print(f"[{colored('*', 'red')}]Numbers Only [{colored('1', 'yellow')} - {colored('8', 'yellow')}]!")
                 errCount += 1
                 if errCount == 3:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Tries: 3')
+                    self.logIt_thread(self.log_path, msg=f'Tries: 3')
                     print("U obviously don't know what you're doing. goodbye.")
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending exit command to {ip}...')
+                    self.logIt_thread(self.log_path, msg=f'Sending exit command to {ip}...')
                     con.send("exit".encode())
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send Completed.')
+                    self.logIt_thread(self.log_path, msg=f'Send Completed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Closing connections...')
+                    self.logIt_thread(self.log_path, msg=f'Closing connections...')
                     con.shutdown(socket.SHUT_RDWR)
                     con.close()
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Connections closed.')
+                    self.logIt_thread(self.log_path, msg=f'Connections closed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app with code 1...')
+                    self.logIt_thread(self.log_path, msg=f'Exiting app with code 1...')
                     sys.exit(1)
 
                 continue
 
             # Run Custom Command
             if int(cmd) == 100:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Command: 100')
+                self.logIt_thread(self.log_path, msg=f'Command: 100')
                 try:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send freestyle command...')
+                    self.logIt_thread(self.log_path, msg=f'Send freestyle command...')
                     con.send("freestyle".encode())
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send Completed.')
+                    self.logIt_thread(self.log_path, msg=f'Send Completed.')
 
                 except (WindowsError, socket.error) as e:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+                    self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
                     break
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Initializing Freestyle Module...')
+                self.logIt_thread(self.log_path, msg=f'Initializing Freestyle Module...')
                 free = Freestyle(con, path, self.tmp_availables, self.clients, self.targets, log_path)
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Calling freestyle module...')
+                self.logIt_thread(self.log_path, msg=f'Calling freestyle module...')
                 free.freestyle()
 
                 continue
 
             # Create INT Zone Condition
-            self.logIt_thread(self.log_path, debug=False, msg=f'Creating user input zone from 1-8...')
+            self.logIt_thread(self.log_path, msg=f'Creating user input zone from 1-8...')
             if int(cmd) <= 0 or int(cmd) > 8:
                 errCount += 1
                 if errCount == 3:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Tries: 3')
+                    self.logIt_thread(self.log_path, msg=f'Tries: 3')
                     print("U obviously don't know what you're doing. goodbye.")
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending exit command to {ip}...')
+                    self.logIt_thread(self.log_path, msg=f'Sending exit command to {ip}...')
                     con.send("exit".encode())
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send Completed.')
+                    self.logIt_thread(self.log_path, msg=f'Send Completed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Closing connections...')
+                    self.logIt_thread(self.log_path, msg=f'Closing connections...')
                     con.close()
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Connections closed.')
+                    self.logIt_thread(self.log_path, msg=f'Connections closed.')
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Exiting app with code 1...')
+                    self.logIt_thread(self.log_path, msg=f'Exiting app with code 1...')
                     sys.exit(1)
 
-                self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                self.logIt_thread(self.log_path, msg=f'Wrong input detected.')
                 print(f"[{colored('*', 'red')}]{cmd} not in the menu."
                       f"[try {colored(errCount, 'yellow')} of {colored('3', 'yellow')}]\n")
 
             # Screenshot
             if int(cmd) == 1:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Running screenshot condition...')
+                self.logIt_thread(self.log_path, msg=f'Running screenshot condition...')
                 errCount = 0
                 if len(self.targets) == 0:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'No available connections.')
+                    self.logIt_thread(self.log_path, msg=f'No available connections.')
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
                 try:
                     print(f"[{colored('*', 'cyan')}]Fetching screenshot...")
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending screen command to client...')
+                    self.logIt_thread(self.log_path, msg=f'Sending screen command to client...')
                     con.send('screen'.encode())
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send Completed.')
+                    self.logIt_thread(self.log_path, msg=f'Send Completed.')
 
-                    self.logIt_thread(self.log_path, debug=False,
-                                      msg=f'Calling Module: '
-                                          f'screenshot({con, path, self.tmp_availables, self.clients})...')
+                    self.logIt_thread(self.log_path, msg=f'Calling Module: '
+                                                         f'screenshot({con, path, self.tmp_availables, self.clients})...')
                     screenshot = Screenshot(con, path, self.tmp_availables, self.clients, self.log_path)
 
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Calling screenshot.recv_file()...')
+                    self.logIt_thread(self.log_path, msg=f'Calling screenshot.recv_file()...')
                     screenshot.recv_file()
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Connection Error: {e}')
+                    self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
                     print(f"[{colored('!', 'red')}]Client lost connection.")
 
-                    self.logIt_thread(self.log_path, debug=False,
-                                      msg=f'Calling self.remove_lost_connection({con}, {ip}...)')
+                    self.logIt_thread(self.log_path, msg=f'Calling self.remove_lost_connection({con}, {ip}...)')
                     self.remove_lost_connection(con, ip)
                     break
 
             # System Information
             elif int(cmd) == 2:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Running system information condition...')
+                self.logIt_thread(self.log_path, msg=f'Running system information condition...')
                 errCount = 0
                 if len(self.targets) == 0:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'No available connections.')
+                    self.logIt_thread(self.log_path, msg=f'No available connections.')
                     print(f"[{colored('*', 'red')}]No connected stations.")
                     break
 
                 try:
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Initializing Module: sysinfo...')
+                    self.logIt_thread(self.log_path, msg=f'Initializing Module: sysinfo...')
                     sysinfo = Sysinfo(con, self.ttl, path, self.tmp_availables, self.clients, self.log_path)
 
                     print(f"[{colored('*', 'cyan')}]Fetching system information, please wait... ")
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Calling sysinfo.run()...')
+                    self.logIt_thread(self.log_path, msg=f'Calling sysinfo.run()...')
                     sysinfo.recv_file(text=True)
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
                     self.logIt_thread(self.log_path, debug=True, msg=f'Connection Error: {e}.')
                     # print(f"[{colored('!', 'red')}]Client lost connection.")
                     try:
-                        self.logIt_thread(self.log_path, debug=False,
-                                          msg=f'Calling self.remove_lost_connection({con}, {ip})...')
+                        self.logIt_thread(self.log_path, msg=f'Calling self.remove_lost_connection({con}, {ip})...')
                         self.remove_lost_connection(con, ip)
                         return
 
@@ -779,9 +753,9 @@ class Server:
         return
 
     def remove_lost_connection(self, con, ip):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running remove_lost_connection({con}, {ip})...')
+        self.logIt_thread(self.log_path, msg=f'Running remove_lost_connection({con}, {ip})...')
         try:
-            self.logIt_thread(self.log_path, debug=False, msg=f'Removing connections...')
+            self.logIt_thread(self.log_path, msg=f'Removing connections...')
             for conKey, ipValue in self.clients.items():
                 if conKey == con:
                     for ipKey, identValue in ipValue.items():
@@ -797,36 +771,12 @@ class Server:
                                       f"{colored(f'{userValue}', 'yellow')} "
                                       f"Removed from Availables list.\n")
 
-            self.logIt_thread(self.log_path, debug=False, msg=f'Connections removed.')
+            self.logIt_thread(self.log_path, msg=f'Connections removed.')
             return True
 
         except RuntimeError as e:
-            self.logIt_thread(self.log_path, debug=True, msg=f'Runtime Error: {e}.')
+            self.logIt_thread(self.log_path, msg=f'Runtime Error: {e}.')
             return False
-
-
-def headline():
-    server.logIt_thread(log_path, debug=False, msg=f'Running headline()...')
-    print(f"\t\t\t\t{colored('==+-+-+-+-+-+-++-0-+-+-0++-+-+-+-+-+-+-+-+-++', 'red')}\n"
-          f"\t\t\t\t{colored('|W|e|l|c|o|m|e', 'yellow')} {colored('|0|T|o|0|', 'green')} "
-          f"{colored('M|e|k|i|f|A|d|m|i|n', 'yellow')}\n"
-          f"\t\t\t\t{colored('==+-+-+-+-+-+-++-0-+-+-0++-+-+-+-+-+-+-+-+-++', 'red')}")
-    print(f""
-          f"\t\t\t\t{colored('By Gil Shwartz', 'green')} {colored('@2022', 'yellow')}\n")
-    print(f"\t\t({colored('1', 'yellow')})Remote Control          ---------------> "
-          f"Show Remote Commands")
-    print(f"\t\t({colored('2', 'yellow')})Connection History      ---------------> "
-          f"Show connection history.")
-    print(f"\t\t({colored('3', 'yellow')})Show Connected Stations ---------------> "
-          f"Display Current connected stations")
-    print(f"\t\t({colored('4', 'yellow')})CLS                     ---------------> "
-          f"Clear Local Screen")
-    print(f"\t\t({colored('5', 'yellow')})Server Info             ---------------> "
-          f"Show Server Information")
-    print(f"\n\t\t({colored('6', 'red')})Exit                    ---------------> "
-          f"Close connections and exit program.\n")
-
-    server.logIt_thread(log_path, debug=False, msg=f'=== End of headline() ===')
 
 
 def get_date():
@@ -837,49 +787,74 @@ def get_date():
 
 
 def main():
+    def headline():
+        server.logIt_thread(log_path, debug=False, msg=f'Running headline()...')
+        print(f"\t\t\t\t{colored('==+-+-+-+-+-+-++-0-+-+-0++-+-+-+-+-+-+-+-+-++', 'red')}\n"
+              f"\t\t\t\t{colored('|W|e|l|c|o|m|e', 'yellow')} {colored('|0|T|o|0|', 'green')} "
+              f"{colored('M|e|k|i|f|A|d|m|i|n', 'yellow')}\n"
+              f"\t\t\t\t{colored('==+-+-+-+-+-+-++-0-+-+-0++-+-+-+-+-+-+-+-+-++', 'red')}")
+        print(f""
+              f"\t\t\t\t{colored('By Gil Shwartz', 'green')} {colored('@2022', 'yellow')}\n")
+        print(f"\t\t({colored('1', 'yellow')})Remote Control          ---------------> "
+              f"Show Remote Commands")
+        print(f"\t\t({colored('2', 'yellow')})Connection History      ---------------> "
+              f"Show connection history.")
+        print(f"\t\t({colored('3', 'yellow')})Show Connected Stations ---------------> "
+              f"Display Current connected stations")
+        print(f"\t\t({colored('4', 'yellow')})CLS                     ---------------> "
+              f"Clear Local Screen")
+        print(f"\t\t({colored('5', 'yellow')})Server Info             ---------------> "
+              f"Show Server Information")
+        print(f"\t\t({colored('6', 'yellow')})Start FTP               ---------------> "
+              f"Start FTP server for client updates")
+        print(f"\n\t\t({colored('7', 'red')})Exit                     ---------------> "
+              f"Close connections and exit program.\n")
+
+        server.logIt_thread(log_path, debug=False, msg=f'=== End of headline() ===')
+
     def validate():
         while True:
-            server.logIt_thread(log_path, debug=False, msg=f'Waiting for user input...')
+            server.logIt_thread(log_path, msg=f'Waiting for user input...')
             command = input("CONTROL@> ")
-            server.logIt_thread(log_path, debug=False, msg=f'User input: {command}.')
+            server.logIt_thread(log_path, msg=f'User input: {command}.')
 
             try:
-                server.logIt_thread(log_path, debug=False, msg=f'Performing input validation on {command}...')
+                server.logIt_thread(log_path, msg=f'Performing input validation on {command}...')
                 int(command)
 
                 return command
 
             except ValueError:
-                server.logIt_thread(log_path, debug=False, msg=f'Wrong input detected.')
+                server.logIt_thread(log_path, msg=f'Wrong input detected.')
                 print(
                     f"[{colored('*', 'red')}]Numbers only. Choose between "
                     f"[{colored('1', 'yellow')} - {colored('5', 'yellow')}].\n")
 
     def remote_shell():
-        server.logIt_thread(log_path, debug=False, msg=f'Running remote shell commands condition...')
+        server.logIt_thread(log_path, msg=f'Running remote shell commands condition...')
         if len(server.clients) != 0:
             print(f"{colored('=', 'blue')}=>{colored('Remote Shell', 'red')}<={colored('=', 'blue')}")
 
             # Show Available Connections
-            server.logIt_thread(log_path, debug=False, msg=f'Calling server.show_available_connections()...')
+            server.logIt_thread(log_path, msg=f'Calling server.show_available_connections()...')
             server.show_available_connections()
 
             # Get Number from User and start Remote Shell
-            server.logIt_thread(log_path, debug=False, msg=f'Calling server.get_station_number()...')
+            server.logIt_thread(log_path, msg=f'Calling server.get_station_number()...')
             station = server.get_station_number()
             if station:
-                server.logIt_thread(log_path, debug=False, msg=f'Calling server.shell({station[1]}, {station[2]})...')
+                server.logIt_thread(log_path, msg=f'Calling server.shell({station[1]}, {station[2]})...')
                 server.shell(station[1], station[2])
                 return
 
         else:
-            server.logIt_thread(log_path, debug=False, msg=f'No available connections.')
+            server.logIt_thread(log_path, msg=f'No available connections.')
             print(f"[{colored('*', 'cyan')}]No available connections.")
 
         return
 
     def choices():
-        server.logIt_thread(log_path, debug=False, msg=f'Validating input number is in the menu...')
+        server.logIt_thread(log_path, msg=f'Validating input number is in the menu...')
         if int(command) <= 0 or int(command) > 6:
             print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('5', 'yellow')}]!")
             return False
@@ -890,23 +865,29 @@ def main():
 
         # Connection History
         elif int(command) == 2:
-            server.logIt_thread(log_path, debug=False, msg=f'Calling server.connection_history()...')
+            server.logIt_thread(log_path, msg=f'Check if connection history list is empty...')
+            if len(server.connHistory) == 0:
+                server.logIt_thread(log_path, msg=f'List is empty.')
+                print(f"[{colored('*', 'cyan')}]List is empty.")
+                return False
+
+            server.logIt_thread(log_path, msg=f'Calling server.connection_history()...')
             server.connection_history()
             return
 
         # Vital Signs - Show Connected Stations
         elif int(command) == 3:
-            server.logIt_thread(log_path, debug=False, msg=f'Running show connected stations condition...')
+            server.logIt_thread(log_path, msg=f'Running show connected stations condition...')
             if len(server.ips) == 0:
-                server.logIt_thread(log_path, debug=False, msg=f'No available connections.')
-                print(f"[{colored('*', 'yellow')}]No connected stations.")
+                server.logIt_thread(log_path, msg=f'No available connections.')
+                print(f"[{colored('*', 'cyan')}]No connected stations.")
                 return
 
             print(f"{colored('=', 'blue')}=>{colored('Vital Signs', 'red')}<={colored('=', 'blue')}")
             print(f"[{colored('1', 'green')}]Start | "
                   f"[{colored('2', 'cyan')}]Back\n")
 
-            server.logIt_thread(log_path, debug=False, msg=f'Calling server.vital_signs()...')
+            server.logIt_thread(log_path, msg=f'Calling server.vital_signs()...')
             server.vital_signs()
 
         # Clear Screen
@@ -924,8 +905,16 @@ def main():
                   f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}")
             print(f"[{colored('*', 'cyan')}]Connected Stations: {len(server.clients)}\n")
 
-        # Exit Program
+        # Start FTP server
         elif int(command) == 6:
+            server.logIt_thread(log_path, debug=False, msg=f'Starting FTP Threaded server on {serverIP}:2121...')
+            ftpThread = Thread(target=ftp_server.ftp, args=(f'{serverIP}', 2121), name="FTP Thread")
+            ftpThread.daemon = True
+            ftpThread.start()
+            server.logIt_thread(log_path, debug=False, msg=f'FTP Server Running...')
+
+        # Exit Program
+        elif int(command) == 7:
             server.logIt_thread(log_path, debug=False, msg=f'User input: 6 | Exiting app...')
 
             if len(server.targets) > 0:
@@ -951,15 +940,15 @@ def main():
 
         return
 
-    server.logIt_thread(log_path, debug=False, msg=f'Running main()...')
-    server.logIt_thread(log_path, debug=False, msg=f'Calling headline()...')
+    server.logIt_thread(log_path, msg=f'Running main()...')
+    server.logIt_thread(log_path, msg=f'Calling headline()...')
     headline()
 
-    server.logIt_thread(log_path, debug=False, msg=f'Calling validate()...')
+    server.logIt_thread(log_path, msg=f'Calling validate()...')
     command = validate()
-    server.logIt_thread(log_path, debug=False, msg=f'Validated command: {command}')
+    server.logIt_thread(log_path, msg=f'Validated command: {command}')
 
-    server.logIt_thread(log_path, debug=False, msg=f'Calling choices()...')
+    server.logIt_thread(log_path, msg=f'Calling choices()...')
     choices()
 
 
@@ -968,17 +957,17 @@ if __name__ == '__main__':
     ttl = 5
     hostname = socket.gethostname()
     serverIP = str(socket.gethostbyname(hostname))
-    path = r'c:\MekifRemoteAdmin'
-    log_path = r'c:\MekifRemoteAdmin\server_log.txt'
+    path = r'c:\Peach'
+    log_path = fr'{path}\server_log.txt'
 
     # Run User Validation
     # validation.validation()
 
     # Initialize Server Class
     server = Server(serverIP, port, ttl, path, log_path)
-    server.logIt_thread(log_path, debug=False, msg=f'Server class initiated!')
+    server.logIt_thread(log_path, msg=f'Server class initiated!')
 
-    server.logIt_thread(log_path, debug=False, msg=f'Calling server.run()...')
+    server.logIt_thread(log_path, msg=f'Calling server.run()...')
     server.run()
 
     while True:
