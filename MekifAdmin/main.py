@@ -15,7 +15,8 @@ from Modules.sysinfo import Sysinfo
 from Modules.freestyle import Freestyle
 from Modules import ftp_server
 
-# TODO: Finish logger + Add client version to show_available_connections()
+# TODO: DONE: Add client version
+# TODO: Finish logger
 
 init()
 

@@ -11,6 +11,7 @@ import time
 import sys
 import os
 
+# TODO: DONE: Added client version
 # TODO: Install Anydesk Silent Mode
 
 
@@ -748,6 +749,10 @@ class Client:
                         try:
                             self.logIt_thread(log_path, msg='Answer yes to server')
                             soc.send('yes'.encode())
+                            self.logIt_thread(log_path, msg=f'Send completed.')
+
+                            self.logIt_thread(log_path, msg='Sending client version to server...')
+                            soc.send(client_version.encode())
                             self.logIt_thread(log_path, msg=f'Send completed.')
 
                         except socket.error:
