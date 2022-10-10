@@ -5,7 +5,7 @@ import socket
 import time
 import os
 
-# TODO: DONE: Finished Logger
+# TODO: DONE: Finished Logger + Recv client version
 
 
 class Vitals:
@@ -134,15 +134,19 @@ class Vitals:
             try:
                 self.logIt_thread(self.log_path, msg=f'Sending "alive" to {t}...')
                 t.send('alive'.encode())
-                self.logIt_thread(self.log_path, msg=f'Sending completed.')
+                self.logIt_thread(self.log_path, msg=f'Send completed.')
 
                 self.logIt_thread(self.log_path, msg=f'Waiting for response from {t}...')
                 ans = t.recv(1024).decode()
                 self.logIt_thread(self.log_path, msg=f'Response from {t}: {ans}.')
 
+                self.logIt_thread(self.log_path, msg=f'Waiting for client version from {t}...')
+                ver = t.recv(1024).decode()
+                self.logIt_thread(self.log_path, msg=f'Response from {t}: {ver}.')
+
                 self.logIt_thread(self.log_path, msg=f'Comparing response to callback...')
                 if str(ans) == str(callback):
-                    print(f"[{colored('V', 'green')}]{self.ips[i]} | {self.ident}")
+                    print(f"[{colored('V', 'green')}]{self.ips[i]} | {self.ident} | Version: {ver}")
                     self.logIt_thread(self.log_path, msg=f'Appending {self.targets[i]} to self.templist...')
                     self.templist.append(self.targets[i])
                     self.logIt_thread(self.log_path, msg=f'self.templist updated.')
