@@ -667,6 +667,9 @@ class Client:
                     self.logIt_thread(log_path, msg=f'Sending hostname: {self.hostname}...')
                     soc.send(ident.encode())
                     self.logIt_thread(log_path, msg=f'Send completed.')
+                    self.logIt_thread(log_path, msg='Waiting for confirmation from server...')
+                    message = soc.recv(self.buffer_size).decode()
+                    self.logIt_thread(log_path, msg=f'Message from server: {message}')
 
                 except (WindowsError, socket.error):
                     self.logIt_thread(log_path, msg='Connection Error')
@@ -678,8 +681,23 @@ class Client:
                     self.logIt_thread(log_path, msg=f'Sending current user: {user}...')
                     soc.send(user.encode())
                     self.logIt_thread(log_path, msg=f'Send completed.')
+                    self.logIt_thread(log_path, msg='Waiting for confirmation from server...')
+                    message = soc.recv(self.buffer_size).decode()
+                    self.logIt_thread(log_path, msg=f'Message from server: {message}')
 
                 except (WindowsError, socket.error):
+                    return False
+
+            def send_client_version():
+                try:
+                    self.logIt_thread(log_path, msg=f'Sending client version: {client_version}...')
+                    soc.send(client_version.encode())
+                    self.logIt_thread(log_path, msg=f'Send completed.')
+                    self.logIt_thread(log_path, msg='Waiting for confirmation from server...')
+                    message = soc.recv(self.buffer_size).decode()
+                    self.logIt_thread(log_path, msg=f'Message from server: {message}')
+
+                except (socket.error, WindowsError) as e:
                     return False
 
             def confirm():
@@ -696,8 +714,10 @@ class Client:
             send_host_name()
             self.logIt_thread(log_path, msg='Calling send_current_user()...')
             send_current_user()
-            self.logIt_thread(log_path, msg='Calling confirm()...')
-            confirm()
+            self.logIt_thread(log_path, msg='Calling send_client_version()...')
+            send_client_version()
+            # self.logIt_thread(log_path, msg='Calling confirm()...')
+            # confirm()
 
         def main_menu():
             self.logIt_thread(log_path, msg='Starting main menu...')
@@ -718,12 +738,12 @@ class Client:
                         break
 
                     # Freestyle
-                    if str(command).lower() == "freestyle":
+                    if str(command.lower())[:9] == "freestyle":
                         self.logIt_thread(log_path, msg='Calling freestyle...')
                         self.free_style()
 
                     # Vital Signs
-                    if str(command).lower() == "alive":
+                    if str(command.lower())[:5] == "alive":
                         self.logIt_thread(log_path, msg='Calling Vital Signs...')
                         try:
                             self.logIt_thread(log_path, msg='Answer yes to server')
@@ -734,17 +754,17 @@ class Client:
                             break
 
                     # Capture Screenshot
-                    elif str(command.lower()[:6]) == "screen":
+                    elif str(command.lower())[:6] == "screen":
                         self.logIt_thread(log_path, msg='Calling screenshot...')
                         self.screenshot()
 
                     # Get System Information & Users
-                    elif str(command.lower()[:2]) == "si":
+                    elif str(command.lower())[:2] == "si":
                         self.logIt_thread(log_path, msg='Calling system information...')
                         self.system_information()
 
                     # Get Last Restart Time
-                    elif str(command).lower()[:2] == "lr":
+                    elif str(command.lower())[:2] == "lr":
                         self.logIt_thread(log_path, msg='Fetching last restart time...')
                         last_reboot = psutil.boot_time()
                         try:
@@ -759,7 +779,7 @@ class Client:
                             break
 
                     # Get Current Logged-on User
-                    elif str(command).lower()[:4] == "user":
+                    elif str(command.lower())[:4] == "user":
                         try:
                             self.logIt_thread(log_path, msg=f'Sending current logged user: {self.current_user}...')
                             soc.send(f"{self.hostname} | {self.localIP}: Current User: {self.current_user}.\n".encode())
@@ -770,23 +790,28 @@ class Client:
                             break
 
                     # Run Anydesk
-                    elif str(command.lower()[:7]) == "anydesk":
+                    elif str(command.lower())[:7] == "anydesk":
                         self.logIt_thread(log_path, msg='Calling anydesk()...')
                         self.anydesk()
                         continue
 
                     # Task List
-                    elif (str(command.lower())[:5]) == "tasks":
+                    elif str(command.lower())[:5] == "tasks":
                         self.logIt_thread(log_path, msg='Calling tasks()...')
                         self.tasks()
 
                     # Restart Machine
-                    elif str(command.lower()[:7]) == "restart":
+                    elif str(command.lower())[:7] == "restart":
                         self.logIt_thread(log_path, msg='Restarting local station...')
                         os.system('shutdown /r /t 1')
 
+                    # Run Updater
+                    elif str(command.lower())[:6] == "update":
+                        soc.send('update command received'.encode())
+                        pass
+
                     # Close Connection
-                    elif str(command.lower()[:4]) == "exit":
+                    elif str(command.lower())[:4] == "exit":
                         self.logIt_thread(log_path, msg='Server closed the connection.')
                         soc.settimeout(1)
                         sys.exit(0)     # CI CD
@@ -822,7 +847,7 @@ class Client:
             except FileExistsError:
                 pass
 
-    def logIt_thread(self, log_path=None, debug=True, msg=''):
+    def logIt_thread(self, log_path=None, debug=False, msg=''):
         self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
         self.logit_thread.start()
         self.threads.append(self.logit_thread)
@@ -849,14 +874,14 @@ if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
     powershell = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-    mekif_path = r'c:\MekifRemoteAdmin'
-    log_path = r'c:\MekifRemoteAdmin\client_log.txt'
+    app_path = r'c:\Peach'
+    log_path = fr'{app_path}\client_log.txt'
     servers = [('192.168.1.10', 55400)]
 
     # Start Client
     while True:
         for server in servers:
-            client = Client(server, mekif_path, log_path)
+            client = Client(server, app_path, log_path)
 
             try:
                 client.logIt_thread(log_path, msg='Creating Socket...')

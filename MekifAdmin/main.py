@@ -15,7 +15,7 @@ from Modules.sysinfo import Sysinfo
 from Modules.freestyle import Freestyle
 from Modules import ftp_server
 
-# TODO: Finish logger
+# TODO: Finish logger + Add client version to show_available_connections()
 
 init()
 
@@ -97,11 +97,25 @@ class Server:
                 self.logIt_thread(self.log_path, msg=f'Waiting for remote station name...')
                 self.ident = self.conn.recv(1024).decode()
                 self.logIt_thread(self.log_path, msg=f'Remote station name: {self.ident}')
+                self.logIt_thread(self.log_path, msg=f'Sending Confirmation to {self.ip}...')
+                self.conn.send('OK'.encode())
+                self.logIt_thread(self.log_path, msg=f'Send completed.')
 
-                # Get Current User:
+                # Get Current User
                 self.logIt_thread(self.log_path, msg=f'Waiting for remote station current logged user...')
                 self.user = self.conn.recv(1024).decode()
                 self.logIt_thread(self.log_path, msg=f'Remote station user: {self.user}')
+                self.logIt_thread(self.log_path, msg=f'Sending Confirmation to {self.ip}...')
+                self.conn.send('OK'.encode())
+                self.logIt_thread(self.log_path, msg=f'Send completed.')
+
+                # Get Client Version
+                self.logIt_thread(self.log_path, msg=f'Waiting for client version...')
+                self.client_version = self.conn.recv(1024).decode()
+                self.logIt_thread(self.log_path, msg=f'Client version: {self.client_version}')
+                self.logIt_thread(self.log_path, msg=f'Sending Confirmation to {self.ip}...')
+                self.conn.send('OK'.encode())
+                self.logIt_thread(self.log_path, msg=f'Send completed.')
 
             except (WindowsError, socket.error) as e:
                 self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
@@ -133,7 +147,7 @@ class Server:
 
                 # Set Temp Idents Dict For Idents
                 self.logIt_thread(self.log_path, msg=f'Creating dict to hold ident details...')
-                self.temp_ident = {self.conn: {self.ip: {self.ident: self.user}}}
+                self.temp_ident = {self.conn: {self.ip: {self.ident: {self.user: self.client_version}}}}
                 self.logIt_thread(self.log_path, msg=f'Dict created: {self.temp_ident}')
 
                 # Add Temp Idents Dict To Idents Dict
@@ -203,7 +217,7 @@ class Server:
                                     f"[{colored(str(c), 'green')}]{colored('IP', 'cyan')}: {ipKey} | "
                                     f"{colored('Station Name', 'cyan')}: {identKey} | "
                                     f"{colored('User', 'cyan')}: {userKey} | "
-                                    f"{colored('Time', 'cyan')}: {timeValue}")
+                                    f"{colored('Time', 'cyan')}: {str(timeValue).replace('|', ':')}")
                     c += 1
             return
 
@@ -245,10 +259,11 @@ class Server:
                     for con, ip in self.connections.items():
                         if ip == ipKey:
                             for identKey, userValue in identValue.items():
-                                if (count, ipKey, identKey, userValue) in self.tmp_availables:
-                                    continue
+                                for userV, clientVer in userValue.items():
+                                    if (count, ipKey, identKey, userValue) in self.tmp_availables:
+                                        continue
 
-                                self.tmp_availables.append((count, ipKey, identKey, userValue))
+                                self.tmp_availables.append((count, ipKey, identKey, userV, clientVer))
                 count += 1
 
             self.logIt_thread(self.log_path, msg=f'Available list created.')
@@ -259,10 +274,16 @@ class Server:
                 for conKey, ipValue in self.clients.items():
                     for ipKey in ipValue.keys():
                         if item[1] == ipKey:
-                            print(f"Session [{colored(f'{item[0]}', 'cyan')}] | "
-                                  f"Station IP: {colored(f'{item[1]}', 'green')} | "
-                                  f"Station Name: {colored(f'{item[2]}', 'green')} | "
-                                  f"Logged User: {colored(f'{item[3]}', 'green')}")
+                            session = item[0]
+                            stationIP = item[1]
+                            stationName = item[2]
+                            loggedUser = item[3]
+                            clientVersion = item[4]
+                            print(f"Session [{colored(f'{session}', 'cyan')}] | "
+                                  f"Station IP: {colored(f'{stationIP}', 'green')} | "
+                                  f"Station Name: {colored(f'{stationName}', 'green')} | "
+                                  f"Logged User: {colored(f'{loggedUser}', 'green')} | "
+                                  f"Client Version: {colored(clientVersion, 'green')}")
 
             print(f"\n[{colored('[Q/q]', 'cyan')}]Back")
             self.logIt_thread(self.log_path, msg=f'Extraction completed.')
@@ -356,10 +377,15 @@ class Server:
         for conKey, ipValue in self.clients.items():
             for ipKey, userValue in ipValue.items():
                 if ipKey == ip:
-                    for identKey, timeValue in userValue.items():
-                        print("\t\t" + f"Station IP: {colored(f'{ipKey}', 'green')} | "
-                                       f"Station Name: {colored(f'{identKey}', 'green')} | "
-                                       f"Logged User: {colored(f'{timeValue}', 'green')}")
+                    for item in self.tmp_availables:
+                        if item[1] == ip:
+                            for identKey, timeValue in userValue.items():
+                                loggedUser = item[3]
+                                clientVersion = item[4]
+                                print("\t" + f"IP: {colored(f'{ipKey}', 'green')} | "
+                                             f"Station Name: {colored(f'{identKey}', 'green')} | "
+                                             f"Logged User: {colored(f'{loggedUser}', 'green')} | "
+                                             f"Client Version: {colored(clientVersion, 'green')}")
 
         print("\t\t" + f"{colored('=', 'yellow')}" * 62 + "\n")
 
@@ -805,8 +831,8 @@ def main():
               f"Clear Local Screen")
         print(f"\t\t({colored('5', 'yellow')})Server Info             ---------------> "
               f"Show Server Information")
-        print(f"\t\t({colored('6', 'yellow')})Start FTP               ---------------> "
-              f"Start FTP server for client updates")
+        print(f"\t\t({colored('6', 'yellow')})Update clients          ---------------> "
+              f"Send an update command to connected clients")
         print(f"\n\t\t({colored('7', 'red')})Exit                     ---------------> "
               f"Close connections and exit program.\n")
 
@@ -855,8 +881,8 @@ def main():
 
     def choices():
         server.logIt_thread(log_path, msg=f'Validating input number is in the menu...')
-        if int(command) <= 0 or int(command) > 6:
-            print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('5', 'yellow')}]!")
+        if int(command) <= 0 or int(command) > 7:
+            print(f"[{colored('*', 'red')}]Wrong Number. [{colored('1', 'yellow')} - {colored('7', 'yellow')}]!")
             return False
 
         # Remote Shell Commands
@@ -905,13 +931,25 @@ def main():
                   f"{datetime.fromtimestamp(last_reboot).replace(microsecond=0)}")
             print(f"[{colored('*', 'cyan')}]Connected Stations: {len(server.clients)}\n")
 
-        # Start FTP server
+        # Send Update command
         elif int(command) == 6:
-            server.logIt_thread(log_path, debug=False, msg=f'Starting FTP Threaded server on {serverIP}:2121...')
-            ftpThread = Thread(target=ftp_server.ftp, args=(f'{serverIP}', 2121), name="FTP Thread")
-            ftpThread.daemon = True
-            ftpThread.start()
-            server.logIt_thread(log_path, debug=False, msg=f'FTP Server Running...')
+            if len(server.targets) == 0:
+                print(f"[{colored('*', 'cyan')}]No connected stations.")
+                return False
+
+            for client, ip in zip(server.targets, server.ips):
+                server.logIt_thread(log_path, debug=False, msg=f'Sending update command to {ip}...')
+                client.send('update'.encode())
+                server.logIt_thread(log_path, debug=False, msg=f'Update command sent.')
+                server.logIt_thread(log_path, debug=False, msg=f'Waiting for response from {ip}...')
+                msg = client.recv(1024).decode()
+                server.logIt_thread(log_path, debug=True, msg=f'Response from {ip}: {msg}')
+
+            # server.logIt_thread(log_path, debug=False, msg=f'Starting FTP Threaded server on {serverIP}:2121...')
+            # ftpThread = Thread(target=ftp_server.ftp, args=(f'{serverIP}', 2121), name="FTP Thread")
+            # ftpThread.daemon = True
+            # ftpThread.start()
+            # server.logIt_thread(log_path, debug=False, msg=f'FTP Server Running...')
 
         # Exit Program
         elif int(command) == 7:
