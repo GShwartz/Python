@@ -34,10 +34,15 @@ Write-Host "Creating Dir Peach..."
 New-Item -ItemType Directory -Force -Path "C:\Peach"
 
 # Copy client to folder
-Write-Host "Copying files... "
-Copy-Item -Path "$PSScriptRoot\client.exe" "c:\Peach\client.exe" -Force 
+Write-Host "Copying client.exe to c:\peach\... "
+Copy-Item -Path "$PSScriptRoot\client.exe" "c:\Peach\client.exe" -Force
+Write-Host "Copying peach.png to c:\peach\... " 
 Copy-Item -Path "$PSScriptRoot\peach.png" "c:\Peach" -Force 
+Write-Host "Copying run.vbs to c:\peach\... "
 Copy-Item -Path "$PSScriptRoot\run.vbs" "c:\Peach" -Force 
+Write-Host "Copying updater.exe to c:\peach\... "
+Copy-Item -Path "$PSScriptRoot\updater.exe" "c:\Peach" -Force 
+Write-Host "Copying run.bat to startup folder... "
 Copy-Item -Path "$PSScriptRoot\run.bat" "$startup_path" -Force
 
 # Create Defender Exclusion for EXE File

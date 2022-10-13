@@ -144,7 +144,7 @@ class Client:
         def confirm():
             try:
                 self.logIt_thread(log_path, msg=f'Sending confirmation...')
-                soc.send('***'.encode())
+                # soc.send('***'.encode())
                 time.sleep(0.3)
                 soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
                 self.logIt_thread(log_path, msg=f'Send Completed.')
@@ -822,7 +822,7 @@ class Client:
                         self.logIt_thread(log_path, msg='Server closed the connection.')
                         soc.settimeout(1)
                         # sys.exit(0)     # CI CD
-                        break
+                        break   # CICD
 
                 except (Exception, socket.error) as err:
                     self.logIt_thread(log_path, msg=f'Connection Error: {e}')
