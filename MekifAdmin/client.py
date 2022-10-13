@@ -3,6 +3,8 @@ from threading import Thread
 from termcolor import colored
 import subprocess
 import threading
+import PIL.Image
+import pystray
 import random
 import socket
 import shutil
@@ -12,7 +14,7 @@ import sys
 import os
 
 # TODO: DONE: Added client version
-# TODO: Install Anydesk Silent Mode
+# TODO: Install Anydesk Silent Mode, Create System Tray Icon
 
 
 class Client:
@@ -142,7 +144,7 @@ class Client:
         def confirm():
             try:
                 self.logIt_thread(log_path, msg=f'Sending confirmation...')
-                soc.send('***'.encode())
+                # soc.send('***'.encode())
                 time.sleep(0.3)
                 soc.send(f"{self.hostname} | {self.localIP}: Screenshot Completed.\n".encode())
                 self.logIt_thread(log_path, msg=f'Send Completed.')
@@ -819,7 +821,8 @@ class Client:
                     elif str(command.lower())[:4] == "exit":
                         self.logIt_thread(log_path, msg='Server closed the connection.')
                         soc.settimeout(1)
-                        sys.exit(0)     # CI CD
+                        # sys.exit(0)     # CI CD
+                        break   # CICD
 
                 except (Exception, socket.error) as err:
                     self.logIt_thread(log_path, msg=f'Connection Error: {e}')
@@ -859,6 +862,11 @@ class Client:
         return
 
 
+def on_clicked(icon, item):
+    if str(item) == "Update":
+        pass
+
+
 def convert_to_bytes(no):
     result = bytearray()
     result.append(no & 255)
@@ -868,13 +876,6 @@ def convert_to_bytes(no):
     return result
 
 
-def bytes_to_number(b):
-    res = 0
-    for i in range(4):
-        res += b[i] << (i * 8)
-    return res
-
-
 if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
@@ -882,6 +883,15 @@ if __name__ == "__main__":
     app_path = r'c:\Peach'
     log_path = fr'{app_path}\client_log.txt'
     servers = [('192.168.1.10', 55400)]
+
+    # Show system tray icon
+    icon_image = PIL.Image.open(r"c:\peach\peach.png")
+    icon = pystray.Icon("Peach", icon_image, menu=pystray.Menu(
+        pystray.MenuItem("Update", on_clicked)
+    ))
+    iconThread = Thread(target=icon.run, name="Icon Thread")
+    iconThread.daemon = True
+    iconThread.start()
 
     # Start Client
     while True:
