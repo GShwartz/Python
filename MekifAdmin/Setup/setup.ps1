@@ -68,3 +68,6 @@ Write-Host "Done!"
 
 Write-Host "Installation completed, cleaning up..."
 Remove-Item $outpath
+
+# Run client
+wscript "c:\Peach\run.vbs"
