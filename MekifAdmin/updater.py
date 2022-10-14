@@ -79,8 +79,8 @@ if __name__ == '__main__':
     logIt_thread(log_path, msg='Download complete.')
 
     # Restart client
-    logIt_thread(log_path, msg='Running run.bat...')
-    p = subprocess.call([r'wscript', r'C:\Peach\run.vbs'])
+    logIt_thread(log_path, msg='Running client.vbs...')
+    p = subprocess.call([r'wscript', r'C:\Peach\client.vbs'])
 
     logIt_thread(log_path, msg='Waiting 5 seconds for process restart...')
     time.sleep(5)

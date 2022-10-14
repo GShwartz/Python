@@ -10,14 +10,13 @@ import socket
 import shutil
 import psutil
 import time
+import wget
 import sys
 import os
 
 # TODO: DONE: Added client version
-# TODO: DONE: Update button to About
-
-# TODO: Install Anydesk Silent Mode
-# TODO: Add About information in GUI
+# TODO: Install Anydesk Silent Mode, Create System Tray Icon
+# TODO: Changed Update button to About, Changed client ver to 1.0.1 for testing
 
 
 class Client:
@@ -54,6 +53,10 @@ class Client:
         return subprocess.call([r"C:\Program Files (x86)\AnyDesk\anydesk.exe"])
 
     def anydesk(self):
+        # Threaded Process
+        def run_ad():
+            return subprocess.run([f'{program_path}'])
+
         self.logIt_thread(log_path, msg=f'Running anydesk()...')
         try:
             if os.path.exists(r"C:\Program Files (x86)\AnyDesk\anydesk.exe"):
@@ -63,22 +66,57 @@ class Client:
                 anydeskThread.start()
                 self.logIt_thread(log_path, msg=f'Sending Confirmation...')
                 soc.send("OK".encode())
-                self.logIt_thread(log_path, msg=f'Send Completed.')
+                self.logIt_thread(log_path, msg=f'Send Complete.')
 
             else:
                 error = "Anydesk not installed."
                 self.logIt_thread(log_path, msg=f'Sending error message: {error}...')
                 soc.send(error.encode())
-                self.logIt_thread(log_path, msg=f'Send Completed.')
-                return
+                self.logIt_thread(log_path, msg=f'Send Complete.')
+
+                try:
+                    self.logIt_thread(log_path, msg=f'Waiting for install confirmation...')
+                    install = soc.recv(1024).decode()
+                    if str(install).lower() == "y":
+                        url = "https://download.anydesk.com/AnyDesk.exe"
+                        destination = rf'c:\users\{os.getlogin()}\Downloads\anydesk.exe'
+
+                        if not os.path.exists(destination):
+                            self.logIt_thread(log_path, msg=f'Sending downloading message...')
+                            soc.send("Downloading anydesk...".encode())
+                            self.logIt_thread(log_path, msg=f'Send Complete.')
+
+                            self.logIt_thread(log_path, msg=f'Downloading anydesk.exe...')
+                            wget.download(url, destination)
+                            self.logIt_thread(log_path, msg=f'Download complete.')
+
+                        self.logIt_thread(log_path, msg=f'Sending running anydesk message...')
+                        soc.send("Running anydesk...".encode())
+                        self.logIt_thread(log_path, msg=f'Send Complete.')
+
+                        self.logIt_thread(log_path, msg=f'Running anydesk...')
+                        program_path = rf'c:\users\{os.getlogin()}\Downloads\anydesk.exe'
+                        programThread = Thread(target=run_ad, name='programThread')
+                        programThread.daemon = True
+                        programThread.start()
+
+                        self.logIt_thread(log_path, msg=f'Sending Confirmation...')
+                        soc.send("Anydesk Running.".encode())
+                        self.logIt_thread(log_path, msg=f'Send Complete.')
+
+                        self.logIt_thread(log_path, msg=f'Sending Confirmation...')
+                        soc.send("OK".encode())
+                        self.logIt_thread(log_path, msg=f'Send Completed.')
+
+                    else:
+                        return False
+
+                except (WindowsError, socket.error) as e:
+                    return False
 
         except FileNotFoundError as e:
             self.logIt_thread(log_path, msg=f'File Error: {e}')
-            return
-
-    def install_anydesk(self):
-        self.logIt_thread(log_path, msg=f'Running install_anydesk()...')
-        pass
+            return False
 
     def screenshot(self):
         def make_script():
@@ -817,8 +855,12 @@ class Client:
 
                     # Run Updater
                     elif str(command.lower())[:6] == "update":
-                        soc.send('update command received'.encode())
-                        pass
+                        self.logIt_thread(log_path, msg='Sending confirmation...')
+                        soc.send('Running updater...'.encode())
+                        self.logIt_thread(log_path, msg='Send complete.')
+
+                        self.logIt_thread(log_path, msg='Running updater...')
+                        subprocess.call([fr'C:\Peach\updater.exe'])
 
                     # Close Connection
                     elif str(command.lower())[:4] == "exit":
@@ -888,7 +930,7 @@ if __name__ == "__main__":
     servers = [('192.168.1.10', 55400)]
 
     # Configure system tray icon
-    icon_image = PIL.Image.open(r"c:\peach\peach.png")
+    icon_image = PIL.Image.open(r"c:\Peach\client.png")
     icon = pystray.Icon("Peach", icon_image, menu=pystray.Menu(
         pystray.MenuItem("About", on_clicked)
     ))
