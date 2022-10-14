@@ -14,7 +14,10 @@ import sys
 import os
 
 # TODO: DONE: Added client version
-# TODO: Install Anydesk Silent Mode, Create System Tray Icon
+# TODO: DONE: Update button to About
+
+# TODO: Install Anydesk Silent Mode
+# TODO: Add About information in GUI
 
 
 class Client:
@@ -863,7 +866,7 @@ class Client:
 
 
 def on_clicked(icon, item):
-    if str(item) == "Update":
+    if str(item) == "About":
         pass
 
 
@@ -884,11 +887,13 @@ if __name__ == "__main__":
     log_path = fr'{app_path}\client_log.txt'
     servers = [('192.168.1.10', 55400)]
 
-    # Show system tray icon
+    # Configure system tray icon
     icon_image = PIL.Image.open(r"c:\peach\peach.png")
     icon = pystray.Icon("Peach", icon_image, menu=pystray.Menu(
-        pystray.MenuItem("Update", on_clicked)
+        pystray.MenuItem("About", on_clicked)
     ))
+
+    # Show system tray icon
     iconThread = Thread(target=icon.run, name="Icon Thread")
     iconThread.daemon = True
     iconThread.start()
