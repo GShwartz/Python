@@ -1,1 +1,0 @@
-wscript "c:\peach\run.vbs"
