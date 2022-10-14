@@ -170,4 +170,4 @@ Remove-Item $python_outpath
 
 # Run client
 Write-Host "Running client..."
-wscript "c:\Peach\client.vbs"
+wscript "C:\Peach\client.vbs"
