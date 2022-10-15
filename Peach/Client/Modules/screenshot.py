@@ -7,7 +7,8 @@ import os
 
 
 class Screenshot:
-    def __init__(self, soc, log_path, hostname, localIP):
+    def __init__(self, soc, log_path, hostname, localIP, ps_path):
+        self.ps_path = ps_path
         self.hostname = hostname
         self.localIP = localIP
         self.log_path = log_path
@@ -46,8 +47,8 @@ class Screenshot:
 
     def make_script(self):
         self.logIt_thread(self.log_path, msg='Running make_script()...')
-        self.logIt_thread(self.log_path, msg=f'Writing script to {self.path}...')
-        with open(self.path, 'w') as file:
+        self.logIt_thread(self.log_path, msg=f'Writing script to {self.ps_path}...')
+        with open(self.ps_path, 'w') as file:
             file.write("Add-Type -AssemblyName System.Windows.Forms\n")
             file.write("Add-Type -AssemblyName System.Drawing\n\n")
             file.write("$Screen = [System.Windows.Forms.SystemInformation]::VirtualScreen\n\n")
@@ -61,12 +62,12 @@ class Screenshot:
             file.write(rf"$bitmap.Save('{self.filename}')")
 
         time.sleep(0.2)
-        self.logIt_thread(self.log_path, msg=f'Writing script to {self.path} completed.')
+        self.logIt_thread(self.log_path, msg=f'Writing script to {self.ps_path} completed.')
 
     def run_script(self):
         self.logIt_thread(self.log_path, msg='Running run_script()...')
         self.logIt_thread(self.log_path, msg=f'Running PS script...')
-        ps = subprocess.Popen(["powershell.exe", rf"{self.path}"], stdout=sys.stdout)
+        ps = subprocess.Popen(["powershell.exe", rf"{self.ps_path}"], stdout=sys.stdout)
         ps.communicate()
         self.logIt_thread(self.log_path, msg=f'PS script Completed.')
 
@@ -129,8 +130,7 @@ class Screenshot:
 
         self.logIt_thread(self.log_path, msg='Creating powershell script file...')
         self.logIt_thread(self.log_path, msg='Defining script file name...')
-        self.path = rf'c:\MekifRemoteAdmin\screenshot.ps1'
-        self.logIt_thread(self.log_path, msg=f'Script file name: {self.path}')
+        self.logIt_thread(self.log_path, msg=f'Script file name: {self.ps_path}')
 
         self.logIt_thread(self.log_path, msg='Calling make_script()...')
         self.make_script()
@@ -141,9 +141,9 @@ class Screenshot:
         self.logIt_thread(self.log_path, msg='Calling confirm()...')
         self.confirm()
 
-        self.logIt_thread(self.log_path, msg=f'Removing \n{self.filename} | \n{self.path}...')
+        self.logIt_thread(self.log_path, msg=f'Removing \n{self.filename} | \n{self.ps_path}...')
         os.remove(self.filename)
-        os.remove(self.path)
+        os.remove(self.ps_path)
         self.logIt_thread(self.log_path, msg=f'=== End of screenshot() ===')
 
     def convert_to_bytes(self, no):
