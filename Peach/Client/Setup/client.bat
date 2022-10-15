@@ -1,0 +1,1 @@
+wscript "c:\peach\client.vbs"
