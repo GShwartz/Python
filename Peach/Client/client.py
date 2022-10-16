@@ -18,9 +18,7 @@ from tasks import Tasks
 from freestyle import Freestyle
 
 
-# TODO: DONE: Install Anydesk
-# TODO: Fix multiple entries on connected list after disconnection
-
+# TODO: Move all command files to result lists
 
 class Client:
     def __init__(self, server, main_path, log_path):
@@ -200,7 +198,7 @@ class Client:
                     # Freestyle
                     if str(command.lower())[:9] == "freestyle":
                         self.logIt_thread(log_path, msg='Initiating Freestyle class...')
-                        free = Freestyle(soc, self.log_path, self.hostname, self.localIP)
+                        free = Freestyle(soc, log_path, self.hostname, self.localIP)
 
                         self.logIt_thread(log_path, msg='Calling Freestyle class...')
                         free.free_style()
