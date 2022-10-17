@@ -13,7 +13,6 @@ from Modules.tasks import Tasks
 from Modules.vital_signs import Vitals
 from Modules.sysinfo import Sysinfo
 from Modules.freestyle import Freestyle
-from Modules import ftp_server
 
 # TODO: DONE: Add client version
 # TODO: DONE: Added line 802 con.close()
@@ -637,7 +636,8 @@ class Server:
                     break
 
                 self.logIt_thread(self.log_path, msg=f'Initializing Freestyle Module...')
-                free = Freestyle(con, path, self.tmp_availables, self.clients, self.targets, log_path)
+                free = Freestyle(con, path, self.tmp_availables, self.clients,
+                                 self.targets, log_path, self.ident)
 
                 self.logIt_thread(self.log_path, msg=f'Calling freestyle module...')
                 free.freestyle()
