@@ -60,7 +60,7 @@ class Freestyle:
         while True:
             try:
                 self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
-                cmd = input(f"{self.ident}♦CMD>")
+                cmd = input(f"{host}♦CMD>")
                 self.logIt_thread(self.log_path, debug=False, msg=f'User input: {cmd}')
 
                 if str(cmd).lower()[:4] == "back":
