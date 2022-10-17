@@ -27,7 +27,6 @@ class Server:
     ips = []
     targets = []
     threads = []
-    tmp_availables = []
 
     def __init__(self, serverIP, serverPort, ttl, path, log_path):
         self.serverIp = serverIP
@@ -713,7 +712,11 @@ class Server:
 
                     print(f"[{colored('*', 'cyan')}]Fetching system information, please wait... ")
                     self.logIt_thread(self.log_path, msg=f'Calling sysinfo.run()...')
-                    sysinfo.recv_file(text=True)
+                    if sysinfo.run():
+                        print("OK")
+
+                    else:
+                        return False
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
                     self.logIt_thread(self.log_path, debug=True, msg=f'Connection Error: {e}.')
@@ -842,13 +845,9 @@ class Server:
                             for identKey, userValue in identValue.items():
                                 self.targets.remove(con)
                                 self.ips.remove(ip)
-                                server.ips.remove(ip)
-                                server.targets.remove(con)
 
                                 del self.connections[con]
                                 del self.clients[con]
-                                con.close()
-                                self.reset()
                                 print(f"[{colored('*', 'red')}]{colored(f'{ip}', 'yellow')} | "
                                       f"{colored(f'{identKey}', 'yellow')} | "
                                       f"{colored(f'{userValue}', 'yellow')} "
@@ -857,7 +856,7 @@ class Server:
             self.logIt_thread(self.log_path, msg=f'Connections removed.')
             return True
 
-        except (RuntimeError, ValueError) as e:
+        except RuntimeError as e:
             self.logIt_thread(self.log_path, msg=f'Runtime Error: {e}.')
             return False
 
@@ -934,14 +933,13 @@ def main():
             station = server.get_station_number()
             if station:
                 server.logIt_thread(log_path, msg=f'Calling server.shell({station[1]}, {station[2]})...')
-                server.shell(station[1], station[2])
-                return
+                if server.shell(station[1], station[2]):
+                    return True
 
         else:
             server.logIt_thread(log_path, msg=f'No available connections.')
             print(f"[{colored('*', 'cyan')}]No available connections.")
-
-        return
+            return False
 
     def choices():
         server.logIt_thread(log_path, msg=f'Validating input number is in the menu...')
@@ -1064,6 +1062,8 @@ def main():
 
 
 if __name__ == '__main__':
+    tmp_availables = []
+
     port = 55400
     ttl = 5
     hostname = socket.gethostname()
