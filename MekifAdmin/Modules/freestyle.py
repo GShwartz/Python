@@ -33,7 +33,30 @@ class Freestyle:
 
         return
 
+    def make_dir(self):
+        for item in self.tmp_availables:
+            for conKey, ipValue in self.clients.items():
+                for ipKey in ipValue.keys():
+                    if item[1] == ipKey:
+                        ipval = item[1]
+                        host = item[2]
+                        user = item[3]
+                        path = os.path.join(self.root, host)
+                        try:
+                            os.makedirs(path)
+
+                        except FileExistsError:
+                            self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
+                            pass
+
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Directory created.')
+
+                        return ipval, host, user, path
+
     def freestyle(self):
+        ipval, host, user, path = self.make_dir()
+        self.cmd_log = rf'C:\Peach\{host}\cmd_log.txt'
+
         while True:
             try:
                 self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
@@ -52,6 +75,16 @@ class Freestyle:
 
                 result = self.con.recv(4096).decode()
                 print(result)
+
+                if not os.path.exists(self.cmd_log):
+                    with open(self.cmd_log, 'w') as log:
+                        log.write(f"Command: {cmd}\n")
+                        log.write(f"{result}\n")
+
+                else:
+                    with open(self.cmd_log, 'a') as log:
+                        log.write(f"Command: {cmd}\n")
+                        log.write(f"{result}\n")
 
             except (WindowsError, socket.error) as e:
                 self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}')
