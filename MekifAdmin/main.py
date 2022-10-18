@@ -8,12 +8,11 @@ import psutil
 import sys
 
 # Local Modules
-from Modules.screenshot import Screenshot
-from Modules.tasks import Tasks
-from Modules.vital_signs import Vitals
-from Modules.sysinfo import Sysinfo
-from Modules.freestyle import Freestyle
-
+from Modules import screenshot
+from Modules import tasks
+from Modules import vital_signs
+from Modules import sysinfo
+from Modules import freestyle
 
 # TODO: Fix logging files and directories (saving only to SANDBOX dir)
 
@@ -239,8 +238,8 @@ class Server:
 
         self.logIt_thread(self.log_path,
                           msg=f'Init class: vitals({self.targets, self.ips, self.clients, self.connections, self.log_path})...')
-        vitals = Vitals(self.targets, self.ips, self.clients,
-                        self.connections, self.log_path, self.ident)
+        vitals = vital_signs.Vitals(self.targets, self.ips, self.clients,
+                                    self.connections, self.log_path, self.ident)
         if vitals.vitals_input():
             vitals.vital_signs()
             return True
@@ -646,8 +645,8 @@ class Server:
                                     user = item[3]
 
                 self.logIt_thread(self.log_path, msg=f'Initializing Freestyle Module...')
-                free = Freestyle(con, path, self.tmp_availables, self.clients,
-                                 log_path, host, user)
+                free = freestyle.Freestyle(con, path, self.tmp_availables, self.clients,
+                                           log_path, host, user)
 
                 self.logIt_thread(self.log_path, msg=f'Calling freestyle module...')
                 free.freestyle(ip)
@@ -694,11 +693,11 @@ class Server:
 
                     self.logIt_thread(self.log_path, msg=f'Calling Module: '
                                                          f'screenshot({con, path, self.tmp_availables, self.clients})...')
-                    screenshot = Screenshot(con, path, self.tmp_availables,
-                                            self.clients, self.log_path, self.targets)
+                    scrnshot = screenshot.Screenshot(con, path, self.tmp_availables,
+                                                     self.clients, self.log_path, self.targets)
 
                     self.logIt_thread(self.log_path, msg=f'Calling screenshot.recv_file()...')
-                    screenshot.recv_file(ip)
+                    scrnshot.recv_file(ip)
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
                     self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
@@ -719,11 +718,11 @@ class Server:
 
                 try:
                     self.logIt_thread(self.log_path, msg=f'Initializing Module: sysinfo...')
-                    sysinfo = Sysinfo(con, self.ttl, path, self.tmp_availables, self.clients, self.log_path)
+                    sinfo = sysinfo.Sysinfo(con, self.ttl, path, self.tmp_availables, self.clients, self.log_path)
 
                     print(f"[{colored('*', 'cyan')}]Fetching system information, please wait... ")
                     self.logIt_thread(self.log_path, msg=f'Calling sysinfo.run()...')
-                    if sysinfo.run(ip):
+                    if sinfo.run(ip):
                         print(f"[{colored('V', 'green')}]OK!")
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
@@ -787,15 +786,15 @@ class Server:
                     break
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Initializing Module: tasks...')
-                tasks = Tasks(con, ip, ttl, self.clients, self.connections,
-                              self.targets, self.ips, self.tmp_availables, path, self.log_path)
+                tsks = tasks.Tasks(con, ip, ttl, self.clients, self.connections,
+                                   self.targets, self.ips, self.tmp_availables, path, self.log_path)
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Calling tasks.tasks()...')
-                if not tasks.tasks(ip):
+                if not tsks.tasks(ip):
                     return False
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Calling tasks.kill_tasks()...')
-                task = tasks.kill_tasks(ip)
+                task = tsks.kill_tasks(ip)
                 if task is None:
                     continue
 
