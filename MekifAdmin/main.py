@@ -51,7 +51,7 @@ class Server:
 
     def get_date(self):
         d = datetime.now().replace(microsecond=0)
-        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+        dt = str(d.strftime("%m/%d/%Y %H:%M:%S"))
 
         return dt
 
@@ -121,7 +121,7 @@ class Server:
                 self.logIt_thread(self.log_path, msg=f'Waiting for client version...')
                 self.client_version = self.conn.recv(1024).decode()
                 self.logIt_thread(self.log_path, msg=f'Client version: {self.client_version}')
-                self.logIt_thread(self.log_path, msg=f'Sending Confirmation to {self.ip}...')
+
                 self.conn.send('OK'.encode())
                 self.logIt_thread(self.log_path, msg=f'Send completed.')
 
@@ -647,7 +647,7 @@ class Server:
 
                 self.logIt_thread(self.log_path, msg=f'Initializing Freestyle Module...')
                 free = Freestyle(con, path, self.tmp_availables, self.clients,
-                                 self.targets, log_path, ipval, host, user)
+                                 log_path, host, user)
 
                 self.logIt_thread(self.log_path, msg=f'Calling freestyle module...')
                 free.freestyle(ip)
@@ -726,9 +726,6 @@ class Server:
                     if sysinfo.run(ip):
                         print(f"[{colored('V', 'green')}]OK!")
 
-                    else:
-                        return False
-
                 except (WindowsError, socket.error, ConnectionResetError) as e:
                     self.logIt_thread(self.log_path, debug=True, msg=f'Connection Error: {e}.')
                     # print(f"[{colored('!', 'red')}]Client lost connection.")
@@ -791,22 +788,20 @@ class Server:
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Initializing Module: tasks...')
                 tasks = Tasks(con, ip, ttl, self.clients, self.connections,
-                              self.targets, self.ips, self.tmp_availables, path)
+                              self.targets, self.ips, self.tmp_availables, path, self.log_path)
 
-                # tasks.run()
                 self.logIt_thread(self.log_path, debug=False, msg=f'Calling tasks.tasks()...')
-                if not tasks.tasks():
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Tasks: False. returning False...')
+                if not tasks.tasks(ip):
                     return False
 
                 self.logIt_thread(self.log_path, debug=False, msg=f'Calling tasks.kill_tasks()...')
-                task = tasks.kill_tasks()
+                task = tasks.kill_tasks(ip)
                 if task is None:
                     continue
 
                 try:
                     self.logIt_thread(self.log_path, debug=False, msg=f'Calling tasks.task_to_kill()...')
-                    tasks.task_to_kill()
+                    tasks.task_to_kill(ip)
                     return True
 
                 except (WindowsError, socket.error, ConnectionResetError, ConnectionError) as e:
