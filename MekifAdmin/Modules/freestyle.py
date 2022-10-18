@@ -10,8 +10,10 @@ from datetime import datetime
 
 
 class Freestyle:
-    def __init__(self, con, root, tmp_availables, clients, targets, logpath, ident):
-        self.ident = ident
+    def __init__(self, con, root, tmp_availables, clients, targets, logpath, ipval, host, user):
+        self.ipval = ipval
+        self.host = host
+        self.user = user
         self.con = con
         self.root = root
         self.tmp_availables = tmp_availables
@@ -33,34 +35,38 @@ class Freestyle:
 
         return
 
-    def make_dir(self):
-        for item in self.tmp_availables:
-            for conKey, ipValue in self.clients.items():
-                for ipKey in ipValue.keys():
-                    if item[1] == ipKey:
-                        ipval = item[1]
-                        host = item[2]
-                        user = item[3]
-                        path = os.path.join(self.root, host)
-                        try:
-                            os.makedirs(path)
+    def make_dir(self, ip):
+        self.logIt_thread(self.log_path, debug=False, msg=f'Running make_dir()...')
+        self.logIt_thread(self.log_path, debug=False, msg=f'Creating Directory...')
 
-                        except FileExistsError:
-                            self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
-                            pass
+        for conKey, ipValue in self.clients.items():
+            for ipKey, userValue in ipValue.items():
+                if ipKey == ip:
+                    for item in self.tmp_availables:
+                        if item[1] == ip:
+                            for identKey, timeValue in userValue.items():
+                                name = item[2]
+                                loggedUser = item[3]
+                                clientVersion = item[4]
+                                path = os.path.join(self.root, name)
 
-                        self.logIt_thread(self.log_path, debug=False, msg=f'Directory created.')
+                                try:
+                                    os.makedirs(path)
 
-                        return ipval, host, user, path
+                                except FileExistsError:
+                                    self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
+                                    pass
 
-    def freestyle(self):
-        ipval, host, user, path = self.make_dir()
-        self.cmd_log = rf'C:\Peach\{host}\cmd_log.txt'
+        return name, loggedUser, path
+
+    def freestyle(self, ip):
+        name, loggedUser, path = self.make_dir(ip)
+        self.cmd_log = rf'C:\Peach\{name}\cmd_log.txt'
 
         while True:
             try:
                 self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
-                cmd = input(f"{host}♦CMD>")
+                cmd = input(f"{ip}|{name}♦CMD>")
                 self.logIt_thread(self.log_path, debug=False, msg=f'User input: {cmd}')
 
                 if str(cmd).lower()[:4] == "back":
@@ -73,18 +79,23 @@ class Freestyle:
                 self.con.send(cmd.encode())
                 self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
 
-                result = self.con.recv(4096).decode()
-                print(result)
+                while True:
+                    result = self.con.recv(1024).decode()
 
-                if not os.path.exists(self.cmd_log):
-                    with open(self.cmd_log, 'w') as log:
-                        log.write(f"Command: {cmd}\n")
-                        log.write(f"{result}\n")
+                    if "END" in str(result):
+                        break
 
-                else:
-                    with open(self.cmd_log, 'a') as log:
-                        log.write(f"Command: {cmd}\n")
-                        log.write(f"{result}\n")
+                    print(result)
+
+                    if not os.path.exists(self.cmd_log):
+                        with open(self.cmd_log, 'w+') as log:
+                            log.write(f"Command: {cmd}\n")
+                            log.write(f"{result}\n")
+
+                    else:
+                        with open(self.cmd_log, 'a') as log:
+                            log.write(f"Command: {cmd}\n")
+                            log.write(f"{result}\n")
 
             except (WindowsError, socket.error) as e:
                 self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}')

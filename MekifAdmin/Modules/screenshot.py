@@ -10,9 +10,8 @@ import os
 
 
 class Screenshot:
-    threads = []
-
-    def __init__(self, con, root, tmp_availables, clients, log_path):
+    def __init__(self, con, root, tmp_availables, clients, log_path, targets):
+        self.targets = targets
         self.con = con
         self.root = root
         self.tmp_availables = tmp_availables
@@ -50,7 +49,6 @@ class Screenshot:
     def logIt_thread(self, log_path=None, debug=False, msg=''):
         self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
         self.logit_thread.start()
-        self.threads.append(self.logit_thread)
         return
 
     def bytes_to_number(self, b):
@@ -59,28 +57,30 @@ class Screenshot:
             res += b[i] << (i * 8)
         return res
 
-    def recv_file(self):
+    def recv_file(self, ip):
         def make_dir():
             self.logIt_thread(self.log_path, debug=False, msg=f'Running make_dir()...')
             self.logIt_thread(self.log_path, debug=False, msg=f'Creating Directory...')
-            for item in self.tmp_availables:
-                for conKey, ipValue in self.clients.items():
-                    for ipKey in ipValue.keys():
-                        if item[1] == ipKey:
-                            ipval = item[1]
-                            host = item[2]
-                            user = item[3]
-                            path = os.path.join(self.root, host)
-                            try:
-                                os.makedirs(path)
 
-                            except FileExistsError:
-                                self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
-                                pass
+            for conKey, ipValue in self.clients.items():
+                for ipKey, userValue in ipValue.items():
+                    if ipKey == ip:
+                        for item in self.tmp_availables:
+                            if item[1] == ip:
+                                for identKey, timeValue in userValue.items():
+                                    name = item[2]
+                                    loggedUser = item[3]
+                                    clientVersion = item[4]
+                                    path = os.path.join(self.root, name)
 
-                            self.logIt_thread(self.log_path, debug=False, msg=f'Directory created.')
+                                    try:
+                                        os.makedirs(path)
 
-                            return ipval, host, user, path
+                                    except FileExistsError:
+                                        self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
+                                        pass
+
+            return name, loggedUser, path
 
         def file_name():
             self.logIt_thread(self.log_path, debug=False, msg=f'Running file_name()...')
@@ -194,7 +194,7 @@ class Screenshot:
 
         self.logIt_thread(self.log_path, debug=False, msg=f'Running recv_file()...')
         self.logIt_thread(self.log_path, debug=False, msg=f'Calling make_dir()...')
-        ipval, host, user, path = make_dir()
+        host, user, path = make_dir()
 
         self.logIt_thread(self.log_path, debug=False, msg=f'Defining filename...')
         filename = file_name()
