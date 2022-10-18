@@ -9,8 +9,6 @@ import os
 
 
 class Vitals:
-    threads = []
-
     def __init__(self, targets, ips, clients, connections, log_path, ident):
         self.targets = targets
         self.ips = ips
@@ -28,7 +26,7 @@ class Vitals:
 
     def get_date(self):
         d = datetime.now().replace(microsecond=0)
-        dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
+        dt = str(d.strftime("%m/%d/%Y %H:%M:%S"))
 
         return dt
 
@@ -57,7 +55,6 @@ class Vitals:
     def logIt_thread(self, log_path=None, debug=False, msg=''):
         self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
         self.logit_thread.start()
-        self.threads.append(self.logit_thread)
         return
 
     def remove_lost_connection(self, con, ip):
@@ -146,17 +143,27 @@ class Vitals:
 
                 self.logIt_thread(self.log_path, msg=f'Comparing response to callback...')
                 if str(ans) == str(callback):
-                    print(f"[{colored('V', 'green')}]{self.ips[i]} | {self.ident} | Version: {ver}")
-                    self.logIt_thread(self.log_path, msg=f'Appending {self.targets[i]} to self.templist...')
-                    self.templist.append(self.targets[i])
-                    self.logIt_thread(self.log_path, msg=f'self.templist updated.')
+                    try:
+                        for conKey, ipValue in self.clients.items():
+                            for ipKey, identValue in ipValue.items():
+                                for con, ip in self.connections.items():
+                                    if t == con:
+                                        for name, version in identValue.items():
+                                            for v, v1 in version.items():
+                                                print(f"[{colored('V', 'green')}]{self.ips[i]} | {name} | Version: {v1}")
+                                                self.logIt_thread(self.log_path, msg=f'Appending {self.targets[i]} to self.templist...')
+                                                self.templist.append(self.targets[i])
+                                                self.logIt_thread(self.log_path, msg=f'self.templist updated.')
 
-                    self.logIt_thread(self.log_path, msg=f'Appending {self.ips[i]} to self.ips...')
-                    self.tempips.append(self.ips[i])
-                    self.logIt_thread(self.log_path, msg=f'self.ips updated.')
+                                                self.logIt_thread(self.log_path, msg=f'Appending {self.ips[i]} to self.ips...')
+                                                self.tempips.append(self.ips[i])
+                                                self.logIt_thread(self.log_path, msg=f'self.ips updated.')
 
-                    i += 1
-                    time.sleep(1)
+                                                i += 1
+                                                time.sleep(1)
+
+                    except IndexError:
+                        pass
 
             except ConnectionResetError as e:
                 self.logIt_thread(self.log_path, msg=f'Connection Error: {e}.')

