@@ -1,1 +1,1 @@
-wscript "c:\handsoff\client.vbs"
+wscript "c:\HandsOff\client.vbs"

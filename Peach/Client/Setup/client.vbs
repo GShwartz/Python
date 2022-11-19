@@ -1,4 +1,4 @@
 Dim WShell
 Set WShell = CreateObject("WScript.Shell")
-WShell.Run "c:\handsoff\client.exe", 0
+WShell.Run "c:\HandsOff\client.exe", 0
 Set WShell = Nothing
