@@ -1,15 +1,5 @@
-psutil
-termcolor
-pwinput
-colorama
-setuptools
 Pillow
-future
-admin
-tqdm
-skein
-cryptography
-pyftpdlib
-Flask
 pystray
+psutil
 wget
+termcolor
