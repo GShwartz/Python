@@ -8,8 +8,12 @@ import socket
 import psutil
 import time
 import wget
+import uuid
 import sys
 import os
+
+# GUI
+import PySimpleGUI as sg
 
 # Local Modules
 from screenshot import Screenshot
@@ -119,7 +123,23 @@ class Client:
 
     def backdoor(self, soc):
         def intro():
-            def send_host_name():
+            def send_mac_address() -> str:
+                mac = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff)
+                                for ele in range(0, 8 * 6, 8)][::-1])
+                try:
+                    self.logIt_thread(log_path, msg=f'Sending MAC address: {mac}...')
+                    soc.send(mac.encode())
+                    self.logIt_thread(log_path, msg=f'Send completed.')
+
+                    self.logIt_thread(log_path, msg='Waiting for confirmation from server...')
+                    message = soc.recv(self.buffer_size).decode()
+                    self.logIt_thread(log_path, msg=f'Message from server: {message}')
+
+                except (WindowsError, socket.error):
+                    self.logIt_thread(log_path, msg='Connection Error')
+                    return False
+
+            def send_host_name() -> str:
                 ident = self.hostname
                 try:
                     self.logIt_thread(log_path, msg=f'Sending hostname: {self.hostname}...')
@@ -133,7 +153,7 @@ class Client:
                     self.logIt_thread(log_path, msg='Connection Error')
                     return False
 
-            def send_current_user():
+            def send_current_user() -> str:
                 user = self.current_user
                 try:
                     self.logIt_thread(log_path, msg=f'Sending current user: {user}...')
@@ -168,6 +188,8 @@ class Client:
                     self.logIt_thread(log_path, msg='Connection Error')
                     return False
 
+            self.logIt_thread(log_path, msg='Calling send_mac_address()...')
+            send_mac_address()
             self.logIt_thread(log_path, msg='Calling send_host_name()...')
             send_host_name()
             self.logIt_thread(log_path, msg='Calling send_current_user()...')
@@ -219,7 +241,7 @@ class Client:
                     # Capture Screenshot
                     elif str(command.lower())[:6] == "screen":
                         self.logIt_thread(log_path, msg='Initiating screenshot class...')
-                        self.ps_path = rf"C:\Peach\screenshot.ps1"
+                        self.ps_path = rf"C:\HandsOff\screenshot.ps1"
                         screenshot = Screenshot(soc, log_path, self.hostname, self.localIP, self.ps_path)
 
                         self.logIt_thread(log_path, msg='Calling screenshot.run()...')
@@ -227,11 +249,9 @@ class Client:
 
                     # Get System Information & Users
                     elif str(command.lower())[:2] == "si":
-                        self.logIt_thread(log_path, msg='Initiating system information class...')
-                        sysinformation = Sysinfo(soc, self.log_path, self.hostname, self.localIP)
-
-                        self.logIt_thread(log_path, msg='Calling sysinformation.run()...')
-                        sysinformation.run()
+                        output = subprocess.getoutput('systeminfo')
+                        soc.send(f"{output}\n".encode())
+                        sys.stdout.flush()
 
                     # Get Last Restart Time
                     elif str(command.lower())[:2] == "lr":
@@ -272,14 +292,14 @@ class Client:
                         self.logIt_thread(log_path, msg='Send complete.')
 
                         self.logIt_thread(log_path, msg='Running updater...')
-                        subprocess.call([fr'C:\Peach\updater.exe'])
+                        subprocess.call([fr'C:\HandsOff\updater.exe'])
 
                     # Close Connection
                     elif str(command.lower())[:4] == "exit":
                         self.logIt_thread(log_path, msg='Server closed the connection.')
                         soc.settimeout(1)
                         # sys.exit(0)     # CI CD
-                        break   # CICD
+                        break  # CICD
 
                 except (Exception, socket.error) as err:
                     self.logIt_thread(log_path, msg=f'Connection Error: {e}')
@@ -327,7 +347,17 @@ class Client:
 
 def on_clicked(icon, item):
     if str(item) == "About":
-        pass
+        layout = [[sg.Text("By Gil Shwartz\n@2022")], [sg.Button("OK")]]
+        window = sg.Window("About", layout)
+
+        while True:
+            event, values = window.read()
+            # End program if user closes window or
+            # presses the OK button
+            if event == "OK" or event == sg.WIN_CLOSED:
+                break
+
+        window.close()
 
 
 def convert_to_bytes(no):
@@ -344,13 +374,16 @@ if __name__ == "__main__":
     client_version = "1.0.0"
     task_list = []
     powershell = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-    app_path = r'c:\Peach'
+    app_path = r'c:\HandsOff'
+    if not os.path.exists(app_path):
+        os.makedirs(app_path)
+
     log_path = fr'{app_path}\client_log.txt'
     servers = [('192.168.1.10', 55400)]
 
     # Configure system tray icon
-    icon_image = PIL.Image.open(r"c:\Peach\client.png")
-    icon = pystray.Icon("Peach", icon_image, menu=pystray.Menu(
+    icon_image = PIL.Image.open(rf"{app_path}\HandsOff.png")
+    icon = pystray.Icon("HandsOff", icon_image, menu=pystray.Menu(
         pystray.MenuItem("About", on_clicked)
     ))
 
