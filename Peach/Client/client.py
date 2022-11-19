@@ -312,7 +312,7 @@ class Client:
 
         return True
 
-    def get_date(self):
+    def get_date(self) -> str:
         d = datetime.now().replace(microsecond=0)
         dt = str(d.strftime("%b %d %Y %I.%M.%S %p"))
 
@@ -349,6 +349,7 @@ def on_clicked(icon, item):
     if str(item) == "About":
         layout = [[sg.Text("By Gil Shwartz\n@2022")], [sg.Button("OK")]]
         window = sg.Window("About", layout)
+        window.set_icon('client.ico')
 
         while True:
             event, values = window.read()
