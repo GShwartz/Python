@@ -7,12 +7,19 @@ import os
 
 
 class Screenshot:
-    def __init__(self, soc, log_path, hostname, localIP, ps_path):
-        self.ps_path = ps_path
+    def __init__(self, soc, log_path, hostname, localIP, path):
+        self.ps_path = path
         self.hostname = hostname
         self.localIP = localIP
         self.log_path = log_path
         self.soc = soc
+
+        self.logIt_thread(self.log_path, msg='Calling get_date()...')
+        dt = self.get_date()
+
+        self.logIt_thread(self.log_path, msg='Defining screenshot file name...')
+        self.filename = rf"C:\HandsOff\screenshot {self.hostname} {str(self.localIP)} {dt}.jpg"
+        self.logIt_thread(self.log_path, msg=f'Screenshot file name: {self.filename}')
 
     def get_date(self):
         d = datetime.now().replace(microsecond=0)
@@ -121,17 +128,6 @@ class Screenshot:
 
     def run(self):
         self.logIt_thread(self.log_path, msg='Running screenshot()...')
-        self.logIt_thread(self.log_path, msg='Calling get_date()...')
-        dt = self.get_date()
-        self.logIt_thread(self.log_path, msg='Defining screenshot file name...')
-        self.filename = \
-            rf"c:\MekifRemoteAdmin\screenshot {self.hostname} {str(self.localIP)} {dt}.jpg"
-        self.logIt_thread(self.log_path, msg=f'Screenshot file name: {self.filename}')
-
-        self.logIt_thread(self.log_path, msg='Creating powershell script file...')
-        self.logIt_thread(self.log_path, msg='Defining script file name...')
-        self.logIt_thread(self.log_path, msg=f'Script file name: {self.ps_path}')
-
         self.logIt_thread(self.log_path, msg='Calling make_script()...')
         self.make_script()
         self.logIt_thread(self.log_path, msg='Calling run_script()...')
@@ -152,4 +148,5 @@ class Screenshot:
         for i in range(3):
             no = no >> 8
             result.append(no & 255)
+
         return result

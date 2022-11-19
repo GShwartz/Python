@@ -2,7 +2,11 @@ from datetime import datetime
 from threading import Thread
 import subprocess
 import os
+import sys
+import os
 
+
+# TODO: Move all command files to result lists
 
 class Tasks:
     def __init__(self, soc, path, hostname, localIP):
@@ -170,10 +174,20 @@ class Tasks:
 
         return
 
+    def runa(self):
+        output = subprocess.getoutput('tasklist')
+        self.soc.send(f"{output}\n".encode())
+        self.soc.send("END".encode())
+
+        kil = self.soc.recv(1024).decode()
+        if str(kil)[:4].lower() == "kill":
+            self.logIt_thread(self.log_path, msg=f'Calling kill()...')
+            self.kill()
+
     def run(self):
         self.logIt_thread(self.log_path, msg=f'Defining tasks file name...')
         dt = self.get_date()
-        self.taskfile = rf"c:\MekifRemoteAdmin\tasks {self.hostname} {str(self.localIP)} {dt}.txt"
+        self.taskfile = rf"C:\HandsOff\tasks {self.hostname} {str(self.localIP)} {dt}.txt"
         self.logIt_thread(self.log_path, msg=f'Tasks file name: {self.taskfile}')
 
         self.logIt_thread(self.log_path, msg=f'Calling command_to_file()...')
@@ -192,10 +206,9 @@ class Tasks:
         self.logIt_thread(self.log_path, msg=f'Removing file: {self.taskfile}...')
         os.remove(self.taskfile)
 
-        kil = soc.recv(1024).decode()
+        kil = self.soc.recv(1024).decode()
         if str(kil)[:4].lower() == "kill":
             self.logIt_thread(self.log_path, msg=f'Calling kill()...')
             self.kill()
 
-        else:
-            return False
+        return

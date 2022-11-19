@@ -136,7 +136,7 @@ class Sysinfo:
         dt = self.get_date()
 
         self.logIt_thread(self.log_path, msg='Defining file name...')
-        self.sifile = rf"c:\MekifRemoteAdmin\systeminfo {self.hostname} {str(self.localIP)} {dt}.txt"
+        self.sifile = rf"C:\HandsOff\systeminfo {self.hostname} {str(self.localIP)} {dt}.txt"
         self.logIt_thread(self.log_path, msg=f'File name: {self.sifile}')
 
         self.logIt_thread(self.log_path, msg='Calling command_to_file()...')
