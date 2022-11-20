@@ -287,12 +287,13 @@ class Client:
 
                     # Run Updater
                     elif str(command.lower())[:6] == "update":
+                        update_url = soc.recv(1024).decode()
                         self.logIt_thread(log_path, msg='Sending confirmation...')
                         soc.send('Running updater...'.encode())
                         self.logIt_thread(log_path, msg='Send complete.')
 
                         self.logIt_thread(log_path, msg='Running updater...')
-                        subprocess.call([fr'C:\HandsOff\updater.exe'])
+                        # subprocess.call([fr'C:\HandsOff\updater.exe'])
 
                     # Close Connection
                     elif str(command.lower())[:4] == "exit":
@@ -383,7 +384,7 @@ if __name__ == "__main__":
     servers = [('192.168.1.10', 55400)]
 
     # Configure system tray icon
-    icon_image = PIL.Image.open(rf"{app_path}\HandsOff.png")
+    icon_image = PIL.Image.open(rf"{app_path}\client.png")
     icon = pystray.Icon("HandsOff", icon_image, menu=pystray.Menu(
         pystray.MenuItem("About", on_clicked)
     ))
